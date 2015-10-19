@@ -8,7 +8,7 @@ uses
   // mte components
   RttiIni, mteHelpers,
   // mp components
-  mpFrontend, mpProfilePanel, pngimage;
+  msFrontend, msProfilePanel, pngimage;
 
 type
   TProfileForm = class(TForm)

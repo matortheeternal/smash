@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, SysUtils, Classes, IniFiles, Dialogs, Registry, Graphics, ShlObj,
-  Forms, ShellAPI,
+  Forms, ShellAPI, ComCtrls,
   // indy components
   IdTCPClient, IdStack, IdGlobal,
   // superobject json library
@@ -66,15 +66,13 @@ type
     appIDs: string;
     bsaOptMode: string;
   end;
-  TEntry = class(TObject)
+  TSmashSetting = class(TObject)
   public
-    filename: string;
+    name: string;
     hash: string;
+    description: string;
     records: string;
-    version: string;
-    rating: string;
-    reports: string;
-    notes: string;
+    tree: ISuperObject;
     constructor Create; Overload;
     constructor Create(const s: string); Overload;
   end;
@@ -116,7 +114,7 @@ type
     numOverrides: string;
     author: string;
     dataPath: string;
-    entry: TEntry;
+    entry: TSmashSetting;
     description: TStringList;
     masters: TStringList;
     requiredBy: TStringList;
@@ -126,11 +124,6 @@ type
     procedure GetHash;
     procedure GetDataPath;
     function GetFormIndex: Integer;
-    procedure FindErrors;
-    procedure ResolveErrors;
-    function HasBeenCheckedForErrors: boolean;
-    function HasErrors: boolean;
-    function CanBePatchd: boolean;
     function IsInPatch: boolean;
     procedure LoadInfoDump(obj: ISuperObject);
     function InfoDump: ISuperObject;
@@ -141,8 +134,7 @@ type
     filename: string;
     dateBuilt: TDateTime;
     bIgnoreNonContiguous: boolean;
-    method: string;
-    renumbering: string;
+    setting: string;
     dataPath: string;
     status: TPatchStatusID;
     plugin: TPlugin;
@@ -330,8 +322,7 @@ type
   procedure DeleteTempPath;
   procedure ShowProgressForm(parent: TForm; var pf: TProgressForm; s: string);
   function GetRatingColor(rating: real): integer;
-  function GetEntry(pluginName, numRecords, version: string): TEntry;
-  function IsBlacklisted(const filename: string): boolean;
+  function GetEntry(name, numRecords, version: string): TSmashSetting;
   function PluginLoadOrder(filename: string): integer;
   function PluginByFilename(filename: string): TPlugin;
   function PatchByName(patches: TList; name: string): TPatch;
@@ -363,10 +354,10 @@ type
 
 const
   // IMPORTANT CONSTANTS
-  ProgramTesters = 'bla08, hishy, Kesta';
-  ProgramTranslators = 'GabenOurSavior, fiama, dhxxqk2010, Oaristys';
+  ProgramTesters = ' ';
+  ProgramTranslators = ' ';
   xEditVersion = '3.1.1';
-  bTranslationDump = false;
+  bTranslationDump = true;
 
   // MSG IDs
   MSG_UNKNOWN = 0;
@@ -379,23 +370,18 @@ const
   MSG_REPORT = 7;
 
   // MERGE STATUSES
-  StatusArray: array[0..15] of TPatchStatus = (
+  StatusArray: array[0..10] of TPatchStatus = (
     ( id: psUnknown; color: $808080; desc: 'Unknown'; ),
     ( id: psNoPlugins; color: $0000FF; desc: 'No plugins to patch'; ),
     ( id: psDirInvalid; color: $0000FF; desc: 'Directories invalid'; ),
     ( id: psUnloaded; color: $0000FF; desc: 'Plugins not loaded'; ),
     ( id: psErrors; color: $0000FF; desc: 'Errors in plugins'; ),
     ( id: psFailed; color: $0000FF; desc: 'Patch failed'; ),
-    ( id: msNotContiguous; color: $0080ed; desc: 'Plugins not contiguous'; ),
-    ( id: msBreaksDependencies; color: $0080ed; desc: 'Patch breaks dependencies'; ),
-    ( id: msCheckErrors; color: $0080ed; desc: 'Check for errors required'; ),
     ( id: psUpToDate; color: $900000; desc: 'Up to date'; ),
     ( id: psUpToDateForced; color: $900000; desc: 'Up to date [Forced]'; ),
     ( id: psBuildReady; color: $009000; desc: 'Ready to be built'; ),
     ( id: psRebuildReady; color: $009000; desc: 'Ready to be rebuilt'; ),
-    ( id: psRebuildReadyForced; color: $009000; desc: 'Ready to be rebuilt [Forced]'; ),
-    ( id: msBuilt; color: $000000; desc: 'Built'; ),
-    ( id: msCanceled; color: $000000; desc: 'Canceled'; )
+    ( id: psRebuildReadyForced; color: $009000; desc: 'Ready to be rebuilt [Forced]'; )
   );
   // STATUS TYPES
   ErrorStatuses = [psUnknown, psNoPlugins, psDirInvalid, psUnloaded, psErrors];
@@ -1612,7 +1598,7 @@ begin
   filename := Format('lang\%s.lang', [settings.language]);
   language := TStringList.Create;
   if (not FileExists(filename)) then begin
-    if settings.language <> 'english' then begin
+    {if settings.language <> 'english' then begin
       settings.language := 'english';
       LoadLanguage;
     end
@@ -1620,7 +1606,7 @@ begin
       MessageDlg(directions, mtConfirmation, [mbOk], 0);
       ForceDirectories(ProgramPath + 'lang\');
       ShellExecute(0, 'open', PChar(langFile), '', '', SW_SHOWNORMAL);
-    end;
+    end;}
   end
   else
     language.LoadFromFile(filename);
@@ -1787,7 +1773,7 @@ end;
 procedure LoadDictionary;
 var
   i: Integer;
-  entry: TEntry;
+  setting: TSmashSetting;
   sl: TStringList;
 begin
   // initialize dictionary and blacklist
@@ -1806,10 +1792,8 @@ begin
 
   // load dictionary file into entry object
   for i := 0 to Pred(sl.Count) do begin
-    entry := TEntry.Create(sl[i]);
-    if entry.rating = '-1.0' then
-      blacklist.Add(entry);
-    dictionary.Add(entry);
+    setting := TSmashSetting.Create(sl[i]);
+    dictionary.Add(setting);
   end;
 
   // free temporary stringlist
@@ -2136,32 +2120,17 @@ begin
   Result := g * 256 + r;
 end;
 
-function GetEntry(pluginName, numRecords, version: string): TEntry;
+function GetEntry(name, numRecords, version: string): TSmashSetting;
 var
   i: Integer;
-  entry: TEntry;
+  entry: TSmashSetting;
 begin
-  Result := TEntry.Create;
+  Result := TSmashSetting.Create;
   for i := 0 to Pred(dictionary.Count) do begin
-    entry := TEntry(dictionary[i]);
-    if entry.filename = pluginName then begin
+    entry := TSmashSetting(dictionary[i]);
+    if entry.name = name then begin
       Result := entry;
       exit;
-    end;
-  end;
-end;
-
-function IsBlacklisted(const filename: string): boolean;
-var
-  i: Integer;
-  entry: TEntry;
-begin
-  Result := false;
-  for i := 0 to Pred(blacklist.Count) do begin
-    entry := TEntry(blacklist[i]);
-    if entry.filename = filename then begin
-      Result := true;
-      break;
     end;
   end;
 end;
@@ -3040,7 +3009,7 @@ begin
   dateModified := DateTimeToStr(GetLastModified(wbDataPath + filename));
 
   // get numOverrides if not blacklisted
-  if (_File.RecordCount < 50000) then
+  if (StrToInt(numRecords) < 10000) then
     numOverrides := IntToStr(CountOverrides(_File));
 end;
 
@@ -3082,7 +3051,6 @@ end;
 function TPlugin.InfoDump: ISuperObject;
 var
   obj: ISuperObject;
-  i: integer;
 begin
   obj := SO;
 
@@ -3115,8 +3083,7 @@ begin
   geckScripts := TStringList.Create;
   navConflicts := TStringList.Create;
   ignoredDependencies := TStringList.Create;
-  method := 'Overrides';
-  renumbering := 'Conflicting';
+  setting := 'Default';
   fails := TStringList.Create;
 end;
 
@@ -3148,8 +3115,7 @@ begin
   obj.S['name'] := name;
   obj.S['filename'] := filename;
   obj.S['dateBuilt'] := DateTimeToStr(dateBuilt);
-  obj.S['method'] := method;
-  obj.S['renumbering'] := renumbering;
+  obj.S['setting'] := setting;
   obj.B['bIgnoreNonContiguous'] := bIgnoreNonContiguous;
 
   // plugins, pluginSizes, pluginDates, masters
@@ -3185,8 +3151,7 @@ begin
   // load object attributes
   name := obj.AsObject.S['name'];
   filename := obj.AsObject.S['filename'];
-  method := obj.AsObject.S['method'];
-  renumbering := obj.AsObject.S['renumbering'];
+  setting := obj.AsObject.S['setting'];
   try
     bIgnoreNonContiguous := obj.AsObject.B['bIgnoreNonContiguous'];
   except on Exception do
@@ -3266,9 +3231,8 @@ end;
 
 procedure TPatch.GetStatus;
 var
-  i, j, lastLoadOrder, currentLoadOrder: Integer;
+  i: Integer;
   plugin: TPlugin;
-  bBrokeDependencies: boolean;
 begin
   Logger.Write('MERGE', 'Status', name + ' -> Getting status');
   status := psUnknown;
@@ -3302,7 +3266,6 @@ begin
   end;
 
   // loop through plugins
-  lastLoadOrder := -1;
   for i := 0 to Pred(plugins.Count) do begin
     plugin := PluginByFilename(plugins[i]);
 
@@ -3404,13 +3367,13 @@ begin
 end;
 
 { TEntry }
-constructor TEntry.Create;
+constructor TSmashSetting.Create;
 begin
-  reports := '0';
-  rating := 'No rating';
+  name := 'NewSetting';
+
 end;
 
-constructor TEntry.Create(const s: string);
+constructor TSmashSetting.Create(const s: string);
 var
   i, lastIndex, ct: Integer;
 begin
@@ -3419,17 +3382,9 @@ begin
   for i := 1 to Length(s) do begin
     if s[i] = ';' then begin
       if ct = 0 then
-        filename := Copy(s, lastIndex, i - lastIndex)
+        name := Copy(s, lastIndex, i - lastIndex)
       else if ct = 1 then
-        records := Copy(s, lastIndex, i - lastIndex)
-      else if ct = 2 then
-        version := Copy(s, lastIndex, i - lastIndex)
-      else if ct = 3 then
-        rating := Copy(s, lastIndex, i - lastIndex)
-      else if ct = 4 then begin
-        reports := Copy(s, lastIndex, i - lastIndex);
-        notes := Copy(s, i + 1, Length(s));
-      end;
+        records := Copy(s, lastIndex, i - lastIndex);
       LastIndex := i + 1;
       Inc(ct);
     end;
@@ -3441,8 +3396,8 @@ constructor TSettings.Create;
 begin
   // default settings
   language := 'English';
-  serverHost := 'patchplugins.us.to';
-  serverPort := 960;
+  serverHost := 'matorsmash.us.to';
+  serverPort := 970;
   simpleDictionaryView := false;
   simplePluginsView := false;
   updateDictionary := false;

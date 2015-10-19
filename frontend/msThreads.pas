@@ -28,15 +28,7 @@ type
   protected
     procedure Execute; override;
   end;
-  TErrorCheckThread = class(TThread)
-  protected
-    procedure Execute; override;
-  end;
-  TErrorFixThread = class(TThread)
-  protected
-    procedure Execute; override;
-  end;
-  TMergeThread = class(TThread)
+  TPatchThread = class(TThread)
   protected
     procedure Execute; override;
   end;
@@ -47,7 +39,7 @@ type
 
 var
   InitCallback, LoaderCallback, ErrorCheckCallback, ErrorFixCallback,
-  MergeCallback, SaveCallback, UpdateCallback, ConnectCallback: TCallback;
+  PatchCallback, SaveCallback, UpdateCallback, ConnectCallback: TCallback;
   StatusCallback: TStatusCallback;
 
 implementation
@@ -126,8 +118,8 @@ begin
     handler._AddRef;
 
     // IF AUTOMATIC UPDATING IS ENABLED, CHECK FOR UPDATE
-    {InitializeClient;
-    if settings.updateDictionary or settings.updateProgram then try
+    InitializeClient;
+    {if settings.updateDictionary or settings.updateProgram then try
       Tracker.Write('Checking for updates');
       ConnectToServer;
       if TCPClient.Connected then begin
@@ -151,9 +143,9 @@ begin
     Logger.Write('GENERAL', 'Definitions', 'Using '+wbAppName+'Edit Definitions');
     LoadDefinitions;
 
-    // LOAD MERGES
+    // LOAD PATCHES
     Tracker.Write('Loading settings');
-    LoadSettings;
+    LoadPatches;
 
     // PREPARE TO LOAD PLUGINS
     if settings.usingMO then
@@ -165,7 +157,6 @@ begin
     sl.LoadFromFile(wbPluginsFileName);
     RemoveCommentsAndEmpty(sl);
     RemoveMissingFiles(sl);
-    RemoveMergedPlugins(sl);
     // if GameMode is not Skyrim sort by date modified
     // else add Update.esm and Skyrim.esm to load order
     if wbGameMode <> gmTES5 then begin
@@ -203,6 +194,8 @@ begin
 
       // load hardcoded dat
       if i = 0 then try
+        if not FileExists(wbProgramPath + wbGameName + wbHardcodedDat) then
+          raise Exception.Create('Hardcoded dat file missing!');
         aFile := wbFile(wbProgramPath + wbGameName + wbHardcodedDat, 0);
         aFile._AddRef;
       except
@@ -213,6 +206,9 @@ begin
         end;
       end;
     end;
+
+    // ASSIGN PATCHES TO PLUGINS
+    AssignPatchesToPlugins;
 
     // LOAD PLUGIN INFORMATION
     Tracker.Write('Loading plugin information');
@@ -279,71 +275,11 @@ begin
     Synchronize(nil, LoaderCallback);
 end;
 
-{ TErrorCheckThread }
-procedure TErrorCheckThread.Execute;
-var
-  i: integer;
-  plugin: TPlugin;
-begin
-  // check merges for errors
-  for i := 0 to Pred(pluginsToHandle.Count) do begin
-    if Tracker.Cancel then break;
-    plugin := TPlugin(pluginsToHandle[i]);
-    StatusCallback(Format('%s "%s" (%d/%d)',
-      [GetString('mpProg_Checking'), plugin.filename, i + 1, pluginsToHandle.Count]));
-    // check plugins for errors
-    Tracker.Write('Checking for errors in '+plugin.filename);
-    plugin.FindErrors;
-    Tracker.SetProgress(IntegerListSum(timeCosts, i));
-    if Tracker.Cancel then begin
-      Tracker.Write('Check for errors canceled.');
-      Tracker.SetProgress(IntegerListSum(timeCosts, Pred(pluginsToHandle.Count)));
-    end;
-  end;
-  // inform user thread is done if it wasn't cancelled
-  if not Tracker.Cancel then
-    Tracker.Write('All done!');
-
-  Tracker.Cancel := false;
-  StatusCallback(GetString('mpProg_DoneChecking'));
-  if Assigned(ErrorCheckCallback) then
-    Synchronize(nil, ErrorCheckCallback);
-end;
-
-{ TErrorFixThread }
-procedure TErrorFixThread.Execute;
-var
-  i: integer;
-  plugin: TPlugin;
-begin
-  // check merges for errors
-  for i := 0 to Pred(pluginsToHandle.Count) do begin
-    if Tracker.Cancel then break;
-    plugin := TPlugin(pluginsToHandle[i]);
-    StatusCallback(Format('%s "%s" (%d/%d)',
-      [GetString('mpProg_Fixing'), plugin.filename, i + 1, pluginsToHandle.Count]));
-    // check plugins for errors
-    Tracker.Write('Fixing errors in '+plugin.filename);
-    plugin.ResolveErrors;
-    Tracker.SetProgress(IntegerListSum(timeCosts, i));
-    if Tracker.Cancel then Tracker.Write('Fix errors canceled.');
-  end;
-  // inform user thread is done if it wasn't cancelled
-  if not Tracker.Cancel then
-    Tracker.Write('All done!');
-
-  Tracker.Cancel := false;
-  StatusCallback(GetString('mpProg_DoneFixing'));
-  if Assigned(ErrorFixCallback) then
-    Synchronize(nil, ErrorFixCallback);
-end;
-
 { TMergeThread }
-procedure TMergeThread.Execute;
+procedure TPatchThread.Execute;
 var
-  i, j: integer;
+  i: integer;
   patch: TPatch;
-  slGeck, slNav: TStringList;
 begin
   // build merges
   for i := 0 to Pred(patchesToBuild.Count) do begin
@@ -367,33 +303,6 @@ begin
     if Tracker.Cancel then Tracker.Write('Merging canceled.');
   end;
 
-  // build list of post-merge steps
-  slGeck := TStringList.Create;
-  slNav := TStringList.Create;
-  for i := 0 to Pred(patchesToBuild.Count) do begin
-    patch := TPatch(patchesToBuild[i]);
-    // build geck scripts list
-    if patch.geckScripts.Count > 0 then begin
-      slGeck.Add(Format('[%s]', [patch.filename]));
-      for j := 0 to Pred(patch.geckScripts.Count) do
-        slGeck.Add('  '+patch.geckScripts[j]);
-      slGeck.Add(' ');
-    end;
-    // build nav list
-    if patch.navConflicts.Count > 0 then begin
-      slNav.Add(Format('[%s]', [patch.filename]));
-      for j := 0 to Pred(patch.navConflicts.Count) do
-        slNav.Add('  '+patch.navConflicts[j]);
-      slNav.Add(' ');
-    end;
-  end;
-
-  // inform user about post-merge steps
-  if slGeck.Count > 0 then
-    ShowMessage(Format(GetString('mpProg_GeckScripts'), [Trim(slGeck.Text)]));
-  if slNav.Count > 0 then
-    ShowMessage(Format(GetString('mpProg_NavConflicts'), [Trim(slNav.Text)]));
-
   // say thread is done if it wasn't cancelled
   if not Tracker.Cancel then
     Tracker.Write('All done!');
@@ -401,8 +310,8 @@ begin
   // clean up, fire callback
   StatusCallback(GetString('mpProg_DoneBuilding'));
   Tracker.Cancel := false;
-  if Assigned(MergeCallback) then
-    Synchronize(nil, MergeCallback);
+  if Assigned(PatchCallback) then
+    Synchronize(nil, PatchCallback);
 end;
 
 { TSaveThread }
@@ -420,7 +329,7 @@ begin
     Tracker.SetProgress(PluginsList.Count + 1);
     Tracker.Write(' ');
     // save merges
-    SaveMerges;
+    SavePatches;
     // rename saved plugins
     if bLoaderDone then RenameSavedPlugins;
   end;

@@ -1,0 +1,98 @@
+{ TSmashForm }
+{ ## QuickBar ## }
+msMain_NewButton_Hint=Create new merge|Make a new empty merge.
+msMain_BuildButton_Hint=Build merges|Build all merges that are ready to be built or rebuilt.
+msMain_SubmitButton_Hint=Submit recommendations|Submit smash settings and plugin recommendations.
+msMain_SettingsButton_Hint=View dictionary|Open the dictionary viewer to see all reports submitted by other users.
+msMain_OptionsButton_Hint=Options|Change the options that control how the plugin runs.
+msMain_UpdateButton_Hint=Update|No updates available!
+msMain_HelpButton_Hint=Help|Sorry, this isn't working yet.
+{ ## Main Panel ## }
+{ ## Details Panel ## }
+msMain_DetailsLabel_Caption=Details
+msMain_DetailsCopyToClipboardItem_Caption=Copy to clipboard
+{ ## Plugins Tab ## }
+msMain_PluginsTabSheet_Caption=Plugins
+msMain_PluginsListView_Column0=Index
+msMain_PluginsListView_Column1=Filename
+msMain_PluginsListView_Column2=Setting
+msMain_PluginsListView_Column3=Patch
+{ ## Plugins Popup Menu ## }
+msMain_OpenPluginLocationItem_Caption=Open plugin location
+{ ## Errors Submenu ## }
+msMain_PatchesTabSheet_Caption=Patches
+msMain_PatchesListView_Column0=Index
+msMain_PatchesListView_Column1=Name
+msMain_PatchesListView_Column2=Filename
+msMain_PatchesListView_Column3=Size
+msMain_PatchesListView_Column4=Date built
+{ ## Patches Popup Menu ## }
+msMain_ToggleRebuildItem_Caption=Toggle rebuild status
+msMain_OpenInExplorerItem_Caption=Open in explorer
+{ ## Plugins Submenu ## }
+msMain_MoveItem_Caption=Move
+msMain_UpItem_Caption=Up
+msMain_DownItem_Caption=Down
+msMain_ToTopItem_Caption=To top
+msMain_ToBottomItem_Caption=To bottom
+{ ## Log Tab ## }
+msMain_LogTabSheet_Caption=Log
+{ ## Log Popup Menu ## }
+msMain_FilterGroupItem_Caption=Filter group
+msMain_FilterLabelItem_Caption=Filter label
+msMain_CopyToClipboardItem_Caption=Copy to clipboard
+msMain_SaveAndClearItem_Caption=Save and clear
+msMain_ToggleAutoScrollItem_Caption=Disable auto scroll
+{ ## Status Bar ## }
+ 
+{ TOptionsForm }
+mpOpt_btnCancel_Caption=Cancel
+mpOpt_btnOK_Caption=OK
+{ ## General Tab ## }
+mpOpt_GeneralTabSheet_Caption=General
+mpOpt_gbLanguage_Caption=Language
+mpOpt_lblLanguage_Caption=Current languge
+mpOpt_gbStyle_Caption=Style
+mpOpt_kbSimpleDictionary_Caption=Simple dictionary view
+mpOpt_kbSimplePlugins_Caption=Simple plugins list
+mpOpt_gbReports_Caption=Reports
+mpOpt_lblUsername_Caption=Username
+mpOpt_btnRegister_Caption=Check
+mpOpt_btnRegister_Hint=Check if username is available
+mpOpt_lblStatus_Caption=Registration status
+mpOpt_lblStatusValue_Caption=Invalid username
+mpOpt_lblStatusValue_Hint=Username must be 4 or more characters
+mpOpt_btnReset_Caption=Reset
+mpOpt_gbUpdating_Caption=Updating
+mpOpt_kbUpdateDictionary_Caption=Update dictionary automatically
+mpOpt_lblDictionaryStatus_Caption=Up to date
+mpOpt_btnUpdateDictionary_Caption=Update dictionary
+mpOpt_kbUpdateProgram_Caption=Update program automatically
+mpOpt_lblProgramStatus_Caption=Up to date
+mpOpt_btnUpdateProgram_Caption=Update program
+{ ## Merging Tab ## }
+mpOpt_PatchingTabSheet_Caption=Patching
+{ ## Advanced Tab ## }
+mpOpt_AdvancedTabSheet_Caption=Advanced
+mpOpt_lblCurrentProfile_Caption=Current profile
+mpOpt_gbBackend_Caption=Backend
+mpOpt_lblHost_Caption=Server host
+mpOpt_lblPort_Caption=Server port
+mpOpt_kbNoStatistics_Caption=Don't send usage statistics
+mpOpt_gbLogging_Caption=Logging
+mpOpt_lblClientColor_Caption=Client
+mpOpt_lblGeneralColor_Caption=General
+mpOpt_lblLoadColor_Caption=Load
+mpOpt_lblPluginColor_Caption=Plugin
+mpOpt_lblErrorColor_Caption=Errors
+mpOpt_lblTemplate_Caption=Template
+mpOpt_lblSample_Caption=Sample
+{ ## Integrations Tab ## }
+mpOpt_IntegrationsTabSheet_Caption=Integrations
+mpOpt_btnDetect_Caption=Detect Integrations
+mpOpt_gbModOrganizer_Caption=Mod Organizer
+mpOpt_kbUsingMO_Caption=I'm using Mod Organizer
+mpOpt_kbCopyGeneralAssets_Caption=Copy general asssets
+mpOpt_lblModOrganizerPath_Caption=Mod Organizer path
+mpOpt_lblModOrganizerModsPath_Caption=Mod Organizer mods path
+ 

@@ -24,17 +24,13 @@ object OptionsForm: TOptionsForm
     Top = 8
     Width = 568
     Height = 401
-    ActivePage = GeneralTabSheet
+    ActivePage = PatchingTabSheet
     Align = alCustom
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     TabWidth = 80
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbStyle: TGroupBox
         Left = 6
         Top = 163
@@ -172,7 +168,7 @@ object OptionsForm: TOptionsForm
         Margins.Right = 6
         Margins.Bottom = 6
         Align = alCustom
-        Caption = 'Reports'
+        Caption = 'Submissions'
         TabOrder = 2
         object lblUsername: TLabel
           Left = 12
@@ -288,217 +284,46 @@ object OptionsForm: TOptionsForm
         end
       end
     end
-    object MergingTabSheet: TTabSheet
-      Caption = 'Merging'
+    object PatchingTabSheet: TTabSheet
+      Caption = 'Patching'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
-      object gbAssetHandling: TGroupBox
-        Left = 6
-        Top = 6
-        Width = 548
-        Height = 179
-        Margins.Left = 6
-        Margins.Top = 6
-        Margins.Right = 6
-        Margins.Bottom = 6
-        Caption = 'Asset handling'
+      object gbGeneral: TGroupBox
+        Left = 3
+        Top = 3
+        Width = 554
+        Height = 54
+        Caption = 'General'
         TabOrder = 0
-        object lblMergeDestination: TLabel
+        object lblDestinationDirectory: TLabel
           Left = 12
-          Top = 24
-          Width = 132
+          Top = 20
+          Width = 129
           Height = 13
-          Caption = 'Merge destination directory'
+          Caption = 'Patch destination directory'
         end
-        object btnBrowseAssetDirectory: TSpeedButton
+        object btnBrowsePatchDirectory: TSpeedButton
           Left = 519
-          Top = 18
+          Top = 17
           Width = 23
           Height = 22
+          Hint = 'Browse'
           Margins.Right = 6
-          OnClick = btnBrowseAssetDirectoryClick
+          ParentShowHint = False
+          ShowHint = True
+          OnClick = btnBrowsePatchDirectoryClick
         end
-        object kbFaceGen: TCheckBox
-          Left = 12
-          Top = 54
-          Width = 213
-          Height = 17
-          Margins.Top = 6
-          Caption = 'Handle FaceGen files'
-          TabOrder = 0
-        end
-        object edMergeDirectory: TEdit
-          Left = 192
-          Top = 18
-          Width = 321
+        object edPatchDirectory: TEdit
+          Left = 168
+          Top = 17
+          Width = 345
           Height = 21
-          TabOrder = 1
-          OnExit = appendBackslashOnExit
-        end
-        object kbVoiceAssets: TCheckBox
-          Left = 12
-          Top = 77
-          Width = 213
-          Height = 17
-          Caption = 'Handle voice files'
-          TabOrder = 2
-        end
-        object kbTranslations: TCheckBox
-          Left = 12
-          Top = 100
-          Width = 213
-          Height = 17
-          Caption = 'Handle MCM translations'
-          Ctl3D = False
-          ParentCtl3D = False
-          TabOrder = 3
-        end
-        object kbBuildBSA: TCheckBox
-          Left = 274
-          Top = 123
-          Width = 215
-          Height = 17
-          Caption = 'Build merged BSA'
-          TabOrder = 4
-          OnMouseUp = kbBuildBSAMouseUp
-        end
-        object kbFragments: TCheckBox
-          Left = 274
-          Top = 54
-          Width = 215
-          Height = 17
-          Caption = 'Handle script fragments'
-          TabOrder = 5
-        end
-        object kbExtractBSAs: TCheckBox
-          Left = 274
-          Top = 100
-          Width = 215
-          Height = 17
-          Caption = 'Extract BSAs'
-          TabOrder = 6
-          OnMouseUp = kbExtractBSAsMouseUp
-        end
-        object kbBatCopy: TCheckBox
-          Left = 274
-          Top = 146
-          Width = 215
-          Height = 17
-          Caption = 'Batch copy assets'
-          TabOrder = 7
-        end
-        object kbINIs: TCheckBox
-          Left = 12
-          Top = 123
-          Width = 213
-          Height = 17
-          Caption = 'Handle INI files'
-          TabOrder = 8
-        end
-        object kbSelfRef: TCheckBox
-          Left = 274
-          Top = 77
-          Width = 215
-          Height = 17
-          Caption = 'Handle self references'
-          TabOrder = 9
-        end
-        object kbSEQ: TCheckBox
-          Left = 12
-          Top = 146
-          Width = 213
-          Height = 17
-          Caption = 'Handle SEQ files'
-          TabOrder = 10
-        end
-      end
-      object gbDebug: TGroupBox
-        Left = 6
-        Top = 197
-        Width = 548
-        Height = 115
-        Margins.Left = 6
-        Margins.Top = 6
-        Margins.Right = 6
-        Margins.Bottom = 6
-        Caption = 'Debug'
-        TabOrder = 1
-        object kbDebugRenumbering: TCheckBox
-          Left = 12
-          Top = 20
-          Width = 213
-          Height = 17
-          Caption = 'Debug renumbering'
           TabOrder = 0
-        end
-        object kbDebugMergeStatus: TCheckBox
-          Left = 12
-          Top = 43
-          Width = 213
-          Height = 17
-          Caption = 'Debug merge status'
-          TabOrder = 1
-        end
-        object kbDebugAssetCopying: TCheckBox
-          Left = 12
-          Top = 66
-          Width = 213
-          Height = 17
-          Caption = 'Debug asset copying'
-          TabOrder = 2
-        end
-        object kbDebugRecordCopying: TCheckBox
-          Left = 12
-          Top = 89
-          Width = 213
-          Height = 17
-          Caption = 'Debug record copying'
-          TabOrder = 3
-        end
-        object kbDebugMasters: TCheckBox
-          Left = 274
-          Top = 20
-          Width = 215
-          Height = 17
-          Caption = 'Debug masters'
-          TabOrder = 4
-        end
-        object kbDebugBatchCopying: TCheckBox
-          Left = 274
-          Top = 43
-          Width = 215
-          Height = 17
-          Caption = 'Debug batch copying'
-          TabOrder = 5
-        end
-        object kbDebugBSAs: TCheckBox
-          Left = 274
-          Top = 66
-          Width = 215
-          Height = 17
-          Caption = 'Debug BSAs'
-          TabOrder = 6
-        end
-        object kbDebugScriptFragments: TCheckBox
-          Left = 274
-          Top = 89
-          Width = 215
-          Height = 17
-          Caption = 'Debug script fragments'
-          TabOrder = 7
         end
       end
     end
     object AdvancedTabSheet: TTabSheet
       Caption = 'Advanced'
       ImageIndex = 2
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbBackend: TGroupBox
         Left = 6
         Top = 72
@@ -538,7 +363,7 @@ object OptionsForm: TOptionsForm
           Width = 145
           Height = 21
           TabOrder = 1
-          Text = 'mergeplugins.us.to'
+          Text = 'matorsmash.us.to'
         end
         object edPort: TEdit
           Left = 392
@@ -547,7 +372,7 @@ object OptionsForm: TOptionsForm
           Height = 21
           NumbersOnly = True
           TabOrder = 2
-          Text = '960'
+          Text = '970'
         end
       end
       object gbLogging: TGroupBox
@@ -588,14 +413,14 @@ object OptionsForm: TOptionsForm
           Margins.Top = 11
           Caption = 'Load'
         end
-        object lblMergeColor: TLabel
+        object lblPatchColor: TLabel
           Left = 274
           Top = 20
-          Width = 30
+          Width = 27
           Height = 13
           Align = alCustom
           Anchors = [akTop, akRight]
-          Caption = 'Merge'
+          Caption = 'Patch'
         end
         object lblPluginColor: TLabel
           Left = 274
@@ -683,7 +508,7 @@ object OptionsForm: TOptionsForm
           Style = [cbStandardColors, cbExtendedColors, cbSystemColors, cbCustomColor, cbPrettyNames, cbCustomColors]
           TabOrder = 2
         end
-        object cbMergeColor: TColorBox
+        object cbPatchColor: TColorBox
           Left = 392
           Top = 17
           Width = 145
@@ -740,7 +565,7 @@ object OptionsForm: TOptionsForm
         Margins.Bottom = 6
         Align = alCustom
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'Merge Profile'
+        Caption = 'Smash Profile'
         TabOrder = 2
         object lblCurrentProfile: TLabel
           Left = 12
@@ -771,19 +596,14 @@ object OptionsForm: TOptionsForm
           Top = 18
           Width = 150
           Height = 25
-          Caption = 'Switch merge profiles'
+          Caption = 'Switch smash profiles'
           TabOrder = 0
-          OnClick = btnChangeMergeProfileClick
         end
       end
     end
     object IntegrationsTabSheet: TTabSheet
       Caption = 'Integrations'
       ImageIndex = 3
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbModOrganizer: TGroupBox
         Left = 6
         Top = 6
@@ -865,145 +685,6 @@ object OptionsForm: TOptionsForm
           OnExit = appendBackslashOnExit
         end
       end
-      object gbPapyrus: TGroupBox
-        Left = 6
-        Top = 125
-        Width = 548
-        Height = 107
-        Margins.Left = 6
-        Margins.Top = 6
-        Margins.Right = 6
-        Margins.Bottom = 6
-        Caption = 'Papyrus'
-        TabOrder = 1
-        object lblDecompilerPath: TLabel
-          Left = 12
-          Top = 20
-          Width = 137
-          Height = 13
-          Caption = 'Champollion Decompiler path'
-        end
-        object btnBrowseDecompiler: TSpeedButton
-          Left = 519
-          Top = 17
-          Width = 23
-          Height = 22
-          Hint = 'Browse'
-          Margins.Right = 6
-          ParentShowHint = False
-          ShowHint = True
-          OnClick = btnBrowseDecompilerClick
-        end
-        object lblCompilerPath: TLabel
-          Left = 12
-          Top = 47
-          Width = 108
-          Height = 13
-          Caption = 'Papyrus Compiler path'
-        end
-        object btnBrowseCompiler: TSpeedButton
-          Left = 519
-          Top = 45
-          Width = 23
-          Height = 22
-          Hint = 'Browse'
-          Margins.Right = 6
-          ParentShowHint = False
-          ShowHint = True
-          OnClick = btnBrowseCompilerClick
-        end
-        object lblFlagsPath: TLabel
-          Left = 12
-          Top = 75
-          Width = 90
-          Height = 13
-          Caption = 'Papyrus flags path'
-        end
-        object btnBrowseFlags: TSpeedButton
-          Left = 519
-          Top = 72
-          Width = 23
-          Height = 22
-          Hint = 'Browse'
-          Margins.Right = 6
-          ParentShowHint = False
-          ShowHint = True
-          OnClick = btnBrowseFlagsClick
-        end
-        object edDecompilerPath: TEdit
-          Left = 192
-          Top = 17
-          Width = 321
-          Height = 21
-          TabOrder = 0
-        end
-        object edCompilerPath: TEdit
-          Left = 192
-          Top = 45
-          Width = 321
-          Height = 21
-          TabOrder = 1
-        end
-        object edFlagsPath: TEdit
-          Left = 192
-          Top = 72
-          Width = 321
-          Height = 21
-          TabOrder = 2
-        end
-      end
-      object gbBSAs: TGroupBox
-        Left = 6
-        Top = 244
-        Width = 548
-        Height = 77
-        Margins.Left = 6
-        Margins.Top = 6
-        Margins.Right = 6
-        Margins.Bottom = 6
-        Caption = 'BSAs'
-        TabOrder = 2
-        object btnBrowseBSAOpt: TSpeedButton
-          Left = 519
-          Top = 17
-          Width = 23
-          Height = 22
-          Hint = 'Browse'
-          Margins.Right = 6
-          ParentShowHint = False
-          ShowHint = True
-          OnClick = btnBrowseBSAOptClick
-        end
-        object lblBSAOptPath: TLabel
-          Left = 12
-          Top = 20
-          Width = 62
-          Height = 13
-          Caption = 'BSAOpt path'
-        end
-        object lblBSAOptOptions: TLabel
-          Left = 12
-          Top = 47
-          Width = 75
-          Height = 13
-          Caption = 'BSAOpt options'
-        end
-        object edBsaOptPath: TEdit
-          Left = 192
-          Top = 17
-          Width = 321
-          Height = 21
-          TabOrder = 0
-          OnExit = edBsaOptPathExit
-        end
-        object edBsaOptOptions: TEdit
-          Left = 192
-          Top = 44
-          Width = 348
-          Height = 21
-          TabOrder = 1
-        end
-      end
       object btnDetect: TButton
         Left = 408
         Top = 330
@@ -1011,7 +692,7 @@ object OptionsForm: TOptionsForm
         Height = 25
         Margins.Right = 6
         Caption = 'Detect Integrations'
-        TabOrder = 3
+        TabOrder = 1
         OnClick = btnDetectClick
       end
     end
@@ -1043,7 +724,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C010101000800240110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C0101010008002C0110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

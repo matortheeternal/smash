@@ -15,31 +15,30 @@ uses
   mteHelpers, mteTracker, mteLogger, mteProgressForm, mteTaskHandler,
   RttiTranslation,
   // mp units
-  msFrontend, msThreads, msOptionsForm,
+  msFrontend, msThreads, msOptionsForm, msEditForm,
   msSplashForm,
   // tes5edit units
   wbBSA, wbHelpers, wbInterface, wbImplementation;
 
 type
-  TPatchForm = class(TForm)
-    [FormPrefix('mpMain')]
+  TSmashForm = class(TForm)
+    [FormPrefix('msMain')]
       XPManifest: TXPManifest;
-      FlagList: TImageList;
-    IconList: TImageList;
+      IconList: TImageList;
       TaskTimer: TTimer;
       [FormSection('QuickBar')]
         QuickBar: TPanel;
         NewButton: TSpeedButton;
         BuildButton: TSpeedButton;
-    SubmitButton: TSpeedButton;
-    SettingsButton: TSpeedButton;
+        SubmitButton: TSpeedButton;
+        SettingsButton: TSpeedButton;
         OptionsButton: TSpeedButton;
         UpdateButton: TSpeedButton;
         HelpButton: TSpeedButton;
         bhBuild: TBalloonHint;
         bhNew: TBalloonHint;
-    bhSubmit: TBalloonHint;
-    bhSet: TBalloonHint;
+        bhSubmit: TBalloonHint;
+        bhSet: TBalloonHint;
         bhOptions: TBalloonHint;
         bhUpdate: TBalloonHint;
         bhHelp: TBalloonHint;
@@ -58,35 +57,16 @@ type
           PluginsListView: TListView;
           [FormSection('Plugins Popup Menu')]
             PluginsPopupMenu: TPopupMenu;
-            AddToPatchItem: TMenuItem;
-            NewPatchItem: TMenuItem;
-            RemoveFromPatchItem: TMenuItem;
-            ReportOnPluginItem: TMenuItem;
-            DoNotPatchItem: TMenuItem;
             OpenPluginLocationItem: TMenuItem;
             [FormSection('Errors Submenu')]
-              ErrorsItem: TMenuItem;
-              CheckForErrorsItem: TMenuItem;
-              FixErrorsItem: TMenuItem;
-              IgnoreErrorsItem: TMenuItem;
-              ResetErrorsItem: TMenuItem;
-        [FormSection('Patchs Tab')]
-    PatchesTabSheet: TTabSheet;
-    PatchesListView: TListView;
-          [FormSection('Patchs Popup Menu')]
-    PatchesPopupMenu: TPopupMenu;
-            CreateNewPatchItem: TMenuItem;
-            EditPatchItem: TMenuItem;
-            DeletePatchItem: TMenuItem;
-            BuildPatchItem: TMenuItem;
+        [FormSection('Patches Tab')]
+          PatchesTabSheet: TTabSheet;
+          PatchesListView: TListView;
+          [FormSection('Patches Popup Menu')]
+            PatchesPopupMenu: TPopupMenu;
             ToggleRebuildItem: TMenuItem;
             OpenInExplorerItem: TMenuItem;
             [FormSection('Plugins Submenu')]
-              PluginsItem: TMenuItem;
-              ResolveIssuesItem: TMenuItem;
-              CheckPluginsItem: TMenuItem;
-              FixPluginsItem: TMenuItem;
-              ReportOnPluginsItem: TMenuItem;
             [FormSection('Move Submenu')]
               MoveItem: TMenuItem;
               UpItem: TMenuItem;
@@ -110,7 +90,6 @@ type
         StatusPanelProgram: TPanel;
         StatusPanelDictionary: TPanel;
         StatusPanelConnection: TPanel;
-        StatusPanelPatchs: TPanel;
         StatusPanelLanguage: TPanel;
         StatusPanelVersion: TPanel;
         ImageBlocked: TImage;
@@ -122,7 +101,7 @@ type
         bhLoader: TBalloonHint;
         bhLoadException: TBalloonHint;
 
-    // MERGE FORM EVENTS
+    // SMASH FORM EVENTS
     procedure UpdateLog;
     procedure LogMessage(const group, &label, text: string);
     procedure FormCreate(Sender: TObject);
@@ -162,22 +141,14 @@ type
     procedure PluginsListViewData(Sender: TObject; Item: TListItem);
     procedure PluginsListViewDrawItem(Sender: TCustomListView; Item: TListItem;
       Rect: TRect; State: TOwnerDrawState);
-    procedure PluginsListViewMouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
     // PLUGINS POPUP MENU EVENTS
     procedure PluginsPopupMenuPopup(Sender: TObject);
     procedure UpdatePluginsPopupMenu;
     procedure AddToNewPatchClick(Sender: TObject);
     procedure AddToPatchClick(Sender: TObject);
-    procedure CheckForErrorsClick(Sender: TObject);
-    procedure IgnoreErrorsItemClick(Sender: TObject);
-    procedure DoNotPatchItemClick(Sender: TObject);
     procedure RemoveFromPatchItemClick(Sender: TObject);
     procedure OpenPluginLocationItemClick(Sender: TObject);
-    procedure ReportOnPluginItemClick(Sender: TObject);
-    procedure FixErrorsItemClick(Sender: TObject);
-    procedure ResetErrorsItemClick(Sender: TObject);
-    // MERGE LIST VIEW EVENTS
+    // SMASH LIST VIEW EVENTS
     procedure UpdatePatchDetails;
     procedure UpdatePatches;
     function NewPatch: TPatch;
@@ -189,18 +160,14 @@ type
     procedure PatchesListViewDblClick(Sender: TObject);
     procedure PatchesListViewKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
-    // MERGES POPUP MENU EVENTS
+    // PATCHES POPUP MENU EVENTS
     procedure PatchesPopupMenuPopup(Sender: TObject);
     procedure EditPatchItemClick(Sender: TObject);
     procedure BuildPatchItemClick(Sender: TObject);
-    procedure CheckPluginsItemClick(Sender: TObject);
     procedure RemovePluginsItemClick(Sender: TObject);
-    procedure ResolveIssuesItemClick(Sender: TObject);
     procedure DeletePatchItemClick(Sender: TObject);
-    procedure ReportOnPluginsItemClick(Sender: TObject);
     procedure OpenInExplorerItemClick(Sender: TObject);
     procedure ToggleRebuildItemClick(Sender: TObject);
-    procedure FixPluginsItemClick(Sender: TObject);
     procedure UpItemClick(Sender: TObject);
     procedure DownItemClick(Sender: TObject);
     procedure ToTopItemClick(Sender: TObject);
@@ -218,7 +185,6 @@ type
     procedure UpdateQuickbar;
     procedure CreatePatchButtonClick(Sender: TObject);
     procedure BuildButtonClick(Sender: TObject);
-    procedure FindErrorsButtonClick(Sender: TObject);
     procedure SubmitButtonClick(Sender: TObject);
     procedure SettingsButtonClick(Sender: TObject);
     procedure OptionsButtonClick(Sender: TObject);
@@ -242,7 +208,7 @@ const
 
 var
   splash: TSplashForm;
-  PatchForm: TPatchForm;
+  SmashForm: TSmashForm;
   LastHint: string;
   LastURLTime, LastMessageTime, FormDisplayTime: double;
   bPatchsToBuild, bPatchsToCheck, bAutoScroll, bCreated, bClosing: boolean;
@@ -267,7 +233,7 @@ implementation
 }
 {******************************************************************************}
 
-procedure TPatchForm.UpdateLog;
+procedure TSmashForm.UpdateLog;
 var
   bLogActive: boolean;
 begin
@@ -285,7 +251,7 @@ begin
 end;
 
 { Prints a message to the log }
-procedure TPatchForm.LogMessage(const group, &label, text: string);
+procedure TSmashForm.LogMessage(const group, &label, text: string);
 var
   msg: TLogMessage;
 begin
@@ -312,7 +278,7 @@ begin
 end;
 
 { Initialize form, initialize TES5Edit API, and load plugins }
-procedure TPatchForm.FormCreate(Sender: TObject);
+procedure TSmashForm.FormCreate(Sender: TObject);
 begin
   // INITIALIAZE BASE
   bCreated := false;
@@ -349,7 +315,7 @@ begin
   bCreated := true;
 end;
 
-procedure TPatchForm.WMSize(var AMessage: TMessage);
+procedure TSmashForm.WMSize(var AMessage: TMessage);
 begin
   if not bCreated then
     exit;
@@ -361,7 +327,7 @@ begin
   inherited;
 end;
 
-procedure TPatchForm.WMMove(var AMessage: TMessage);
+procedure TSmashForm.WMMove(var AMessage: TMessage);
 begin
   if not bCreated then
     exit;
@@ -372,7 +338,7 @@ begin
   inherited;
 end;
 
-procedure TPatchForm.WMActivateApp(var AMessage: TMessage);
+procedure TSmashForm.WMActivateApp(var AMessage: TMessage);
 begin
   if not bCreated then
     exit;
@@ -386,13 +352,13 @@ begin
   inherited;
 end;
 
-procedure TPatchForm.InitDone;
+procedure TSmashForm.InitDone;
 begin
   splash.ModalResult := mrOk;
 end;
 
 // Force PluginsListView to autosize columns
-procedure TPatchForm.FormShow(Sender: TObject);
+procedure TSmashForm.FormShow(Sender: TObject);
 begin
   // HANDLE AUTO-UPDATE
   if bInstallUpdate then begin
@@ -464,11 +430,11 @@ begin
     CorrectListViewWidth(PluginsListView);
 
     // LOAD AND DISPLAY HINTS
-    StatusPanelMessage.Caption := GetString('mpMain_LoaderInProgress');
-    bhLoader.Title := GetString('mpMain_LoaderInProgress');
-    bhLoader.Description := GetString('mpMain_LoaderLimitations');
-    bhLoadException.Title := GetString('mpMain_LoadException');
-    bhLoadException.Description := GetString('mpMain_PluginsNotLoaded');
+    StatusPanelMessage.Caption := GetString('msMain_LoaderInProgress');
+    bhLoader.Title := GetString('msMain_LoaderInProgress');
+    bhLoader.Description := GetString('msMain_LoaderLimitations');
+    bhLoadException.Title := GetString('msMain_LoadException');
+    bhLoadException.Description := GetString('msMain_PluginsNotLoaded');
     DisplayHints;
 
     // initialize task handler
@@ -486,12 +452,12 @@ begin
   ForceForeground(Handle);
 end;
 
-procedure TPatchform.LoaderStatus(s: string);
+procedure TSmashForm.LoaderStatus(s: string);
 begin
   StatusPanelMessage.Caption := s;
 end;
 
-procedure TPatchForm.LoaderDone;
+procedure TSmashForm.LoaderDone;
 begin
   SetTaskbarProgressState(tbpsNone);
   xEditLogGroup := 'GENERAL';
@@ -500,7 +466,7 @@ begin
   UpdateQuickbar;
 end;
 
-procedure TPatchForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+procedure TSmashForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   CanClose := bAllowClose;
   if not bClosing then begin
@@ -521,7 +487,7 @@ begin
   end;
 end;
 
-procedure TPatchForm.SaveDone;
+procedure TSmashForm.SaveDone;
 begin
   // clean up pForm, close form
   pForm.SetProgress(pForm.ProgressBar.Max);
@@ -540,13 +506,13 @@ begin
   Close;
 end;
 
-procedure TPatchForm.ConnectDone;
+procedure TSmashForm.ConnectDone;
 begin
   // UPDATE QUICKBAR
   UpdateQuickbar;
 end;
 
-procedure TPatchForm.ProgressDone;
+procedure TSmashForm.ProgressDone;
 begin
   xEditLogGroup := 'GENERAL';
   pForm.SaveLog;
@@ -570,7 +536,7 @@ begin
   UpdatePluginsPopupMenu;
 end;
 
-procedure TPatchForm.AutoUpdate;
+procedure TSmashForm.AutoUpdate;
 begin
   if settings.updateDictionary then begin
     // update dictionary
@@ -586,24 +552,24 @@ begin
   end;
 end;
 
-function TPatchForm.ShouldDisplay(bh: TBalloonHint): boolean;
+function TSmashForm.ShouldDisplay(bh: TBalloonHint): boolean;
 begin
   Result := (Now - FormDisplayTime) * 86400 < (bh.HideAfter / 1000);
 end;
 
-procedure TPatchForm.DisableHints;
+procedure TSmashForm.DisableHints;
 begin
   HideHints;
   TaskHandler.RemoveTask('Disable Hints');
 end;
 
-procedure TPatchForm.HideHints;
+procedure TSmashForm.HideHints;
 begin
   bhLoader.HideHint;
   bhLoadException.HideHint;
 end;
 
-procedure TPatchForm.DisplayHints;
+procedure TSmashForm.DisplayHints;
 var
   pt: TPoint;
 begin
@@ -622,18 +588,18 @@ begin
   end;
 end;
 
-procedure TPatchForm.Reconnect;
+procedure TSmashForm.Reconnect;
 begin
   if not (TCPClient.Connected or bConnecting or bClosing) then
     TConnectThread.Create;
 end;
 
-procedure TPatchForm.RefreshGUI;
+procedure TSmashForm.RefreshGUI;
 begin
   if not bClosing then UpdateStatusBar;
 end;
 
-procedure TPatchForm.Heartbeat;
+procedure TSmashForm.Heartbeat;
 begin
   try
     if TCPClient.IOHandler.Opened and
@@ -649,12 +615,12 @@ begin
   end;
 end;
 
-procedure TPatchForm.OnTaskTimer(Sender: TObject);
+procedure TSmashForm.OnTaskTimer(Sender: TObject);
 begin
   TaskHandler.ExecTasks;
 end;
 
-procedure TPatchForm.ShowAuthorizationMessage;
+procedure TSmashForm.ShowAuthorizationMessage;
 begin
   if bAuthorized then begin
     Logger.Write('CLIENT', 'Login', 'Authorized');
@@ -664,7 +630,7 @@ begin
   end;
 end;
 
-procedure TPatchForm.UpdateStatusBar;
+procedure TSmashForm.UpdateStatusBar;
 begin
   ImageBlocked.Visible := not (bLoaderDone or bInitException);
   ImageConnected.Visible := TCPClient.Connected;
@@ -675,7 +641,7 @@ begin
   StatusPanelLanguage.Caption := settings.language;
 end;
 
-procedure TPatchForm.UpdateListViews;
+procedure TSmashForm.UpdateListViews;
 begin
   if PageControl.ActivePage = PluginsTabSheet then begin
     UpdatePluginDetails;
@@ -702,7 +668,7 @@ end;
 {
    Adds a ListItem to DetailsView with @name and @value
 }
-function TPatchForm.AddDetailsItem(name, value: string;
+function TSmashForm.AddDetailsItem(name, value: string;
   editable: boolean = false): TItemProp;
 var
   prop: TItemProp;
@@ -717,7 +683,7 @@ end;
   Add one or more ListItem to DetailsView with @name and the values
   in @sl
 }
-procedure TPatchForm.AddDetailsList(name: string; sl: TStringList;
+procedure TSmashForm.AddDetailsList(name: string; sl: TStringList;
   editable: boolean = false);
 var
   i: integer;
@@ -735,7 +701,7 @@ end;
 {
   Switch details view when page control is changed
 }
-procedure TPatchForm.PageControlChange(Sender: TObject);
+procedure TSmashForm.PageControlChange(Sender: TObject);
 var
   ndx: integer;
 begin
@@ -756,36 +722,36 @@ begin
   end;
 end;
 
-procedure TPatchForm.UpdateApplicationDetails;
+procedure TSmashForm.UpdateApplicationDetails;
 begin
   // prepare list view for application information
   DetailsEditor.Strings.Clear;
-  DetailsLabel.Caption := GetString('mpMain_AppDetails');
+  DetailsLabel.Caption := GetString('msMain_AppDetails');
 
   // add details items
-  AddDetailsItem(GetString('mpMain_Application'), 'Mator Smash');
-  AddDetailsItem(GetString('mpMain_Author'), 'matortheeternal');
-  AddDetailsItem(GetString('mpMain_Version'), ProgramVersion);
-  AddDetailsItem(GetString('mpMain_DateBuilt'), DateTimeToStr(GetLastModified(ParamStr(0))));
+  AddDetailsItem(GetString('msMain_Application'), 'Mator Smash');
+  AddDetailsItem(GetString('msMain_Author'), 'matortheeternal');
+  AddDetailsItem(GetString('msMain_Version'), ProgramVersion);
+  AddDetailsItem(GetString('msMain_DateBuilt'), DateTimeToStr(GetLastModified(ParamStr(0))));
   AddDetailsItem(' ', ' ');
-  AddDetailsItem(GetString('mpMain_GameMode'), wbGameName);
-  AddDetailsItem(GetString('mpMain_Language'), settings.language);
+  AddDetailsItem(GetString('msMain_GameMode'), wbGameName);
+  AddDetailsItem(GetString('msMain_Language'), settings.language);
   AddDetailsItem(' ', ' ');
-  AddDetailsItem(GetString('mpMain_TimesRun'), IntToStr(statistics.timesRun + sessionStatistics.timesRun));
-  AddDetailsItem(GetString('mpMain_PatchsBuilt'), IntToStr(statistics.patchesBuilt + sessionStatistics.patchesBuilt));
-  AddDetailsItem(GetString('mpMain_PluginsPatchd'), IntToStr(statistics.pluginsPatched + sessionStatistics.pluginsPatched));
-  AddDetailsItem(GetString('mpMain_ReportsSubmitted'), IntToStr(statistics.settingsSubmitted + sessionStatistics.settingsSubmitted));
-  AddDetailsItem(GetString('mpMain_ReportsSubmitted'), IntToStr(statistics.recsSubmitted + sessionStatistics.recsSubmitted));
+  AddDetailsItem(GetString('msMain_TimesRun'), IntToStr(statistics.timesRun + sessionStatistics.timesRun));
+  AddDetailsItem(GetString('msMain_PatchsBuilt'), IntToStr(statistics.patchesBuilt + sessionStatistics.patchesBuilt));
+  AddDetailsItem(GetString('msMain_PluginsPatchd'), IntToStr(statistics.pluginsPatched + sessionStatistics.pluginsPatched));
+  AddDetailsItem(GetString('msMain_ReportsSubmitted'), IntToStr(statistics.settingsSubmitted + sessionStatistics.settingsSubmitted));
+  AddDetailsItem(GetString('msMain_ReportsSubmitted'), IntToStr(statistics.recsSubmitted + sessionStatistics.recsSubmitted));
   AddDetailsItem(' ', ' ');
-  AddDetailsItem(GetString('mpMain_Website'), '-');
-  AddDetailsItem(GetString('mpMain_ApiCredits'), 'superobject, TurboPower Abbrevia, xEdit');
-  AddDetailsItem(GetString('mpMain_xEditVersion'), xEditVersion);
-  AddDetailsItem(GetString('mpMain_xEditCredits'), 'zilav, hlp, Sharlikran, ElminsterAU');
-  AddDetailsItem(GetString('mpMain_Testers'), ProgramTesters);
-  AddDetailsItem(GetString('mpMain_Translators'), ProgramTranslators);
+  AddDetailsItem(GetString('msMain_Website'), '-');
+  AddDetailsItem(GetString('msMain_ApiCredits'), 'superobject, TurboPower Abbrevia, xEdit');
+  AddDetailsItem(GetString('msMain_xEditVersion'), xEditVersion);
+  AddDetailsItem(GetString('msMain_xEditCredits'), 'zilav, hlp, Sharlikran, ElminsterAU');
+  AddDetailsItem(GetString('msMain_Testers'), ProgramTesters);
+  AddDetailsItem(GetString('msMain_Translators'), ProgramTranslators);
 end;
 
-procedure TPatchForm.DetailsCopyToClipboardItemClick(Sender: TObject);
+procedure TSmashForm.DetailsCopyToClipboardItemClick(Sender: TObject);
 var
   i: Integer;
   name, value, previousName, previousValue: string;
@@ -821,7 +787,7 @@ begin
 end;
 
 { Handle user clicking URL }
-procedure TPatchForm.DetailsEditorMouseUp(Sender: TObject; Button: TMouseButton;
+procedure TSmashForm.DetailsEditorMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   ACol, ARow: integer;
@@ -858,7 +824,7 @@ end;
 }
 {******************************************************************************}
 
-procedure TPatchForm.UpdatePluginDetails;
+procedure TSmashForm.UpdatePluginDetails;
 var
   plugin: TPlugin;
   index: integer;
@@ -869,7 +835,7 @@ begin
 
   // prepare list view for plugin information
   DetailsEditor.Strings.Clear;
-  DetailsLabel.Caption := GetString('mpMain_PluginDetails');
+  DetailsLabel.Caption := GetString('msMain_PluginDetails');
 
   // get plugin information
   index := PluginsListView.ItemIndex;
@@ -877,19 +843,18 @@ begin
   if not plugin.hasData then plugin.GetData;
 
   // add details items
-  AddDetailsItem(GetString('mpMain_Filename'), plugin.filename);
-  AddDetailsItem(GetString('mpMain_Hash'), plugin.hash);
-  AddDetailsItem(GetString('mpMain_FileSize'), FormatByteSize(plugin.fileSize));
-  AddDetailsItem(GetString('mpMain_DateModified'), plugin.dateModified);
-  AddDetailsItem(GetString('mpMain_PatchRating'), plugin.entry.rating);
-  AddDetailsItem(GetString('mpMain_NumRecords'), plugin.numRecords);
-  AddDetailsItem(GetString('mpMain_NumOverrides'), plugin.numOverrides);
-  AddDetailsItem(GetString('mpMain_Author'), plugin.author);
-  AddDetailsList(GetString('mpMain_Description'), plugin.description);
-  AddDetailsList(GetString('mpMain_Masters'), plugin.masters);
+  AddDetailsItem(GetString('msMain_Filename'), plugin.filename);
+  AddDetailsItem(GetString('msMain_Hash'), plugin.hash);
+  AddDetailsItem(GetString('msMain_FileSize'), FormatByteSize(plugin.fileSize));
+  AddDetailsItem(GetString('msMain_DateModified'), plugin.dateModified);
+  AddDetailsItem(GetString('msMain_NumRecords'), plugin.numRecords);
+  AddDetailsItem(GetString('msMain_NumOverrides'), plugin.numOverrides);
+  AddDetailsItem(GetString('msMain_Author'), plugin.author);
+  AddDetailsList(GetString('msMain_Description'), plugin.description);
+  AddDetailsList(GetString('msMain_Masters'), plugin.masters);
 end;
 
-procedure TPatchForm.AddPluginsToPatch(var patch: TPatch);
+procedure TSmashForm.AddPluginsToPatch(var patch: TPatch);
 var
   i: integer;
   ListItem: TListItem;
@@ -916,13 +881,13 @@ begin
   UpdateStatusBar;
 end;
 
-procedure TPatchForm.PluginsListViewChange(Sender: TObject; Item: TListItem;
+procedure TSmashForm.PluginsListViewChange(Sender: TObject; Item: TListItem;
   Change: TItemChange);
 begin
   UpdatePluginDetails;
 end;
 
-procedure TPatchForm.PluginsListViewData(Sender: TObject; Item: TListItem);
+procedure TSmashForm.PluginsListViewData(Sender: TObject; Item: TListItem);
 var
   plugin: TPlugin;
 begin
@@ -933,11 +898,11 @@ begin
   Item.SubItems.Add(plugin.filename);
   Item.SubItems.Add(plugin.setting);
   Item.SubItems.Add(plugin.patch);
-  PluginsListView.Canvas.Font.Color := GetRatingColor(StrToFloatDef(plugin.entry.rating, -2.0));
+  //PluginsListView.Canvas.Font.Color := GetRatingColor(StrToFloatDef(plugin.entry.rating, -2.0));
   PluginsListView.Canvas.Font.Style := PluginsListView.Canvas.Font.Style + [fsBold];
 end;
 
-procedure TPatchForm.PluginsListViewDrawItem(Sender: TCustomListView;
+procedure TSmashForm.PluginsListViewDrawItem(Sender: TCustomListView;
   Item: TListItem; Rect: TRect; State: TOwnerDrawState);
 var
   i, x, y: integer;
@@ -976,16 +941,12 @@ end;
 }
 {******************************************************************************}
 
-procedure TPatchForm.PluginsPopupMenuPopup(Sender: TObject);
-var
-  i: integer;
-  ListItem: TListItem;
-  plugin: TPlugin;
+procedure TSmashForm.PluginsPopupMenuPopup(Sender: TObject);
 begin
   // ?
 end;
 
-procedure TPatchForm.UpdatePluginsPopupMenu;
+procedure TSmashForm.UpdatePluginsPopupMenu;
 var
   i: Integer;
   patch: TPatch;
@@ -997,7 +958,7 @@ begin
 
   // add <New Patch> option to Plugins popup menu
   MenuItem := TMenuItem.Create(AddToPatchItem);
-  MenuItem.Caption := GetString('mpMain_NewPatchItem_Caption');
+  MenuItem.Caption := GetString('msMain_NewPatchItem_Caption');
   MenuItem.OnClick := AddToNewPatchClick;
   AddToPatchItem.Add(MenuItem);
 
@@ -1011,17 +972,14 @@ begin
   end;
 end;
 
-procedure TPatchForm.AddToPatchClick(Sender: TObject);
-var
-  MenuItem: TMenuItem;
-  patch: TPatch;
+procedure TSmashForm.AddToPatchClick(Sender: TObject);
 begin
-  MenuItem := TMenuItem(Sender);
+  {MenuItem := TMenuItem(Sender);
   patch := PatchesList[AddToPatchItem.IndexOf(MenuItem) - 1];
-  AddPluginsToPatch(patch);
+  AddPluginsToPatch(patch);}
 end;
 
-procedure TPatchForm.AddToNewPatchClick(Sender: TObject);
+procedure TSmashForm.AddToNewPatchClick(Sender: TObject);
 var
   patch: TPatch;
 begin
@@ -1031,7 +989,7 @@ begin
 end;
 
 { Remove from Patch }
-procedure TPatchForm.RemoveFromPatchItemClick(Sender: TObject);
+procedure TSmashForm.RemoveFromPatchItemClick(Sender: TObject);
 var
   i: integer;
   listItem: TListItem;
@@ -1064,7 +1022,7 @@ begin
   UpdateStatusBar;
 end;
 
-procedure TPatchForm.OpenPluginLocationItemClick(Sender: TObject);
+procedure TSmashForm.OpenPluginLocationItemClick(Sender: TObject);
 var
   i: integer;
   listItem: TListItem;
@@ -1095,7 +1053,7 @@ end;
 }
 {******************************************************************************}
 
-procedure TPatchForm.UpdatePatchDetails;
+procedure TSmashForm.UpdatePatchDetails;
 var
   patchItem: TListItem;
   patch: TPatch;
@@ -1108,34 +1066,33 @@ begin
 
   // prepare list view for patch information
   DetailsEditor.Strings.Clear;
-  DetailsLabel.Caption := GetString('mpMain_PatchDetails');
+  DetailsLabel.Caption := GetString('msMain_PatchDetails');
 
   // get patch information
   patch := PatchesList[PatchesListView.ItemIndex];
-  AddDetailsItem(GetString('mpMain_Status'), StatusArray[Ord(patch.status)].desc, false);
-  AddDetailsItem(GetString('mpMain_PatchName'), patch.name, true);
-  AddDetailsItem(GetString('mpMain_Filename'), patch.filename, true);
-  AddDetailsItem(GetString('mpMain_PluginCount'), IntToStr(patch.plugins.Count));
-  AddDetailsItem(GetString('mpMain_DateBuilt'), DateBuiltString(patch.dateBuilt));
-  AddDetailsList(GetString('mpMain_Plugins'), patch.plugins);
+  AddDetailsItem(GetString('msMain_Status'), StatusArray[Ord(patch.status)].desc, false);
+  AddDetailsItem(GetString('msMain_PatchName'), patch.name, true);
+  AddDetailsItem(GetString('msMain_Filename'), patch.filename, true);
+  AddDetailsItem(GetString('msMain_PluginCount'), IntToStr(patch.plugins.Count));
+  AddDetailsItem(GetString('msMain_DateBuilt'), DateBuiltString(patch.dateBuilt));
+  AddDetailsList(GetString('msMain_Plugins'), patch.plugins);
   AddDetailsItem(' ', ' ');
-  AddDetailsItem(GetString('mpMain_PatchMethod'), patch.method, false);
-  AddDetailsItem(GetString('mpMain_Renumbering'), patch.renumbering, false);
+  AddDetailsItem(GetString('msMain_Setting'), patch.setting, false);
   if patch.files.Count < 250 then begin
     sl := TStringList.Create;
     sl.Text := StringReplace(patch.files.Text, settings.patchDirectory, '', [rfReplaceAll]);
-    AddDetailsList(GetString('mpMain_Files'), sl);
+    AddDetailsList(GetString('msMain_Files'), sl);
     sl.Free;
   end
   else
-    AddDetailsItem(GetString('mpMain_Files'), GetString('mpMain_TooManyFiles'));
+    AddDetailsItem(GetString('msMain_Files'), GetString('msMain_TooManyFiles'));
   if patch.fails.Count < 250 then
-    AddDetailsList(GetString('mpMain_Fails'), patch.fails)
+    AddDetailsList(GetString('msMain_Fails'), patch.fails)
   else
-    AddDetailsItem(GetString('mpMain_Fails'), GetString('mpMain_TooManyFails'));
+    AddDetailsItem(GetString('msMain_Fails'), GetString('msMain_TooManyFails'));
 end;
 
-procedure TPatchForm.UpdatePatches;
+procedure TSmashForm.UpdatePatches;
 var
   i: integer;
   patch: TPatch;
@@ -1153,7 +1110,7 @@ begin
   end;
 end;
 
-function TPatchForm.NewPatch: TPatch;
+function TSmashForm.NewPatch: TPatch;
 var
   patch: TPatch;
   EditPatch: TEditForm;
@@ -1180,13 +1137,13 @@ begin
   EditPatch.Free;
 end;
 
-procedure TPatchForm.PatchesListViewChange(Sender: TObject; Item: TListItem;
+procedure TSmashForm.PatchesListViewChange(Sender: TObject; Item: TListItem;
   Change: TItemChange);
 begin
   UpdatePatchDetails;
 end;
 
-procedure TPatchForm.PatchesListViewData(Sender: TObject; Item: TListItem);
+procedure TSmashForm.PatchesListViewData(Sender: TObject; Item: TListItem);
 var
   patch: TPatch;
 begin
@@ -1202,7 +1159,7 @@ begin
   PatchesListView.Canvas.Font.Style := PatchesListView.Canvas.Font.Style + [fsBold];
 end;
 
-procedure TPatchForm.PatchesListViewDrawItem(Sender: TCustomListView;
+procedure TSmashForm.PatchesListViewDrawItem(Sender: TCustomListView;
   Item: TListItem; Rect: TRect; State: TOwnerDrawState);
 var
   i, x, y: integer;
@@ -1235,7 +1192,7 @@ end;
 }
 {******************************************************************************}
 
-procedure TPatchForm.LogListViewData(Sender: TObject; Item: TListItem);
+procedure TSmashForm.LogListViewData(Sender: TObject; Item: TListItem);
 var
   msg: TLogMessage;
 begin
@@ -1263,7 +1220,7 @@ begin
     LogListView.Canvas.Font.Color := settings.errorMessageColor;
 end;
 
-procedure TPatchForm.LogListViewDrawItem(Sender: TCustomListView;
+procedure TSmashForm.LogListViewDrawItem(Sender: TCustomListView;
   Item: TListItem; Rect: TRect; State: TOwnerDrawState);
 var
   i, x, y: integer;
@@ -1314,10 +1271,10 @@ end;
 
 function EnableStr(var b: boolean): string;
 begin
-  Result := IfThen(not b, GetString('mpMain_Enable'), GetString('mpMain_Disable'));
+  Result := IfThen(not b, GetString('msMain_Enable'), GetString('msMain_Disable'));
 end;
 
-procedure TPatchForm.LogPopupMenuPopup(Sender: TObject);
+procedure TSmashForm.LogPopupMenuPopup(Sender: TObject);
 var
   i: Integer;
   item: TMenuItem;
@@ -1347,11 +1304,11 @@ begin
   CopyToClipboardItem.Enabled := Assigned(LogListView.Selected);
 
   // rename toggle auto scroll item based on whether or not auto scroll is enabled
-  ToggleAutoScrollItem.Caption := Format('%s %s', [EnableStr(bAutoScroll), GetString('mpMain_AutoScroll')]);
+  ToggleAutoScrollItem.Caption := Format('%s %s', [EnableStr(bAutoScroll), GetString('msMain_AutoScroll')]);
 end;
 
 // toggles a group filter for the LogListView
-procedure TPatchForm.ToggleGroupFilter(Sender: TObject);
+procedure TSmashForm.ToggleGroupFilter(Sender: TObject);
 var
   index: integer;
   filter: TFilter;
@@ -1366,7 +1323,7 @@ begin
 end;
 
 // toggles a label filter for the LogListView
-procedure TPatchForm.ToggleLabelFilter(Sender: TObject);
+procedure TSmashForm.ToggleLabelFilter(Sender: TObject);
 var
   index: integer;
   filter: TFilter;
@@ -1381,12 +1338,12 @@ begin
 end;
 
 // toggles auto scroll for the LogListView
-procedure TPatchForm.ToggleAutoScrollItemClick(Sender: TObject);
+procedure TSmashForm.ToggleAutoScrollItemClick(Sender: TObject);
 begin
   bAutoScroll := not bAutoScroll;
 end;
 
-procedure TPatchForm.CopyToClipboardItemClick(Sender: TObject);
+procedure TSmashForm.CopyToClipboardItemClick(Sender: TObject);
 var
   i: Integer;
   sl: TStringList;
@@ -1408,7 +1365,7 @@ begin
   sl.Free;
 end;
 
-procedure TPatchForm.SaveAndClearItemClick(Sender: TObject);
+procedure TSmashForm.SaveAndClearItemClick(Sender: TObject);
 begin
   SaveLog(BaseLog);
   LogListView.Items.Count := 0;
@@ -1435,86 +1392,12 @@ end;
 }
 {******************************************************************************}
 
-procedure TPatchForm.PatchesPopupMenuPopup(Sender: TObject);
-var
-  bNeverBuilt, bHasBuildStatus, bHasUpToDateStatus, bHasResolveStatus,
-  bHasCheckStatus, bHasErrorStatus, bHasSelection, bHasPluginErrors,
-  bIsNotTop, bIsNotBottom: boolean;
-  patch: TPatch;
-  i, patchesSelected: Integer;
-  sBuild, sRebuild: string;
+procedure TSmashForm.PatchesPopupMenuPopup(Sender: TObject);
 begin
-  bNeverBuilt := false;
-  bHasBuildStatus := false;
-  bHasUpToDateStatus := false;
-  bHasCheckStatus := false;
-  bHasErrorStatus := false;
-  bHasPluginErrors := false;
-  bHasResolveStatus := false;
-  bIsNotTop := true;
-  bIsNotBottom := true;
-  patchesSelected := 0;
-
-  // loop through list view to find selection
-  for i := 0 to Pred(PatchesListView.Items.Count) do begin
-    if not PatchesListView.Items[i].Selected then
-      continue;
-    patch := TPatch(PatchesList[i]);
-    Inc(patchesSelected);
-    // update booleans
-    if i = 0 then bIsNotTop := false;
-    if i = Pred(PatchesList.Count) then bIsNotBottom := false;
-    bNeverBuilt := bNeverBuilt or (patch.dateBuilt = 0);
-    bHasBuildStatus := bHasBuildStatus or (patch.status in BuildStatuses);
-    bHasUpToDateStatus := bHasUpToDateStatus or (patch.status in UpToDateStatuses);
-    bHasCheckStatus := bHasCheckStatus or (patch.status = msCheckErrors);
-    bHasPluginErrors := bHasPluginErrors or (patch.status = msErrors);
-    bHasErrorStatus := bHasErrorStatus or (patch.status in ErrorStatuses);
-    bHasResolveStatus := bHasResolveStatus or (patch.status in ResolveStatuses);
-  end;
-
-  bHasSelection := (patchesSelected > 0);
-  // change enabled state of PatchsPopupMenu items based on booleans
-  EditPatchItem.Enabled := bHasSelection;
-  DeletePatchItem.Enabled := bHasSelection;
-  BuildPatchItem.Enabled := bHasSelection and bHasBuildStatus and bLoaderDone;
-  ToggleRebuildItem.Enabled := bHasSelection and not bNeverBuilt and
-    (bHasUpToDateStatus or bHasBuildStatus);
-  OpenInExplorerItem.Enabled := bHasSelection;
-  // plugins submenu
-  PluginsItem.Enabled := bHasSelection;
-  ResolveIssuesItem.Enabled := bHasSelection and bHasResolveStatus;
-  CheckPluginsItem.Enabled := bHasSelection and bHasCheckStatus and bLoaderDone;
-  FixPluginsItem.Enabled := bHasSelection and bHasPluginErrors and bLoaderDone;
-  ReportOnPluginsItem.Enabled := bHasSelection and bHasUpToDateStatus;
-  // move submenu
-  MoveItem.Enabled := bHasSelection;
-  UpItem.Enabled := bHasSelection and bIsNotTop;
-  DownItem.Enabled := bHasSelection and bIsNotBottom;
-  ToTopItem.Enabled := bHasSelection and bIsNotTop;
-  ToBottomItem.Enabled := bHasSelection and bIsNotBottom;
-
-  // one or multiple patches?
-  if (patchesSelected = 1) then begin
-    sBuild := 'mpMain_BuildPatch';
-    sRebuild := 'mpMain_RebuildPatch';
-  end
-  else begin
-    sBuild := 'mpMain_BuildPatchs';
-    sRebuild := 'mpMain_RebuildPatchs';
-  end;
-  // handle build patches menu item
-  if bNeverBuilt and not bHasErrorStatus then
-    BuildPatchItem.Caption := GetString(sBuild)
-  else if bHasBuildStatus then
-    BuildPatchItem.Caption := GetString(sRebuild)
-  else begin
-    BuildPatchItem.Enabled := false;
-    BuildPatchItem.Caption := GetString(sRebuild);
-  end;
+  // ?
 end;
 
-procedure TPatchForm.EditPatchItemClick(Sender: TObject);
+procedure TSmashForm.EditPatchItemClick(Sender: TObject);
 var
   EditPatch: TEditForm;
   i, j: integer;
@@ -1550,7 +1433,7 @@ begin
   UpdatePluginsPopupMenu;
 end;
 
-procedure TPatchForm.UpItemClick(Sender: TObject);
+procedure TSmashForm.UpItemClick(Sender: TObject);
 var
   i, max: Integer;
 begin
@@ -1573,7 +1456,7 @@ begin
   UpdateListViews;
 end;
 
-procedure TPatchForm.DownItemClick(Sender: TObject);
+procedure TSmashForm.DownItemClick(Sender: TObject);
 var
   i, max: Integer;
 begin
@@ -1597,7 +1480,7 @@ begin
   UpdateListViews;
 end;
 
-procedure TPatchForm.ToTopItemClick(Sender: TObject);
+procedure TSmashForm.ToTopItemClick(Sender: TObject);
 var
   i, max, iIndex: Integer;
   tempList: TList;
@@ -1636,7 +1519,7 @@ begin
   UpdateListViews;
 end;
 
-procedure TPatchForm.ToBottomItemClick(Sender: TObject);
+procedure TSmashForm.ToBottomItemClick(Sender: TObject);
 var
   i, max, iIndex: Integer;
   tempList: TList;
@@ -1675,126 +1558,8 @@ begin
   UpdateListViews;
 end;
 
-{ Fix erorrs in plugins in patch }
-procedure TPatchForm.FixPluginsItemClick(Sender: TObject);
-var
-  i, j: Integer;
-  plugin: TPlugin;
-  patch: TPatch;
-begin
-  timeCosts := TStringList.Create;
-  pluginsToHandle := TList.Create;
-
-  // get timecosts
-  for i := 0 to Pred(PatchesListView.Items.Count) do begin
-    if not PatchesListView.Items[i].Selected then
-      continue;
-    patch := TPatch(PatchesList[i]);
-    if not (patch.status = msErrors) then
-      continue;
-
-    // else loop through plugins
-    Logger.Write('MERGE', 'Plugins', 'Fixing erorrs in plugins in '+patch.name);
-    for j := 0 to Pred(patch.plugins.Count) do begin
-      plugin := PluginByFilename(patch.plugins[j]);
-      // skip plugins that don't have errors
-      if not plugin.HasErrors then continue;
-      pluginsToHandle.Add(plugin);
-      timeCosts.Add(plugin.numRecords);
-    end;
-  end;
-
-  // free and exit if no plugins to fix errors in
-  if pluginsToHandle.Count = 0 then begin
-    timeCosts.Free;
-    pluginsToHandle.Free;
-    exit;
-  end;
-
-  // show progress form
-  ShowProgressForm(self, pForm, GetString('mpProg_Fixing'));
-
-  // start error checking thread
-  ErrorFixCallback := ProgressDone;
-  TErrorFixThread.Create;
-end;
-
-{ Check plugins in patch for errors }
-procedure TPatchForm.CheckPluginsItemClick(Sender: TObject);
-var
-  i, j: Integer;
-  plugin: TPlugin;
-  patch: TPatch;
-begin
-  timeCosts := TStringList.Create;
-  pluginsToHandle := TList.Create;
-
-  // get timecosts
-  for i := 0 to Pred(PatchesListView.Items.Count) do begin
-    if not PatchesListView.Items[i].Selected then
-      continue;
-    patch := TPatch(PatchesList[i]);
-    if not (patch.status = msCheckErrors) then
-      continue;
-
-    // else loop through plugins
-    Logger.Write('MERGE', 'Plugins', 'Checking plugins in '+patch.name+' for errors');
-    for j := 0 to Pred(patch.plugins.Count) do begin
-      plugin := PluginByFilename(patch.plugins[j]);
-      // skip plugins that have already been checked for errors
-      if plugin.HasBeenCheckedForErrors then continue;
-      pluginsToHandle.Add(plugin);
-      timeCosts.Add(plugin.numRecords);
-    end;
-  end;
-
-  // free and exit if no patches to check for errors
-  if pluginsToHandle.Count = 0 then begin
-    timeCosts.Free;
-    pluginsToHandle.Free;
-    exit;
-  end;
-
-  // Show progress form
-  ShowProgressForm(self, pForm, GetString('mpProg_Checking'));
-
-  // start error checking thread
-  ErrorCheckCallback := ProgressDone;
-  TErrorCheckThread.Create;
-end;
-
-procedure TPatchForm.ResolveIssuesItemClick(Sender: TObject);
-var
-  i: Integer;
-  patch: TPatch;
-begin
-  // create resolve form
-  self.Enabled := false;
-  for i := 0 to Pred(PatchesListView.Items.Count) do begin
-    if not PatchesListView.Items[i].Selected then
-      continue;
-    patch := TPatch(PatchesList[i]);
-    if not (patch.status in ResolveStatuses) then
-      continue;
-
-    // create resolve form
-    rForm := TResolveForm.Create(self);
-    rForm.patch := patch;
-    rForm.ShowModal;
-    rForm.Free;
-  end;
-
-  // update patches and gui
-  self.Enabled := true;
-  UpdatePatches;
-  UpdateQuickbar;
-  UpdateStatusBar;
-  UpdatePluginsPopupMenu;
-  UpdateListViews;
-end;
-
 { Remove unloaded plugins and plugins with errors }
-procedure TPatchForm.RemovePluginsItemClick(Sender: TObject);
+procedure TSmashForm.RemovePluginsItemClick(Sender: TObject);
 var
   i, j: integer;
   plugin: TPlugin;
@@ -1814,18 +1579,6 @@ begin
         patch.plugins.Delete(j);
         continue;
       end;
-      if plugin.HasErrors and (not plugin.bIgnoreErrors) then begin
-        Logger.Write('MERGE', 'Plugins', 'Removing '+patch.plugins[j]+', plugin has errors');
-        patch.Remove(plugin);
-      end;
-      if plugin.bDisallowMerging then begin
-        Logger.Write('MERGE', 'Plugins', 'Removing '+patch.plugins[j]+', plugin marked as do not patch');
-        patch.Remove(plugin);
-      end;
-      if IS_BLACKLISTED in plugin.flags then begin
-        Logger.Write('MERGE', 'Plugins', 'Removing '+patch.plugins[j]+', plugin marked as blacklisted');
-        patch.Remove(plugin);
-      end;
     end;
   end;
 
@@ -1834,7 +1587,7 @@ begin
   UpdateListViews;
 end;
 
-procedure TPatchForm.DeletePatchItemClick(Sender: TObject);
+procedure TSmashForm.DeletePatchItemClick(Sender: TObject);
 var
   i, j: Integer;
   plugin: TPlugin;
@@ -1857,7 +1610,7 @@ begin
 
   // show multi-patch prompt if multiple patches selected
   if patchesToDelete.Count > 0 then
-    bApproved := MessageDlg(GetString('mpMain_DeletePatchs') + patchNames, mtConfirmation,
+    bApproved := MessageDlg(GetString('msMain_DeletePatchs') + patchNames, mtConfirmation,
       mbOKCancel, 0) = mrOk;
 
   // exit if user didn't approve deletion
@@ -1893,7 +1646,7 @@ begin
   UpdateStatusBar;
 end;
 
-procedure TPatchForm.BuildPatchItemClick(Sender: TObject);
+procedure TSmashForm.BuildPatchItemClick(Sender: TObject);
 var
   timeCost, i: Integer;
   patch: TPatch;
@@ -1938,57 +1691,7 @@ begin
   TPatchThread.Create;
 end;
 
-procedure TPatchForm.ReportOnPluginsItemClick(Sender: TObject);
-var
-  i, j: Integer;
-  patch: TPatch;
-  pluginsList: TList;
-  plugin: TPlugin;
-  ReportForm: TReportForm;
-  bReportsSent, bModalOK: boolean;
-begin
-  pluginsList := TList.Create;
-  bModalOK := false;
-
-  // loop through patches
-  for i := 0 to Pred(PatchesListView.Items.Count) do begin
-    if not PatchesListView.Items[i].Selected then
-      continue;
-    patch := TPatch(PatchesList[i]);
-    Logger.Write('MERGE', 'Report', 'Reporting on '+patch.name);
-    for j := 0 to Pred(patch.plugins.Count) do begin
-      plugin := PluginByFilename(patch.plugins[j]);
-      pluginsList.Add(plugin);
-    end;
-  end;
-
-  // report on all patches
-  ReportForm := TReportForm.Create(Self);
-  if pluginsList.Count > 0 then begin
-    ReportForm.pluginsToReport := pluginsList;
-    ReportForm.AppName := wbAppName;
-    bModalOK := ReportForm.ShowModal = mrOk;
-  end;
-
-  // Send reports to backend
-  if bModalOK then begin
-    bReportsSent := SendReports(ReportForm.reportsList);
-    if not bReportsSent then begin
-      Logger.Write('MERGE', 'Report', 'Saving reports locally');
-      SaveReports(ReportForm.reportsList, ProgramPath + 'reports\');
-    end
-    else begin
-      Logger.Write('MERGE', 'Report', 'Saving reports locally');
-      SaveReports(ReportForm.reportsList, ProgramPath + 'reports\submitted\');
-    end;
-  end;
-
-  // clean up
-  ReportForm.Free;
-  pluginsList.Free;
-end;
-
-procedure TPatchForm.OpenInExplorerItemClick(Sender: TObject);
+procedure TSmashForm.OpenInExplorerItemClick(Sender: TObject);
 var
   i: Integer;
   path: string;
@@ -2007,7 +1710,7 @@ begin
   end;
 end;
 
-procedure TPatchForm.ToggleRebuildItemClick(Sender: TObject);
+procedure TSmashForm.ToggleRebuildItemClick(Sender: TObject);
 var
   i: Integer;
   patch: TPatch;
@@ -2019,17 +1722,17 @@ begin
     patch := TPatch(PatchesList[i]);
     Logger.Write('MERGE', 'Status', 'Toggled rebuild status on '+patch.name);
     // if forced up to date, set to Ready to be rebuilt
-    if patch.status = msUpToDateForced then
-      patch.status := msRebuildReady
+    if patch.status = psUpToDateForced then
+      patch.status := psRebuildReady
     // if normal up to date, set to Ready to rebuilt [forced]
-    else if patch.status = msUpToDate then
-      patch.Status := msRebuildReadyForced
+    else if patch.status = psUpToDate then
+      patch.Status := psRebuildReadyForced
     // if force rebuild, set to Up to date
-    else if patch.status = msRebuildReadyForced then
-      patch.status := msUpToDate
+    else if patch.status = psRebuildReadyForced then
+      patch.status := psUpToDate
     // if normal rebuild, set to Up to date [Forced]
-    else if patch.status = msRebuildReady then
-      patch.Status := msUpToDateForced;
+    else if patch.status = psRebuildReady then
+      patch.Status := psUpToDateForced;
   end;
 
   // update
@@ -2038,7 +1741,7 @@ begin
   UpdateQuickBar;
 end;
 
-procedure TPatchForm.ImageDisconnectedClick(Sender: TObject);
+procedure TSmashForm.ImageDisconnectedClick(Sender: TObject);
 begin
   if (not TCPClient.Connected)
   and (ConnectionAttempts = MaxConnectionAttempts) then begin
@@ -2048,13 +1751,13 @@ begin
 end;
 
 { Double click to edit patch }
-procedure TPatchForm.PatchesListViewDblClick(Sender: TObject);
+procedure TSmashForm.PatchesListViewDblClick(Sender: TObject);
 begin
   EditPatchItemClick(nil);
 end;
 
 { Shortcut to delete patches using the delete key }
-procedure TPatchForm.PatchesListViewKeyDown(Sender: TObject; var Key: Word;
+procedure TSmashForm.PatchesListViewKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   if HiWord(GetKeyState(vk_Delete)) <> 0 then
@@ -2074,47 +1777,23 @@ end;
 }
 {******************************************************************************}
 
-procedure TPatchForm.UpdateQuickbar;
+procedure TSmashForm.UpdateQuickbar;
 var
-  i, j: Integer;
-  bUncheckedPlugins, bPatchsToReportOn: boolean;
+  i: Integer;
   patch: TPatch;
-  plugin: TPlugin;
   sTitle: string;
 begin
   // DISABLE ALL BUTTONS IF INITIALIZATION EXCEPTION
   if bInitException then begin
     NewButton.Enabled := false;
-    FindErrorsButton.Enabled := false;
     BuildButton.Enabled := false;
-    ReportButton.Enabled := false;
-    DictionaryButton.Enabled := false;
+    SubmitButton.Enabled := false;
+    SettingsButton.Enabled := false;
     OptionsButton.Enabled := true;
     UpdateButton.Enabled := false;
     HelpButton.Enabled := false;
     exit;
   end;
-
-  // FIND ERRORS BUTTON
-  bUncheckedPlugins := false;
-  for i := 0 to Pred(PluginsList.Count) do begin
-    plugin := TPlugin(PluginsList[i]);
-    if (IS_BLACKLISTED in plugin.flags) then
-      continue;
-    if not plugin.HasBeenCheckedForErrors then
-      bUncheckedPlugins := true;
-  end;
-
-  // enable find errors button if there are unchecked plugins
-  FindErrorsButton.Enabled := bLoaderDone and bUncheckedPlugins;
-  // swap hints
-  sTitle := GetString('mpMain_FindErrorsButton_Hint');
-  if not bLoaderDone then
-    FindErrorsButton.Hint := sTitle + GetString('mpMain_FindErrors_Loader')
-  else if not bUncheckedPlugins then
-    FindErrorsButton.Hint := sTitle + GetString('mpMain_NoPluginsToCheck')
-  else
-    FindErrorsButton.Hint := sTitle + GetString('mpMain_CheckAllPlugins');
 
   // BUILD BUTTON
   bPatchsToBuild := false;
@@ -2123,74 +1802,43 @@ begin
     patch := TPatch(PatchesList[i]);
     if (patch.status in BuildStatuses) then
       bPatchsToBuild := true;
-    if (patch.status = msCheckErrors) then
-      bPatchsToCheck := true;
   end;
 
   // enable build button if there are patches to build
   BuildButton.Enabled := bPatchsToBuild and bLoaderDone;
   // swap hints
-  sTitle := GetString('mpMain_BuildButton_Hint');
+  sTitle := GetString('msMain_BuildButton_Hint');
   if not bLoaderDone then
-    BuildButton.Hint := sTitle + GetString('mpMain_BuildPatchs_Loader')
+    BuildButton.Hint := sTitle + GetString('msMain_BuildPatchs_Loader')
   else if not bPatchsToBuild then
-    BuildButton.Hint := sTitle + GetString('mpMain_NoPatchs')
+    BuildButton.Hint := sTitle + GetString('msMain_NoPatchs')
   else if bPatchsToCheck then
-    BuildButton.Hint := sTitle + GetString('mpMain_CheckPatchs')
+    BuildButton.Hint := sTitle + GetString('msMain_CheckPatchs')
   else
-    BuildButton.Hint := sTitle + GetString('mpMain_BuildAllPatchs');
-
-  // REPORT BUTTON
-  bPatchsToReportOn := false;
-  for i := 0 to Pred(PatchesList.Count) do begin
-    patch := TPatch(PatchesList[i]);
-    if patch.status <> msUpToDate then continue;
-    for j := 0 to Pred(patch.plugins.Count) do begin
-      plugin := PluginByFilename(patch.plugins[j]);
-      if not Assigned(plugin) then
-        continue;
-      if not ReportExistsFor(plugin) then
-        bPatchsToReportOn := true;
-    end;
-  end;
-  ReportButton.Enabled := bPatchsToReportOn;
-  if not bPatchsToReportOn then
-    ReportButton.Hint := GetString('mpMain_NoPatchsToReportOn')
-  else
-    ReportButton.Hint := GetString('mpMain_ReportButton_Hint');
-
-  // DICTIONARY BUTTON
-  DictionaryButton.Enabled := dictionary.Count > 0;
-  if not DictionaryButton.Enabled then
-    DictionaryButton.Hint := GetString('mpMain_NoDictionary')
-  else
-    DictionaryButton.Hint := GetString('mpMain_DictionaryButton_Hint');
+    BuildButton.Hint := sTitle + GetString('msMain_BuildAllPatchs');
 
   // UPDATE BUTTON
   UpdateButton.Enabled := bProgramUpdate or bDictionaryUpdate;
-  sTitle := GetString('mpMain_UpdateButton_Hint');
+  sTitle := GetString('msMain_UpdateButton_Hint');
   if bProgramUpdate and bDictionaryUpdate then
-    UpdateButton.Hint := sTitle + GetString('mpMain_UpdateBoth')
+    UpdateButton.Hint := sTitle + GetString('msMain_UpdateBoth')
   else if bProgramUpdate then
-    UpdateButton.Hint := sTitle + GetString('mpMain_UpdateProgram')
+    UpdateButton.Hint := sTitle + GetString('msMain_UpdateProgram')
   else if bDictionaryUpdate then
-    UpdateButton.Hint := sTitle + GetString('mpMain_UpdateDictionary')
+    UpdateButton.Hint := sTitle + GetString('msMain_UpdateDictionary')
   else
-    UpdateButton.Hint := sTitle + GetString('mpMain_NoUpdates');
+    UpdateButton.Hint := sTitle + GetString('msMain_NoUpdates');
 
   // HELP BUTTON
   HelpButton.Enabled := false; // TODO: help file integration
 end;
 
-procedure TPatchForm.CreatePatchButtonClick(Sender: TObject);
+procedure TSmashForm.CreatePatchButtonClick(Sender: TObject);
 begin
   NewPatch;
 end;
 
-procedure TPatchForm.BuildButtonClick(Sender: TObject);
-var
-  i, timeCost: integer;
-  patch: TPatch;
+procedure TSmashForm.BuildButtonClick(Sender: TObject);
 begin
   // exit if the loader isn't done
   if not bLoaderDone then begin
@@ -2241,75 +1889,19 @@ begin
 end;
 
 { Submit report }
-procedure TPatchForm.SubmitButtonClick(Sender: TObject);
-var
-  i, j: Integer;
-  patch: TPatch;
-  pluginsList: TList;
-  plugin: TPlugin;
-  bModalOK, bReportsSent: boolean;
+procedure TSmashForm.SubmitButtonClick(Sender: TObject);
 begin
-  // initialize variables
-  pluginsList := TList.Create;
-
-  // loop through plugins in patches
-  for i := 0 to Pred(PatchesList.Count) do begin
-    patch := TPatch(PatchesList[i]);
-    // skip patches that aren't up to date - only want user to submit
-    // reports on plugins in patches they've built
-    if patch.status <> msUpToDate then continue;
-    // loop through plugins in patch
-    for j := 0 to Pred(patch.plugins.Count) do begin
-      plugin := PluginByFilename(patch.plugins[j]);
-      // if we can't find the plugin, continue
-      if not Assigned(plugin) then continue;
-      // if the user doesn't have a local report for the plugin
-      // we will add it to the list of plugins for them to report on
-      if not ReportExistsFor(plugin) then
-        pluginsList.Add(plugin);
-    end;
-  end;
-
-  // create report form
-  bModalOK := false;
-  ReportForm := TReportForm.Create(Self);
-  if pluginsList.Count > 0 then begin
-    ReportForm.pluginsToReport := pluginsList;
-    ReportForm.AppName := wbAppName;
-    bModalOK := ReportForm.ShowModal = mrOk;
-  end;
-
-  // Send reports to backend
-  if bModalOK then begin
-    bReportsSent := SendReports(ReportForm.reportsList);
-    if not bReportsSent then begin
-      Logger.Write('MERGE', 'Report', 'Saving reports locally');
-      SaveReports(ReportForm.reportsList, ProgramPath + 'reports\');
-    end
-    else begin
-      Logger.Write('MERGE', 'Report', 'Saving reports locally');
-      SaveReports(ReportForm.reportsList, ProgramPath + 'reports\submitted\');
-    end;
-  end;
-
-  // clean up
-  ReportForm.Free;
-  pluginsList.Free;
+  // ?
 end;
 
 { View the dictionary file }
-procedure TPatchForm.SettingsButtonClick(Sender: TObject);
-var
-  DictionaryForm: TDictionaryForm;
+procedure TSmashForm.SettingsButtonClick(Sender: TObject);
 begin
-  //LogMessage(TButton(Sender).Hint+' clicked!');
-  DictionaryForm := TDictionaryForm.Create(Self);
-  DictionaryForm.ShowModal;
-  DictionaryForm.Free;
+  // ?
 end;
 
 { Options }
-procedure TPatchForm.OptionsButtonClick(Sender: TObject);
+procedure TSmashForm.OptionsButtonClick(Sender: TObject);
 var
   OptionsForm: TOptionsForm;
   prevLanguage: string;
@@ -2343,7 +1935,7 @@ begin
   UpdateStatusBar;
 
   // if user selected to change game mode, close application
-  if bChangePatchProfile then
+  if bChangeProfile then
     Close;
 
   // if user selected to update program, close application
@@ -2355,10 +1947,10 @@ begin
 end;
 
 { Update }
-procedure TPatchForm.UpdateButtonClick(Sender: TObject);
+procedure TSmashForm.UpdateButtonClick(Sender: TObject);
 begin
   // if not connected to server, don't try to update anything
-  if not TCPClient.Connected then
+  {if not TCPClient.Connected then
     exit;                                               
 
   // update program
@@ -2374,11 +1966,11 @@ begin
     CompareStatuses;
     UpdatePluginData;
     UpdateListViews;
-  end;
+  end; }
 end;
 
 { Help }
-procedure TPatchForm.HelpButtonClick(Sender: TObject);
+procedure TSmashForm.HelpButtonClick(Sender: TObject);
 begin
   //LogMessage(TButton(Sender).Hint+' clicked!');
 end;

@@ -8,7 +8,7 @@ uses
   // mte components
   mteHelpers,
   // mp components
-  mpFrontend;
+  msFrontend;
 
 type
   TSenderCallback = procedure(Sender: TObject) of object;

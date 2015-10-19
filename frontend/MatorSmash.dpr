@@ -21,12 +21,14 @@ uses
   SysUtils,
   msProfileForm in 'msProfileForm.pas' {ProfileForm},
   msProfilePanel in 'msProfilePanel.pas',
-  msSmashForm in 'msSmashForm.pas' {MergeForm},
+  msSmashForm in 'msSmashForm.pas' {SmashForm},
   msFrontend in 'msFrontend.pas',
   msThreads in 'msThreads.pas',
   msOptionsForm in 'msOptionsForm.pas' {OptionsForm},
   msSplashForm in 'msSplashForm.pas' {SplashForm},
-  msEditForm in 'msEditForm.pas' {EditForm};
+  msEditForm in 'msEditForm.pas' {EditForm},
+  msDictionaryForm in 'msDictionaryForm.pas' {DictionaryForm},
+  msSettingForm in 'msSettingForm.pas' {TSettingForm};
 
 {$R *.res}
 {$MAXSTACKSIZE 2097152}
@@ -65,11 +67,13 @@ begin
 
   // run main application
   Inc(sessionStatistics.timesRun);
-  Application.Title := 'Merge Plugins';
-  Application.CreateForm(TMergeForm, MergeForm);
+  Application.Title := 'Mator Smash';
+  Application.CreateForm(TSmashForm, SmashForm);
   Application.CreateForm(TProfileForm, ProfileForm);
   Application.CreateForm(TOptionsForm, OptionsForm);
   Application.CreateForm(TSplashForm, SplashForm);
   Application.CreateForm(TEditForm, EditForm);
+  Application.CreateForm(TDictionaryForm, DictionaryForm);
+  Application.CreateForm(TTSettingForm, TSettingForm);
   Application.Run;
 end.
