@@ -1,0 +1,35 @@
+Smash
+
+Q: Do we want profiles?
+A: Yes, because a user may have multiple load orders or games they want to use smash with.
+
+Q: Do we want a backend?
+A: Yes. We want to serve up smash settings, plugin action recommendations, and program updates.
+
+Q: What will be the main actions of the user within the program?
+A: Create a new smashed patch, view/edit smash settings, view a plugin's record makeup, adjust program settings, update the program, download new smash settings, view the help file, submit smash settings, submit plugin action recommendations, build smashed patches, delete smashed patches, rebuild smashed patches, ...
+
+Q: What attributes will a smashed patch have?
+A: Plugins, plugin, date built, name, filename, smash setting, status, hashes, fails, files.
+
+Q: What attributes with a smash setting have?
+A: A tree of records/subrecord options (process [boolean], treat as single entity [boolean], priority [byte], preserve deletions [boolean]), applicable plugin makeup (record group breakdown), hash, and a name.  All smash settings will be inclusive.
+
+Q: What functionality will smash patch generation make use of?
+A: 
+- Recursive traversal of records and subrecords
+- Record and subrecord skipping based on smash setting
+- Single-entity subrecord handling
+- Sorted array handling
+- Unsorted array handling
+- Record/subrecord priority
+- Record/subrecord preserve deletions option
+
+Q: What information should we expose on plugins and their record makeup?
+A: What record groups are in the plugin.  How many records are in each record group.  The breakdown of new records/override records in the plugin.  The breakdown of new records/overrides in each record group.  A plugin dependency tree.  A breakdown of all record conflicts in the user's load order/between a selected set of plugins.  A breakdown of the elements that conflict in the user's load order/between a selected set of plugins.
+
+Q: What attributes will a plugin recommendation have?
+A: Plugin filename, plugin hash, smash setting name, smash setting hash.
+
+Q: How will setting recommendations be computed?
+A: Each setting will be compared against the plugin to see how many of the conflicts from the plugin it takes care of, and how well it matches the plugin's record makeup.
