@@ -246,10 +246,11 @@ begin
   SettingForm := TSettingForm.Create(self);
   SettingForm.setting := setting;
   if SettingForm.ShowModal = mrOK then begin
-    dictionary.Add(setting);
-    tempSmashSettings.Add(setting);
+    dictionary.Add(SettingForm.setting);
+    tempSmashSettings.Add(SettingForm.setting);
     ApplyFiltering;
   end;
+  SettingForm.Free;
 end;
 
 procedure TDictionaryForm.EditSettingItemClick(Sender: TObject);

@@ -26,9 +26,7 @@ object SettingForm: TSettingForm
     TabWidth = 100
     object GeneralTabSheet: TTabSheet
       Caption = 'Edit Setting'
-      ExplicitWidth = 625
-      ExplicitHeight = 517
-      object TreeView: TTreeView
+      object tvRecords: TTreeView
         Left = 3
         Top = 3
         Width = 407
@@ -37,8 +35,6 @@ object SettingForm: TSettingForm
         Anchors = [akLeft, akTop, akRight, akBottom]
         Indent = 19
         TabOrder = 0
-        ExplicitWidth = 703
-        ExplicitHeight = 511
       end
       object RightPanel: TPanel
         Left = 416
@@ -48,9 +44,6 @@ object SettingForm: TSettingForm
         Align = alRight
         BevelOuter = bvLowered
         TabOrder = 1
-        ExplicitLeft = 712
-        ExplicitTop = 4
-        ExplicitHeight = 517
         object lblName: TLabel
           Left = 8
           Top = 11
@@ -78,7 +71,6 @@ object SettingForm: TSettingForm
           Align = alCustom
           Anchors = [akLeft, akTop, akRight, akBottom]
           TabOrder = 0
-          ExplicitHeight = 278
         end
         object edName: TEdit
           Left = 8
@@ -102,8 +94,6 @@ object SettingForm: TSettingForm
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 1
-    ExplicitLeft = 926
-    ExplicitTop = 559
   end
   object btnOK: TButton
     Left = 549
@@ -115,8 +105,6 @@ object SettingForm: TSettingForm
     Caption = 'OK'
     TabOrder = 2
     OnClick = btnOKClick
-    ExplicitLeft = 845
-    ExplicitTop = 559
   end
   object TreePopupMenu: TPopupMenu
     Left = 48

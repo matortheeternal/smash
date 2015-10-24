@@ -15,7 +15,7 @@ uses
   mteHelpers, mteTracker, mteLogger, mteProgressForm, mteTaskHandler,
   RttiTranslation,
   // mp units
-  msFrontend, msThreads, msOptionsForm, msEditForm,
+  msFrontend, msThreads, msOptionsForm, msEditForm, msDictionaryForm,
   msSplashForm,
   // tes5edit units
   wbBSA, wbHelpers, wbInterface, wbImplementation;
@@ -38,7 +38,7 @@ type
         bhBuild: TBalloonHint;
         bhNew: TBalloonHint;
         bhSubmit: TBalloonHint;
-        bhSet: TBalloonHint;
+        bhDict: TBalloonHint;
         bhOptions: TBalloonHint;
         bhUpdate: TBalloonHint;
         bhHelp: TBalloonHint;
@@ -1896,8 +1896,12 @@ end;
 
 { View the dictionary file }
 procedure TSmashForm.SettingsButtonClick(Sender: TObject);
+var
+  dForm: TDictionaryForm;
 begin
-  // ?
+  dForm := TDictionaryForm.Create(self);
+  dForm.ShowModal;
+  dForm.Free;
 end;
 
 { Options }

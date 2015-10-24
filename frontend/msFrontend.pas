@@ -66,6 +66,14 @@ type
     appIDs: string;
     bsaOptMode: string;
   end;
+  TElementData = Record
+    priority: byte;
+    process: boolean;
+    ignoreDeletions: boolean;
+    singleEntity: boolean;
+    constructor Create(priority: byte; process: boolean;
+      ignoreDeletions: boolean; singleEntity: boolean); overload;
+  end;
   TSmashSetting = class(TObject)
   public
     name: string;
@@ -73,8 +81,10 @@ type
     description: string;
     records: string;
     tree: ISuperObject;
-    constructor Create; Overload;
-    constructor Create(const s: string); Overload;
+    constructor Create;
+    constructor Clone(s: TSmashSetting);
+    procedure LoadDump(dump: ISuperObject);
+    function Dump: ISuperObject;
   end;
   TReport = class(TObject)
   public
@@ -295,6 +305,7 @@ type
   procedure SaveLog(var Log: TList);
   function MessageEnabled(msg: TLogMessage): boolean;
   { Loading and saving methods }
+  procedure LoadExcludedGroups;
   procedure LoadLanguage;
   function GetString(name: string): string;
   procedure SaveProfile(var p: TProfile);
@@ -414,15 +425,17 @@ const
 var
   dictionary, blacklist, PluginsList, PatchesList, BaseLog, Log,
   LabelFilters, GroupFilters, pluginsToHandle, patchesToBuild: TList;
+  TreeView: TTreeView;
   timeCosts, changelog, language: TStringList;
   settings: TSettings;
   CurrentProfile: TProfile;
   statistics, sessionStatistics: TStatistics;
   status, RemoteStatus: TmsStatus;
   handler: IwbContainerHandler;
+  excludedGroups: array of string;
   bInitException, bLoadException, bChangeProfile, bForceTerminate,
   bLoaderDone, bAuthorized, bProgramUpdate, bDictionaryUpdate, bInstallUpdate,
-  bConnecting, bUpdatePatchStatus, bAllowClose: boolean;
+  bConnecting, bUpdatePatchStatus, bAllowClose, bOverridesOnly: boolean;
   TempPath, LogPath, ProgramPath, dictionaryFilename, ActiveModProfile,
   ProgramVersion, xEditLogLabel, xEditLogGroup, DataPath, GamePath,
   ProfilePath: string;
@@ -1585,6 +1598,27 @@ end;
 }
 {******************************************************************************}
 
+function HasSignature(sig: TwbSignature; a: TwbSignatures): boolean;
+var
+  i: Integer;
+begin
+  for i := Low(a) to High(a) do
+    if sig = a[i] then begin
+      Result := true;
+      break;
+    end;
+end;
+
+procedure LoadExcludedGroups;
+begin
+  SetLength(excludedGroups, 5);
+  excludedGroups[0] := 'Race';
+  excludedGroups[1] := 'Dialog Topic';
+  excludedGroups[2] := 'Cell';
+  excludedGroups[3] := 'Worldspace';
+  excludedGroups[4] := 'Location';
+end;
+
 procedure LoadLanguage;
 const
   langFile = 'http://raw.githubusercontent.com/matortheeternal/patch-plugins/master/frontend/lang/english.lang';
@@ -1773,7 +1807,6 @@ end;
 procedure LoadDictionary;
 var
   i: Integer;
-  setting: TSmashSetting;
   sl: TStringList;
 begin
   // initialize dictionary and blacklist
@@ -1792,8 +1825,7 @@ begin
 
   // load dictionary file into entry object
   for i := 0 to Pred(sl.Count) do begin
-    setting := TSmashSetting.Create(sl[i]);
-    dictionary.Add(setting);
+    // TODO: Load recommendations into dictionary
   end;
 
   // free temporary stringlist
@@ -3366,29 +3398,57 @@ begin
   self.enabled := enabled;
 end;
 
-{ TEntry }
+constructor TElementData.Create(priority: Byte; process: Boolean;
+  ignoreDeletions: Boolean; singleEntity: Boolean);
+begin
+  self.priority := priority;
+  self.process := process;
+  self.ignoreDeletions := ignoreDeletions;
+  self.singleEntity := singleEntity;
+end;
+
+{ TSmashSetting }
 constructor TSmashSetting.Create;
 begin
   name := 'NewSetting';
-
+  hash := '$00000000';
+  description := '';
+  records := '';
+  tree := nil;
 end;
 
-constructor TSmashSetting.Create(const s: string);
-var
-  i, lastIndex, ct: Integer;
+constructor TSmashSetting.Clone(s: TSmashSetting);
 begin
-  lastIndex := 1;
-  ct := 0;
-  for i := 1 to Length(s) do begin
-    if s[i] = ';' then begin
-      if ct = 0 then
-        name := Copy(s, lastIndex, i - lastIndex)
-      else if ct = 1 then
-        records := Copy(s, lastIndex, i - lastIndex);
-      LastIndex := i + 1;
-      Inc(ct);
-    end;
-  end;
+  name := s.name;
+  hash := '$00000000';
+  description := s.description;
+  tree := s.tree;
+end;
+
+procedure TSmashSetting.LoadDump(dump: ISuperObject);
+begin
+  name := dump.S['name'];
+  hash := dump.S['hash'];
+  description := dump.S['description'];
+  records := dump.S['records'];
+  tree := dump.O['tree'];
+end;
+
+function TSmashSetting.Dump: ISuperObject;
+var
+  obj: ISuperObject;
+begin
+  obj := SO;
+
+  // normal attributes
+  obj.S['name'] := name;
+  obj.S['hash'] := hash;
+  obj.S['description'] := description;
+  obj.S['records'] := records;
+  // tree
+  obj.O['tree'] := tree;
+
+  Result := obj;
 end;
 
 { TSettings constructor }

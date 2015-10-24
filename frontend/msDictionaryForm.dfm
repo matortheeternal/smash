@@ -60,6 +60,7 @@ object DictionaryForm: TDictionaryForm
       ReadOnly = True
       RowSelect = True
       ParentDoubleBuffered = False
+      PopupMenu = SettingsPopupMenu
       SortType = stData
       TabOrder = 1
       TabStop = False

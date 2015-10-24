@@ -74,6 +74,6 @@ begin
   Application.CreateForm(TSplashForm, SplashForm);
   Application.CreateForm(TEditForm, EditForm);
   Application.CreateForm(TDictionaryForm, DictionaryForm);
-  Application.CreateForm(TTSettingForm, TSettingForm);
+  Application.CreateForm(TSettingForm, SettingForm);
   Application.Run;
 end.

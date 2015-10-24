@@ -55,7 +55,7 @@ mpOpt_lblLanguage_Caption=Current languge
 mpOpt_gbStyle_Caption=Style
 mpOpt_kbSimpleDictionary_Caption=Simple dictionary view
 mpOpt_kbSimplePlugins_Caption=Simple plugins list
-mpOpt_gbReports_Caption=Reports
+mpOpt_gbReports_Caption=Submissions
 mpOpt_lblUsername_Caption=Username
 mpOpt_btnRegister_Caption=Check
 mpOpt_btnRegister_Hint=Check if username is available
@@ -95,4 +95,20 @@ mpOpt_kbUsingMO_Caption=I'm using Mod Organizer
 mpOpt_kbCopyGeneralAssets_Caption=Copy general asssets
 mpOpt_lblModOrganizerPath_Caption=Mod Organizer path
 mpOpt_lblModOrganizerModsPath_Caption=Mod Organizer mods path
+ 
+{ TDictionaryForm }
+{ ## Settings ## }
+msSet_gbFiltering_Caption=Filtering options
+msSet_lblName_Caption=Name
+msSet_lblRecords_Caption=Records 
+msSet_lvSettings_Column0=Name
+msSet_lvSettings_Column1=Records
+{ ## Settings Popup Menu ## }
+msSet_NewSettingItem_Caption=New setting
+msSet_EditSettingItem_Caption=Edit setting
+msSet_DeleteSettingItem_Caption=Delete setting
+{ ## Details ## }
+msSet_lblDictionary_Caption=Settings information:
+{ ## Notes ## }
+msSet_lblNotes_Caption=Description:
  

@@ -85,7 +85,7 @@ object SmashForm: TSmashForm
       Hint = 
         'View dictionary|Open the dictionary viewer to see all reports su' +
         'bmitted by other users.'
-      CustomHint = bhSet
+      CustomHint = bhDict
       NumGlyphs = 2
       ParentShowHint = False
       ShowHint = True
@@ -839,7 +839,7 @@ object SmashForm: TSmashForm
     Left = 1008
     Top = 8
     Bitmap = {
-      494C010107001400080240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C0101070014000C0240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000000100004000000001002000000000000000
       0100000000000000000000000000000000000000000000000000000000000000
       000000000000000000000000000000000000000000000000000000000000E2E2
@@ -3020,7 +3020,7 @@ object SmashForm: TSmashForm
     Left = 128
     Top = 24
   end
-  object bhSet: TBalloonHint
+  object bhDict: TBalloonHint
     Style = bhsStandard
     Left = 176
     Top = 24

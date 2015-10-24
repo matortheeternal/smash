@@ -3,7 +3,7 @@ unit msThreads;
 interface
 
 uses
-  Classes, SysUtils, shlObj, Dialogs,
+  Classes, SysUtils, StrUtils, shlObj, Dialogs, ComCtrls,
   // mte units
   mteHelpers, mteLogger, mteTracker,
   // mp units
@@ -36,10 +36,14 @@ type
   protected
     procedure Execute; override;
   end;
+  TTreeThread = class(TThread)
+  protected
+    procedure Execute; override;
+  end;
 
 var
   InitCallback, LoaderCallback, ErrorCheckCallback, ErrorFixCallback,
-  PatchCallback, SaveCallback, UpdateCallback, ConnectCallback: TCallback;
+  PatchCallback, SaveCallback, UpdateCallback, ConnectCallback, TreeCallback: TCallback;
   StatusCallback: TStatusCallback;
 
 implementation
@@ -116,6 +120,7 @@ begin
     wbEditAllowed := True;
     handler := wbCreateContainerHandler;
     handler._AddRef;
+    LoadExcludedGroups;
 
     // IF AUTOMATIC UPDATING IS ENABLED, CHECK FOR UPDATE
     InitializeClient;
@@ -347,5 +352,114 @@ begin
     Synchronize(nil, SaveCallback);
 end;
 
+function GetChild(node: TTreeNode; text: string): TTreeNode;
+var
+  child: TTreeNode;
+begin
+  Result := nil;
+  child := node.getFirstChild;
+  while Assigned(child) do begin
+    if child.Text = text then begin
+      Result := child;
+      break;
+    end;
+    child := child.getNextSibling;
+  end;
+end;
+
+procedure BuildTreeElements(node: TTreeNode; e: IwbElement);
+var
+  container: IwbContainerElementRef;
+  element: IwbElement;
+  child: TTreeNode;
+  i: Integer;
+begin
+  // treat element as container so we can access its children
+  if not Supports(e, IwbContainerElementRef, container) then
+    exit;
+
+  // loop through children
+  for i := 0 to Pred(container.ElementCount) do begin
+    if Tracker.Cancel then break;
+    element := container.Elements[i];
+    child := GetChild(node, element.name);
+    // create child if it doesn't exist yet
+    if not Assigned(child) then begin
+      child := TreeView.Items.AddChild(node, element.Name);
+      child.Data := Pointer(TElementData.Create(0, false, false, false));
+    end;
+    BuildTreeElements(child, element);
+  end;
+end;
+
+procedure BuildTreeRecords(node: TTreeNode; e: IwbElement;
+  overridesOnly: boolean);
+var
+  container: IwbContainerElementRef;
+  element: IwbElement;
+  group: IwbGroupRecord;
+  mainRecord: IwbMainRecord;
+  child: TTreeNode;
+  i: Integer;
+begin
+  // treat element as container so we can access its children
+  if not Supports(e, IwbContainerElementRef, container) then
+    exit;
+
+  // loop through children
+  for i := 0 to Pred(container.ElementCount) do begin
+    if Tracker.Cancel then break;
+    element := container.Elements[i];
+    if Supports(element, IwbGroupRecord, group) then begin
+      if MatchStr(group.GetShortName, excludedGroups) then
+        continue;
+      child := GetChild(node, group.GetShortName);
+      Tracker.Write(StringOfChar(' ', (node.Level + 1) * 2) + 'Processing group '+group.GetShortName);
+      // create child if it doesn't exist yet
+      if not Assigned(child) then begin
+        child := TreeView.Items.AddChild(node, group.GetShortName);
+        child.Data := Pointer(TElementData.Create(0, false, false, false));
+      end;
+      BuildTreeRecords(child, element, overridesOnly);
+    end
+    {else if Supports(element, IwbMainRecord, mainRecord) then begin
+      if mainRecord.signature = 'TES4' then
+        continue;
+      Tracker.UpdateProgress(1);
+      if not overridesOnly then
+        BuildTreeElements(node, IwbElement(mainRecord))
+      else if IsOverride(mainRecord) then
+        BuildTreeElements(node, IwbElement(mainRecord));
+    end};
+  end;
+end;
+
+procedure TTreeThread.Execute;
+var
+  i: Integer;
+  rootNode: TTreeNode;
+  plugin: TPlugin;
+begin
+  // execute thread
+  rootNode := TreeView.Items.Add(nil, 'Records');
+  for i := 0 to Pred(pluginsToHandle.Count) do begin
+    if Tracker.Cancel then break;
+    plugin := TPlugin(pluginsToHandle[i]);
+    Tracker.Write('Building tree for '+plugin.filename);
+    BuildTreeRecords(rootNode, plugin._File, bOverridesOnly);
+    Tracker.Write(' ');
+    Tracker.SetProgress(IntegerListSum(timeCosts, i));
+    if Tracker.Cancel then Tracker.Write('Tree building canceled.');
+  end;
+
+  // say thread is done if it wasn't cancelled
+  if not Tracker.Cancel then
+    Tracker.Write('All done!');
+
+  // clean up, fire callback
+  Tracker.Cancel := false;
+  if Assigned(TreeCallback) then
+    Synchronize(nil, TreeCallback);
+end;
 
 end.
