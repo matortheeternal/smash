@@ -6,8 +6,8 @@ begin
   // loop through container's elements
   for i := 0 to Pred(container.ElementCount) do begin
     element := container.Elements[i];
-    if bOverridesOnly and (ConflictThis(element) = ctIdenticalToMaster) then
-      continue;
+    //if bOverridesOnly and (ConflictThis(element) = ctIdenticalToMaster) then
+      //continue;
     index := sl.IndexOf(element.Name);
     // create new element name item if missing
     if index = -1 then

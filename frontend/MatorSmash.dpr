@@ -27,8 +27,9 @@ uses
   msOptionsForm in 'msOptionsForm.pas' {OptionsForm},
   msSplashForm in 'msSplashForm.pas' {SplashForm},
   msEditForm in 'msEditForm.pas' {EditForm},
-  msDictionaryForm in 'msDictionaryForm.pas' {DictionaryForm},
-  msSettingForm in 'msSettingForm.pas' {TSettingForm};
+  msSettingsManager in 'msSettingsManager.pas' {SettingsManager},
+  msSettingForm in 'msSettingForm.pas' {TSettingForm},
+  msPriorityForm in 'msPriorityForm.pas' {PriorityForm};
 
 {$R *.res}
 {$MAXSTACKSIZE 2097152}
@@ -46,6 +47,7 @@ begin
   // set important vars
   SysUtils.FormatSettings.DecimalSeparator := '.';
   Application.HintHidePause := 8000;
+  ReportMemoryLeaksOnShutdown := true;
   ProgramPath := ExtractFilePath(ParamStr(0));
 
   // get command line arguments
@@ -73,7 +75,8 @@ begin
   Application.CreateForm(TOptionsForm, OptionsForm);
   Application.CreateForm(TSplashForm, SplashForm);
   Application.CreateForm(TEditForm, EditForm);
-  Application.CreateForm(TDictionaryForm, DictionaryForm);
+  Application.CreateForm(TSettingsManager, SettingsManager);
   Application.CreateForm(TSettingForm, SettingForm);
+  Application.CreateForm(TPriorityForm, PriorityForm);
   Application.Run;
 end.

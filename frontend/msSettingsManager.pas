@@ -1,4 +1,4 @@
-unit msDictionaryForm;
+unit msSettingsManager;
 
 interface
 
@@ -11,7 +11,7 @@ uses
   msFrontend, msSettingForm;
 
 type
-  TDictionaryForm = class(TForm)
+  TSettingsManager = class(TForm)
     [FormPrefix('msSet')]
       Splitter: TSplitter;
       [FormSection('Settings')]
@@ -42,7 +42,7 @@ type
     procedure lvSettingsChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
     procedure lvSettingsData(Sender: TObject; Item: TListItem);
-    procedure UpdateDictionaryDetails;
+    procedure UpdateSmashSettingsDetails;
     procedure vlDrawCell(Sender: TObject; ACol, ARow: Integer;
       Rect: TRect; State: TGridDrawState);
     procedure lvSettingsColumnClick(Sender: TObject; Column: TListColumn);
@@ -70,7 +70,7 @@ const
   green = TColor($009000);
 
 var
-  DictionaryForm: TDictionaryForm;
+  SettingsManager: TSettingsManager;
   columnToSort: integer;
   ascending: boolean;
   tempSmashSettings: TList;
@@ -79,7 +79,7 @@ implementation
 
 {$R *.dfm}
 
-procedure TDictionaryForm.FormCreate(Sender: TObject);
+procedure TSettingsManager.FormCreate(Sender: TObject);
 begin
   // do a translation dump?
   if bTranslationDump then
@@ -88,14 +88,14 @@ begin
   // load translation
   TRttiTranslation.Load(language, self);
 
-  // initialize list view, dictionary list
+  // initialize list view, SmashSettings list
   tempSmashSettings := TList.Create;
   columnToSort := -1;
   lvSettings.OwnerDraw := not settings.simpleDictionaryView;
   lvSettings.Items.Count := tempSmashSettings.Count;
 end;
 
-procedure TDictionaryForm.FormShow(Sender: TObject);
+procedure TSettingsManager.FormShow(Sender: TObject);
 begin
   // initialize list of entries
   edName.Text := FilterFilename;
@@ -109,7 +109,7 @@ begin
 end;
 
 // custom ValueListEditor draw for unselectable cells
-procedure TDictionaryForm.vlDrawCell(Sender: TObject; ACol, ARow: Integer;
+procedure TSettingsManager.vlDrawCell(Sender: TObject; ACol, ARow: Integer;
       Rect: TRect; State: TGridDrawState);
 begin
   vl.Canvas.Brush.Color := clWhite;
@@ -119,21 +119,18 @@ begin
     DT_SINGLELINE or DT_LEFT OR DT_VCENTER or DT_NOPREFIX);
 end;
 
-// refresh Dictionary Details ValueListEditor
-procedure TDictionaryForm.UpdateDictionaryDetails;
+// refresh SmashSettings Details ValueListEditor
+procedure TSettingsManager.UpdateSmashSettingsDetails;
 begin
   vl.Strings.Clear;
 
-  // initialize dictionary details
-  vl.InsertRow(GetString('mpDct_Filename'), dictionaryFilename, true);
-  vl.InsertRow(GetString('mpDct_FileSize'), FormatByteSize(GetFileSize(dictionaryFilename)), true);
-  vl.InsertRow(GetString('mpDct_DateModified'), DateTimeToStr(GetLastModified(dictionaryFilename)), true);
-  vl.InsertRow(GetString('mpDct_NumSettings'), IntToStr(dictionary.Count), true);
+  // initialize SmashSettings details
+  vl.InsertRow(GetString('mpDct_NumSettings'), IntToStr(SmashSettings.Count), true);
   vl.InsertRow(GetString('mpDct_SettingsDisplayed'), IntToStr(tempSmashSettings.Count), true);
 end;
 
 // update meNotes when user changes entry
-procedure TDictionaryForm.lvSettingsChange(Sender: TObject; Item: TListItem;
+procedure TSettingsManager.lvSettingsChange(Sender: TObject; Item: TListItem;
   Change: TItemChange);
 var
   setting: TSmashSetting;
@@ -187,7 +184,7 @@ begin
     Result := -Result;
 end;
 
-procedure TDictionaryForm.lvSettingsColumnClick(Sender: TObject;
+procedure TSettingsManager.lvSettingsColumnClick(Sender: TObject;
   Column: TListColumn);
 begin
   ascending := (columnToSort = Column.Index) and (not ascending);
@@ -197,7 +194,7 @@ begin
   lvSettingsChange(nil, nil, TItemChange(nil));
 end;
 
-procedure TDictionaryForm.lvSettingsData(Sender: TObject; Item: TListItem);
+procedure TSettingsManager.lvSettingsData(Sender: TObject; Item: TListItem);
 var
   entry: TSmashSetting;
 begin
@@ -208,7 +205,7 @@ begin
   lvSettings.Canvas.Font.Style := [fsBold];
 end;
 
-procedure TDictionaryForm.lvSettingsDrawItem(Sender: TCustomListView;
+procedure TSettingsManager.lvSettingsDrawItem(Sender: TCustomListView;
   Item: TListItem; Rect: TRect; State: TOwnerDrawState);
 var
   i, x, y: integer;
@@ -237,7 +234,7 @@ end;
 }
 {******************************************************************************}
 
-procedure TDictionaryForm.NewSettingItemClick(Sender: TObject);
+procedure TSettingsManager.NewSettingItemClick(Sender: TObject);
 var
   setting: TSmashSetting;
   SettingForm: TSettingForm;
@@ -246,16 +243,16 @@ begin
   SettingForm := TSettingForm.Create(self);
   SettingForm.setting := setting;
   if SettingForm.ShowModal = mrOK then begin
-    dictionary.Add(SettingForm.setting);
+    SmashSettings.Add(SettingForm.setting);
     tempSmashSettings.Add(SettingForm.setting);
     ApplyFiltering;
   end;
   SettingForm.Free;
 end;
 
-procedure TDictionaryForm.EditSettingItemClick(Sender: TObject);
+procedure TSettingsManager.EditSettingItemClick(Sender: TObject);
 var
-  i: Integer;
+  i, index: Integer;
   setting: TSmashSetting;
   SettingForm: TSettingForm;
 begin
@@ -263,25 +260,27 @@ begin
     if not lvSettings.Items[i].Selected then
       continue;
     setting := TSmashSetting(tempSmashSettings[i]);
+    index := SmashSettings.IndexOf(setting);
     SettingForm := TSettingForm.Create(self);
     SettingForm.setting := setting;
     if SettingForm.ShowModal = mrOK then begin
-      dictionary.Add(setting);
-      tempSmashSettings.Add(setting);
+      SmashSettings[index] := SettingForm.setting;
+      tempSmashSettings[i] := SettingForm.setting;
       ApplyFiltering;
     end;
+    SettingForm.Free;
     break;
   end;
 end;
 
-procedure TDictionaryForm.DeleteSettingItemClick(Sender: TObject);
+procedure TSettingsManager.DeleteSettingItemClick(Sender: TObject);
 begin
   // ?
 end;
 
 {******************************************************************************}
 { Filtering methods:
-  Methods for filtering the dictionary.
+  Methods for filtering the SmashSettings.
   - MatchesFilters
   - ApplyFilter
   - cbChange
@@ -290,7 +289,7 @@ end;
 }
 {******************************************************************************}
 
-function TDictionaryForm.MatchesFilters(setting: TSmashSetting): boolean;
+function TSettingsManager.MatchesFilters(setting: TSmashSetting): boolean;
 var
   bFilenameMatch, bRecordsMatch: boolean;
 begin
@@ -304,12 +303,12 @@ begin
 end;
 
 // repaint when splitter is moved
-procedure TDictionaryForm.SplitterMoved(Sender: TObject);
+procedure TSettingsManager.SplitterMoved(Sender: TObject);
 begin
   Self.Repaint;
 end;
 
-procedure TDictionaryForm.ApplyFiltering;
+procedure TSettingsManager.ApplyFiltering;
 var
   i: Integer;
   setting: TSmashSetting;
@@ -318,9 +317,9 @@ begin
   lvSettings.Items.Count := 0;
   tempSmashSettings.Clear;
 
-  // loop through the dictionary and add
-  for i := 0 to Pred(dictionary.Count) do begin
-    setting := TSmashSetting(dictionary[i]);
+  // loop through the SmashSettings and add
+  for i := 0 to Pred(SmashSettings.Count) do begin
+    setting := TSmashSetting(SmashSettings[i]);
     if MatchesFilters(setting) then
       tempSmashSettings.Add(setting);
   end;
@@ -334,23 +333,23 @@ begin
   lvSettings.Repaint;
 
   // update details
-  UpdateDictionaryDetails;
+  UpdateSmashSettingsDetails;
 end;
 
 // re-filter when the user changes a filter TComboBox
-procedure TDictionaryForm.cbChange(Sender: TObject);
+procedure TSettingsManager.cbChange(Sender: TObject);
 begin
   ApplyFiltering;
 end;
 
 // re-filter when the user exits a filter TEdit
-procedure TDictionaryForm.edExit(Sender: TObject);
+procedure TSettingsManager.edExit(Sender: TObject);
 begin
   ApplyFiltering;
 end;
 
 // re-filter when the user presses enter in a filter TEdit
-procedure TDictionaryForm.edKeyPress(Sender: TObject; var Key: Char);
+procedure TSettingsManager.edKeyPress(Sender: TObject; var Key: Char);
 begin
   if Key = #13 then begin
     ApplyFiltering;

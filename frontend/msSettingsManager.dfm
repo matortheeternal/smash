@@ -1,4 +1,4 @@
-object DictionaryForm: TDictionaryForm
+object SettingsManager: TSettingsManager
   Left = 0
   Top = 0
   Caption = 'Settings Manager'
@@ -52,7 +52,7 @@ object DictionaryForm: TDictionaryForm
         end
         item
           Caption = 'Records'
-          Width = 100
+          Width = 400
         end>
       DoubleBuffered = True
       OwnerData = True

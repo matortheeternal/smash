@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ComCtrls, Menus, StdCtrls, ExtCtrls,
+  Dialogs, ComCtrls, Menus, StdCtrls, ExtCtrls, StrUtils,
   // superobject
   superobject,
   // xEdit
@@ -12,7 +12,7 @@ uses
   // mte units
   mteHelpers, mteProgressForm,
   // ms units
-  msFrontend, msThreads, msPluginSelectionForm;
+  msFrontend, msThreads, msPluginSelectionForm, msPriorityForm, ImgList;
 
 type
   TSettingForm = class(TForm)
@@ -27,6 +27,11 @@ type
     tvRecords: TTreeView;
     RightPanel: TPanel;
     lblDescription: TLabel;
+    ToggleItem: TMenuItem;
+    ChangePriorityItem: TMenuItem;
+    IgnoreDeletionsItem: TMenuItem;
+    SingleEntityItem: TMenuItem;
+    StateImages: TImageList;
     procedure TreeDone;
     procedure BuildTreeFromPlugins(var sl: TStringList);
     procedure BuildTree;
@@ -36,6 +41,16 @@ type
     procedure DumpTree;
     procedure btnOKClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure ToggleItemClick(Sender: TObject);
+    procedure TreePopupMenuPopup(Sender: TObject);
+    procedure ChangePriorityItemClick(Sender: TObject);
+    procedure IgnoreDeletionsItemClick(Sender: TObject);
+    procedure SingleEntityItemClick(Sender: TObject);
+    procedure tvRecordsMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure tvRecordsKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
   public
@@ -68,11 +83,201 @@ begin
   if Assigned(pluginsToHandle) then pluginsToHandle.Free;
 end;
 
+procedure TSettingForm.TreePopupMenuPopup(Sender: TObject);
+var
+  bHasSelection: boolean;
+  //i: Integer;
+  //e: TElementData;
+begin
+  bHasSelection := tvRecords.SelectionCount > 0;
+  ToggleItem.Enabled := bHasSelection;
+end;
+
+{
+  SetChildren
+  Sets the StateIndex attribute of all the children of @node
+  to @state.  Uses recursion.
+}
+procedure SetChildren(node: TTreeNode; state: Integer);
+var
+  e: TElementData;
+  tmp: TTreeNode;
+begin
+  // exit if we don't have a node to work with
+  if not Assigned(node) then exit;
+
+  // loop through children setting StateIndex to state
+  // if child has children, recurse into that child
+  tmp := node.getFirstChild;
+  while Assigned(tmp) do begin
+    tmp.StateIndex := state;
+    e := TElementData(tmp.Data);
+    e.process := state <> cUnChecked;
+    tmp.Data := Pointer(e);
+    if tmp.HasChildren then
+      SetChildren(tmp, state);
+    tmp := tmp.getNextSibling;
+  end;
+end;
+
+{
+  UpdateParent
+  Calculates and sets the StateIndex attribute for @node based
+  on the StateIndex values of its children.  Uses recursion to
+  update parents of the parent that was updated.
+}
+procedure UpdateParent(node: TTreeNode);
+var
+  tmp: TTreeNode;
+  state: Integer;
+  e: TElementData;
+begin
+  // exit if we don't have a node to work with
+  if not Assigned(node) then exit;
+
+  // parent state is checked if all siblings are checked
+  state := cChecked;
+  tmp := node.getFirstChild;
+  while Assigned(tmp) do begin
+    if tmp.StateIndex <> cChecked then begin
+      state := cPartiallyChecked;
+      break;
+    end;
+    tmp := tmp.getNextSibling;
+  end;
+
+  // parent state is unchecked if all siblings are unchecked
+  if state = cPartiallyChecked then begin
+    state := cUnChecked;
+    tmp := node.getFirstChild;
+    while Assigned(tmp) do begin
+      if tmp.StateIndex <> cUnChecked then begin
+        state := cPartiallyChecked;
+        break;
+      end;
+      tmp := tmp.getNextSibling;
+    end;
+  end;
+
+  // set state, recurse to next parent
+  node.StateIndex := state;
+  e := TElementData(node.Data);
+  e.process := state <> cUnChecked;
+  node.Data := Pointer(e);
+  tmp := node.Parent;
+  UpdateParent(tmp);
+end;
+
+{
+  CheckBoxManager
+  Manages checkboxes in the TTreeView.  Changes the StateIndex
+  of the checkbox associated with @node.  Uses SetChildren and
+  UpdateParent.  Called by tvClick and tvKeyDown.
+}
+procedure CheckBoxManager(node: TTreeNode);
+var
+  e: TElementData;
+begin
+  // exit if we don't have a node to work with
+  if not Assigned(node) then exit;
+
+  // if unchecked or partially checked, set to checked and
+  // set all children to checked, update parents
+  if (node.StateIndex = cUnChecked)
+  or (node.StateIndex = cPartiallyChecked) then begin
+    node.StateIndex := cChecked;
+    e := TElementData(node.Data);
+    e.process := true;
+    node.Data := Pointer(e);
+    UpdateParent(node.Parent);
+    SetChildren(node, cChecked);
+  end
+  // if checked, set to unchecked and set all children to
+  // unchecked, update parents
+  else if node.StateIndex = cChecked then begin
+    node.StateIndex := cUnChecked;
+    e := TElementData(node.Data);
+    node.Data := Pointer(e);
+    e.process := false;
+    UpdateParent(node.Parent);
+    SetChildren(node, cUnChecked);
+  end;
+end;
+
+procedure TSettingForm.tvRecordsKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if (Key = VK_SPACE) and Assigned(tvRecords.Selected) then
+    CheckBoxManager(tvRecords.Selected);
+end;
+
+procedure TSettingForm.tvRecordsMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  HT: THitTests;
+begin
+  HT := tvRecords.GetHitTestInfoAt(X, Y);
+  if (HT - [htOnStateIcon] <> HT) then
+    CheckBoxManager(tvRecords.Selected);
+end;
+
+procedure TSettingForm.ToggleItemClick(Sender: TObject);
+var
+  i: Integer;
+begin
+  for i := 0 to Pred(tvRecords.SelectionCount) do
+    CheckboxManager(tvRecords.Selections[i]);
+end;
+
+procedure TSettingForm.ChangePriorityItemClick(Sender: TObject);
+var
+  cForm: TPriorityForm;
+  i: Integer;
+  e: TElementData;
+  node: TTreeNode;
+begin
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
+    node := tvRecords.Selections[i];
+    e := TElementData(node.Data);
+    cForm := TPriorityForm.Create(self);
+    cForm.Caption := Format('Change node priority (%s)', [node.Text]);
+    cForm.Priority := e.priority;
+    if cForm.ShowModal = mrOK then begin
+      e.priority := cForm.Priority;
+      tvRecords.Selections[i].Data := Pointer(e);
+    end;
+    cForm.Free;
+  end;
+end;
+
+procedure TSettingForm.IgnoreDeletionsItemClick(Sender: TObject);
+var
+  i: Integer;
+  e: TElementData;
+begin
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
+    e := TElementData(tvRecords.Selections[i].Data);
+    e.ignoreDeletions := not e.ignoreDeletions;
+    tvRecords.Selections[i].Data := Pointer(e);
+  end;
+end;
+
+procedure TSettingForm.SingleEntityItemClick(Sender: TObject);
+var
+  i: Integer;
+  e: TElementData;
+begin
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
+    e := TElementData(tvRecords.Selections[i].Data);
+    e.singleEntity := not e.singleEntity;
+    tvRecords.Selections[i].Data := Pointer(e);
+  end;
+end;
+
 procedure TSettingForm.BuildTreeFromPlugins(var sl: TStringList);
 var
   i: Integer;
   plugin: TPlugin;
-  rootNode: TTreeNode;
 begin
   // create lists
   pluginsToHandle := TList.Create;
@@ -148,13 +353,22 @@ procedure TSettingForm.LoadElement(node: TTreeNode; obj: ISuperObject);
 var
   item: ISuperObject;
   child: TTreeNode;
+  bProcess: boolean;
 begin
-  child := TreeView.Items.AddChild(node, obj.S['name']);
-  child.Data := Pointer(TElementData.Create( obj.I['priority'], obj.B['process'],
-      obj.B['ignoreDeletions'], obj.B['singleEntity'] ));
-  try
-    for item in obj.O['children'] do
+  if not Assigned(obj) then
+    exit;
+  child := tvRecords.Items.AddChild(node, obj.S['n']);
+  bProcess := obj.I['p'] = 1;
+  if bProcess then
+    child.StateIndex := cChecked
+  else
+    child.StateIndex := cUnChecked;
+  child.Data := Pointer(TElementData.Create( obj.I['r'], obj.I['p'] = 1,
+      obj.I['i'] = 1, obj.I['s'] = 1 ));
+  if Assigned(obj.O['c']) then try
+    for item in obj['c'] do
       LoadElement(child, item);
+    UpdateParent(child);
   except
     on x : Exception do
       // nothing
@@ -166,9 +380,9 @@ var
   obj, item: ISuperObject;
   rootNode: TTreeNode;
 begin
-  rootNode := TreeView.Items.Add(nil, 'Records');
+  rootNode := tvRecords.Items.Add(nil, 'Records');
   obj := setting.tree;
-  for item in obj['Records'] do
+  for item in obj['records'] do
     LoadElement(rootNode, item);
 end;
 
@@ -181,26 +395,28 @@ var
 begin
   obj := SO;
   // get name
-  obj.S['name'] := node.Text;
+  obj.S['n'] := node.Text;
   // get data properties
   e := TElementData(node.Data);
-  obj.I['priority'] := e.priority;
-  obj.B['process'] := e.process;
-  obj.B['ignoreDeletions'] := e.ignoreDeletions;
-  obj.B['singleEntity'] := e.singleEntity;
+  obj.I['r'] := e.priority;
+  obj.I['p'] := IfThenInt(e.process, 1, 0);
+  obj.I['i'] := IfThenInt(e.ignoreDeletions, 1, 0);
+  obj.I['s'] := IfThenInt(e.singleEntity, 1, 0);
 
   // exit if no children to dump
-  if not node.hasChildren then
-    exit;
-  // dump subrecords (children)
-  obj.O['children'] := SA([]);
-  child := node.getFirstChild;
-  i := 0;
-  while Assigned(child) do begin
-    obj.A['children'].O[i] := DumpElement(child);
-    child := child.getNextSibling;
-    Inc(i);
+  if node.hasChildren then begin
+    // dump subrecords (children)
+    obj.O['c'] := SA([]);
+    child := node.getFirstChild;
+    i := 0;
+    while Assigned(child) do begin
+      obj.A['c'].O[i] := DumpElement(child);
+      child := child.getNextSibling;
+      Inc(i);
+    end;
   end;
+
+  Result := obj;
 end;
 
 procedure TSettingForm.DumpTree;
@@ -210,19 +426,26 @@ var
   node, rootNode: TTreeNode;
 begin
   obj := SO;
-  obj.O['Records'] := SA([]);
-  rootNode := TreeView.Items[0];
+  obj.O['records'] := SA([]);
+  rootNode := tvRecords.Items[0];
 
   // loop through records
   node := rootNode.getFirstChild;
   i := 0;
   while Assigned(node) do begin
-    obj.A['Records'].O[i] := DumpElement(node);
+    obj.A['records'].O[i] := DumpElement(node);
     node := node.getNextSibling;
     Inc(i);
   end;
 
   setting.tree := obj;
+end;
+
+procedure TSettingForm.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  //tvRecords.Free;
+  //if Assigned(TreeView) then
+    //TreeView.Free;
 end;
 
 procedure TSettingForm.FormShow(Sender: TObject);
@@ -241,6 +464,7 @@ begin
   setting.name := edName.Text;
   setting.description := meDescription.Lines.Text;
   DumpTree;
+  ModalResult := mrOK;
 end;
 
 end.

@@ -14,6 +14,7 @@ type
     FSetEvent : TUpdateEvent;
     FMaxEvent : TUpdateEvent;
     FLogEvent : TLogEvent;
+    FStatusEvent : TLogEvent;
   public
     Cancel: boolean;
     procedure SetMax(const i: integer);
@@ -22,6 +23,8 @@ type
     property OnSetEvent: TUpdateEvent read FSetEvent write FSetEvent;
     procedure UpdateProgress(const i: integer);
     property OnProgressEvent: TUpdateEvent read FUpdateEvent write FUpdateEvent;
+    procedure StatusMessage(const s: string);
+    property OnStatusEvent: TLogEvent read FStatusEvent write FStatusEvent;
     procedure Write(const s: string);
     property OnLogEvent: TLogEvent read FLogEvent write FLogEvent;
   end;
@@ -36,6 +39,12 @@ procedure TProgressTracker.SetMax(const i: Integer);
 begin
   if Assigned(FMaxEvent) then
     FMaxEvent(i);
+end;
+
+procedure TProgressTracker.StatusMessage(const s: string);
+begin
+  if Assigned(FStatusEvent) then
+    FStatusEvent(s);
 end;
 
 procedure TProgressTracker.SetProgress(const i: integer);

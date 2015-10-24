@@ -1,0 +1,10 @@
+1. Fix memory leaks
+2. Force setting names to be unique
+	- Provide user with a unique name when they create a new setting or clone an existing setting
+	- Disallow user from creating/cloning/editing a setting to a name that is taken
+3. Add clone setting option
+4. Add prune tree option
+	- Popup menu for the tree
+	- There will also be a prompt when saving a setting asking the user if they want to prune the tree.  (ONLY FOR NEW SETTINGS).
+5. Add visualization for the other node data (priority, single entity, ignore deletions).
+6. Adjust UX for settings manager

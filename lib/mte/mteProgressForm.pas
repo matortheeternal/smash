@@ -16,6 +16,7 @@ type
     ProgressLabel: TLabel;
     CancelButton: TButton;
     procedure UpdateProgress(const i: Integer);
+    procedure StatusMessage(const s: string);
     procedure Write(const s: string);
     procedure SaveLog;
     procedure MaxProgress(const i: Integer);
@@ -69,6 +70,7 @@ begin
   Tracker.OnProgressEvent := nil;
   Tracker.OnLogEvent := nil;
   Tracker.OnSetEvent := nil;
+  Tracker.OnStatusEvent := nil;
 end;
 
 procedure TProgressForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -92,6 +94,7 @@ begin
   Tracker.OnProgressEvent := UpdateProgress;
   Tracker.OnLogEvent := Write;
   Tracker.OnSetEvent := SetProgress;
+  Tracker.OnStatusEvent := StatusMessage;
 end;
 
 procedure TProgressForm.FormShow(Sender: TObject);
@@ -128,6 +131,11 @@ begin
   except on Exception do
     // nothing to do
   end;
+end;
+
+procedure TProgressForm.StatusMessage(const s: string);
+begin
+  ProgressLabel.Caption := s;
 end;
 
 procedure TProgressForm.Write(const s: string);

@@ -14,9 +14,9 @@ uses
   // mte components
   mteHelpers, mteTracker, mteLogger, mteProgressForm, mteTaskHandler,
   RttiTranslation,
-  // mp units
-  msFrontend, msThreads, msOptionsForm, msEditForm, msDictionaryForm,
-  msSplashForm,
+  // ms units
+  msFrontend, msThreads, msOptionsForm, msEditForm, msSettingForm,
+  msSettingsManager, msSplashForm,
   // tes5edit units
   wbBSA, wbHelpers, wbInterface, wbImplementation;
 
@@ -1897,11 +1897,11 @@ end;
 { View the dictionary file }
 procedure TSmashForm.SettingsButtonClick(Sender: TObject);
 var
-  dForm: TDictionaryForm;
+  smForm: TSettingsManager;
 begin
-  dForm := TDictionaryForm.Create(self);
-  dForm.ShowModal;
-  dForm.Free;
+  smForm := TSettingsManager.Create(self);
+  smForm.ShowModal;
+  smForm.Free;
 end;
 
 { Options }

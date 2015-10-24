@@ -85,6 +85,7 @@ type
     constructor Clone(s: TSmashSetting);
     procedure LoadDump(dump: ISuperObject);
     function Dump: ISuperObject;
+    procedure Save;
   end;
   TReport = class(TObject)
   public
@@ -323,6 +324,8 @@ type
   procedure SavePatches;
   procedure LoadPatches;
   procedure AssignPatchesToPlugins;
+  procedure SaveSmashSettings;
+  procedure LoadSmashSettings;
   procedure SavePluginInfo;
   procedure LoadPluginInfo;
   procedure SaveReports(var lst: TList; path: string);
@@ -380,6 +383,11 @@ const
   MSG_REQUEST = 6;
   MSG_REPORT = 7;
 
+  // CHECKED STATES
+  cChecked = 1;
+  cUnChecked = 2;
+  cPartiallyChecked = 3;
+
   // MERGE STATUSES
   StatusArray: array[0..10] of TPatchStatus = (
     ( id: psUnknown; color: $808080; desc: 'Unknown'; ),
@@ -424,7 +432,7 @@ const
 
 var
   dictionary, blacklist, PluginsList, PatchesList, BaseLog, Log,
-  LabelFilters, GroupFilters, pluginsToHandle, patchesToBuild: TList;
+  LabelFilters, GroupFilters, pluginsToHandle, patchesToBuild, SmashSettings: TList;
   TreeView: TTreeView;
   timeCosts, changelog, language: TStringList;
   settings: TSettings;
@@ -1602,6 +1610,7 @@ function HasSignature(sig: TwbSignature; a: TwbSignatures): boolean;
 var
   i: Integer;
 begin
+  Result := false;
   for i := Low(a) to High(a) do
     if sig = a[i] then begin
       Result := true;
@@ -1611,12 +1620,21 @@ end;
 
 procedure LoadExcludedGroups;
 begin
-  SetLength(excludedGroups, 5);
-  excludedGroups[0] := 'Race';
+  SetLength(excludedGroups, 9);
+  {excludedGroups[0] := 'Race';
   excludedGroups[1] := 'Dialog Topic';
   excludedGroups[2] := 'Cell';
   excludedGroups[3] := 'Worldspace';
-  excludedGroups[4] := 'Location';
+  excludedGroups[4] := 'Location';}
+  excludedGroups[0] := 'RACE';
+  excludedGroups[1] := 'DIAL';
+  excludedGroups[2] := 'CELL';
+  excludedGroups[3] := 'WRLD';
+  excludedGroups[4] := 'LCTN';
+  excludedGroups[5] := 'NAVI';
+  excludedGroups[6] := 'NAVM';
+  excludedGroups[7] := 'REFR';
+  excludedGroups[8] := 'ACHR';
 end;
 
 procedure LoadLanguage;
@@ -1957,6 +1975,56 @@ begin
   end;
 end;
 
+procedure SaveSmashSettings;
+var
+  aSetting: TSmashSetting;
+  i: Integer;
+begin
+  Tracker.Write('Saving smash settings');
+  for i := 0 to Pred(SmashSettings.Count) do begin
+    aSetting := TSmashSetting(SmashSettings[i]);
+    Tracker.Write('  Saving '+aSetting.name);
+    aSetting.Save;
+  end;
+  Tracker.Write(' ');
+end;
+
+procedure LoadSmashSettings;
+var
+  info: TSearchRec;
+  obj: ISuperObject;
+  sl: TStringList;
+  aSetting: TSmashSetting;
+  path: String;
+begin
+  SmashSettings := TList.Create;
+  path := ProgramPath + 'settings\';
+  ForceDirectories(path);
+  if FindFirst(path + '*.json', faAnyFile, info) <> 0 then
+    exit;
+  repeat
+    try
+      aSetting := TSmashSetting.Create;
+      sl := TStringList.Create;
+      sl.LoadFromFile(path + info.Name);
+      obj := SO(PChar(sl.Text));
+      if Assigned(obj) then begin
+        aSetting.LoadDump(obj);
+        if aSetting.name <> '' then
+          SmashSettings.Add(aSetting);
+      end;
+      sl.Free;
+      obj := nil;
+    except
+      on x: Exception do begin
+        if Assigned(sl) then sl.Free;
+        obj := nil;
+        Logger.Write('ERROR', 'Load', 'Failed to load smash setting '+info.Name);
+      end;
+    end;
+  until FindNext(info) <> 0;
+end;
+
 procedure SavePluginInfo;
 var
   i, index: Integer;
@@ -1966,7 +2034,7 @@ var
   sl: TStringList;
 begin
   // don't load file if it doesn't exist
-  filename := 'user\' + wbAppName + 'PluginInfo.json';
+  filename := ProfilePath + 'PluginInfo.json';
   if FileExists(filename) then begin
     // load file text into SuperObject to parse it
     sl := TStringList.Create;
@@ -3440,15 +3508,24 @@ var
 begin
   obj := SO;
 
-  // normal attributes
-  obj.S['name'] := name;
-  obj.S['hash'] := hash;
-  obj.S['description'] := description;
-  obj.S['records'] := records;
   // tree
   obj.O['tree'] := tree;
+  // normal attributes
+  obj.S['records'] := records;
+  obj.S['description'] := description;
+  obj.S['hash'] := hash;
+  obj.S['name'] := name;
 
   Result := obj;
+end;
+
+procedure TSmashSetting.Save;
+var
+  path: string;
+begin
+  path := Format('%s\settings\%s.json', [ProgramPath, name]);
+  ForceDirectories(ExtractFilePath(path));
+  Dump.SaveTo(path);
 end;
 
 { TSettings constructor }

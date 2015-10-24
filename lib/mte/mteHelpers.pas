@@ -7,6 +7,7 @@ uses
   Classes, ComCtrls, CommCtrl, DateUtils, shlObj, IOUtils;
 
   { General functions }
+  function IfThenInt(AValue: boolean; ATrue: Integer = 1; AFalse: Integer = 0): Integer;
   function TitleCase(sText: String): String;
   function SentenceCase(sText: string): string;
   function csvText(s: string): string;
@@ -66,6 +67,7 @@ implementation
   Set of functions that help with converting data types and handling strings.
 
   List of functions:
+  - IfThenInt
   - TitleCase
   - SentenceCase
   - csvText
@@ -88,6 +90,16 @@ implementation
   - ApplyTemplate
 }
 {*****************************************************************************}
+
+{ Returns one of two integers based on a boolean argument.
+  Like IfThen from StrUtils, but returns an Integer. }
+function IfThenInt(AValue: boolean; ATrue: Integer = 1; AFalse: Integer = 0): Integer;
+begin
+  if AValue then
+    Result := ATrue
+  else
+    Result := AFalse;
+end;
 
 { Capitalizes the first letter of each word }
 function TitleCase(sText: String): String;

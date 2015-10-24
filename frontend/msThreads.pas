@@ -148,8 +148,12 @@ begin
     Logger.Write('GENERAL', 'Definitions', 'Using '+wbAppName+'Edit Definitions');
     LoadDefinitions;
 
+    // LOAD SMASH SETTINGS
+    Tracker.Write('Loading smash settings');
+    LoadSmashSettings;
+
     // LOAD PATCHES
-    Tracker.Write('Loading settings');
+    Tracker.Write('Loading patches');
     LoadPatches;
 
     // PREPARE TO LOAD PLUGINS
@@ -333,8 +337,10 @@ begin
     SavePluginInfo;
     Tracker.SetProgress(PluginsList.Count + 1);
     Tracker.Write(' ');
-    // save merges
+    // save patches
     SavePatches;
+    // save smash settings
+    SaveSmashSettings;
     // rename saved plugins
     if bLoaderDone then RenameSavedPlugins;
   end;
@@ -352,86 +358,92 @@ begin
     Synchronize(nil, SaveCallback);
 end;
 
-function GetChild(node: TTreeNode; text: string): TTreeNode;
+procedure LoadElementData(var sl: TStringList; container: IwbContainerElementRef);
 var
-  child: TTreeNode;
-begin
-  Result := nil;
-  child := node.getFirstChild;
-  while Assigned(child) do begin
-    if child.Text = text then begin
-      Result := child;
-      break;
-    end;
-    child := child.getNextSibling;
-  end;
-end;
-
-procedure BuildTreeElements(node: TTreeNode; e: IwbElement);
-var
-  container: IwbContainerElementRef;
+  innerContainer: IwbContainerElementRef;
   element: IwbElement;
-  child: TTreeNode;
-  i: Integer;
+  i, index: Integer;
+  isl: TStringList;
 begin
-  // treat element as container so we can access its children
-  if not Supports(e, IwbContainerElementRef, container) then
-    exit;
-
-  // loop through children
+  // loop through container's elements
   for i := 0 to Pred(container.ElementCount) do begin
-    if Tracker.Cancel then break;
     element := container.Elements[i];
-    child := GetChild(node, element.name);
-    // create child if it doesn't exist yet
-    if not Assigned(child) then begin
-      child := TreeView.Items.AddChild(node, element.Name);
-      child.Data := Pointer(TElementData.Create(0, false, false, false));
-    end;
-    BuildTreeElements(child, element);
-  end;
-end;
-
-procedure BuildTreeRecords(node: TTreeNode; e: IwbElement;
-  overridesOnly: boolean);
-var
-  container: IwbContainerElementRef;
-  element: IwbElement;
-  group: IwbGroupRecord;
-  mainRecord: IwbMainRecord;
-  child: TTreeNode;
-  i: Integer;
-begin
-  // treat element as container so we can access its children
-  if not Supports(e, IwbContainerElementRef, container) then
-    exit;
-
-  // loop through children
-  for i := 0 to Pred(container.ElementCount) do begin
-    if Tracker.Cancel then break;
-    element := container.Elements[i];
-    if Supports(element, IwbGroupRecord, group) then begin
-      if MatchStr(group.GetShortName, excludedGroups) then
-        continue;
-      child := GetChild(node, group.GetShortName);
-      Tracker.Write(StringOfChar(' ', (node.Level + 1) * 2) + 'Processing group '+group.GetShortName);
-      // create child if it doesn't exist yet
-      if not Assigned(child) then begin
-        child := TreeView.Items.AddChild(node, group.GetShortName);
-        child.Data := Pointer(TElementData.Create(0, false, false, false));
+    //if bOverridesOnly and (ConflictThis(element) = ctIdenticalToMaster) then
+      //continue;
+    index := sl.IndexOf(element.Name);
+    // create new element name item if missing
+    if index = -1 then
+      index := sl.Add(element.Name);
+    // traverse children of element, if it has any
+    if Supports(element, IwbContainerElementRef, innerContainer) then
+      if innerContainer.ElementCount > 0 then begin
+        if not Assigned(sl.Objects[index]) then
+          sl.Objects[index] := TStringList.Create;
+        isl := TStringList(sl.Objects[index]);
+        LoadElementData(isl, innerContainer);
       end;
-      BuildTreeRecords(child, element, overridesOnly);
-    end
-    {else if Supports(element, IwbMainRecord, mainRecord) then begin
-      if mainRecord.signature = 'TES4' then
-        continue;
-      Tracker.UpdateProgress(1);
-      if not overridesOnly then
-        BuildTreeElements(node, IwbElement(mainRecord))
-      else if IsOverride(mainRecord) then
-        BuildTreeElements(node, IwbElement(mainRecord));
-    end};
   end;
+end;
+
+procedure LoadRecordData(var sl: TStringList; f: IwbFile);
+var
+  i, index: Integer;
+  container: IwbContainerElementRef;
+  rec: IwbMainRecord;
+  isl: TStringList;
+begin
+  // loop through file's records
+  for i := 0 to Pred(f.RecordCount) do begin
+    rec := f.Records[i];
+    Tracker.UpdateProgress(1);
+    if i mod 10 = 0 then
+      Tracker.StatusMessage(Format('Building tree for %s (%d/%d)',
+        [f.filename, i + 1, f.RecordCount]));
+    // skip excluded signatures
+    if MatchStr(rec.Signature, excludedGroups) then
+      continue;
+    // skip non-override records
+    if bOverridesOnly and not IsOverride(rec) then
+      continue;
+    index := sl.IndexOf(rec.Signature);
+    // add new record signature item if missing
+    if index = -1 then
+      index := sl.AddObject(rec.Signature, TStringList.Create);
+    if Supports(rec, IwbContainerElementRef, container) then begin
+      isl := TStringList(sl.Objects[index]);
+      LoadElementData(isl, container);
+    end;
+  end;
+end;
+
+procedure StringsToNodes(node: TTreeNode; var sl: TStringList);
+var
+  child: TTreeNode;
+  i: Integer;
+  isl: TStringList;
+begin
+  for i := 0 to Pred(sl.Count) do begin
+    if Tracker.Cancel then break;
+    child := TreeView.Items.AddChild(node, sl[i]);
+    child.StateIndex := cUnChecked;
+    child.Data := Pointer(TElementData.Create(0, false, false, false));
+    isl := TStringList(sl.Objects[i]);
+    if Assigned(isl) then
+      StringsToNodes(child, isl);
+  end;
+end;
+
+procedure FreeStringTree(var sl: TStringList);
+var
+  i: Integer;
+  isl: TStringList;
+begin
+  for i := 0 to Pred(sl.Count) do begin
+    isl := TStringList(sl.Objects[i]);
+    if Assigned(isl) then
+      FreeStringTree(isl);
+  end;
+  sl.Free;
 end;
 
 procedure TTreeThread.Execute;
@@ -439,9 +451,10 @@ var
   i: Integer;
   rootNode: TTreeNode;
   plugin: TPlugin;
+  sl: TStringList;
 begin
   // execute thread
-  rootNode := TreeView.Items.Add(nil, 'Records');
+  {rootNode := TreeView.Items.Add(nil, 'Records');
   for i := 0 to Pred(pluginsToHandle.Count) do begin
     if Tracker.Cancel then break;
     plugin := TPlugin(pluginsToHandle[i]);
@@ -450,7 +463,23 @@ begin
     Tracker.Write(' ');
     Tracker.SetProgress(IntegerListSum(timeCosts, i));
     if Tracker.Cancel then Tracker.Write('Tree building canceled.');
+  end; }
+  sl := TStringList.Create;
+  sl.Sorted := true;
+  for i := 0 to Pred(pluginsToHandle.Count) do begin
+    if Tracker.Cancel then break;
+    plugin := TPlugin(pluginsToHandle[i]);
+    Tracker.Write('Building tree for '+plugin.filename);
+    LoadRecordData(sl, plugin._File);
+    Tracker.SetProgress(IntegerListSum(timeCosts, i));
+    if Tracker.Cancel then Tracker.Write('Tree building canceled.');
   end;
+  rootNode := TreeView.Items.Add(nil, 'Records');
+  rootNode.StateIndex := cUnChecked;
+  Tracker.Write(' ');
+  Tracker.Write('Preparing tree for display...');
+  StringsToNodes(rootNode, sl);
+  FreeStringTree(sl);
 
   // say thread is done if it wasn't cancelled
   if not Tracker.Cancel then
