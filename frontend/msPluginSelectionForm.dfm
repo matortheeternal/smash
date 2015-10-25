@@ -37,7 +37,7 @@ object PluginSelectionForm: TPluginSelectionForm
     ItemHeight = 13
     TabOrder = 0
     OnClick = CheckListBoxClick
-    OnKeyDown = CheckListBoxKeyDown
+    OnKeyUp = CheckListBoxKeyUp
   end
   object btnOK: TButton
     Left = 170

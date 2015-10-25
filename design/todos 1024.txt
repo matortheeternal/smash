@@ -1,19 +1,5 @@
-1. Fix memory leaks
-2. Adjust UX for settings manager
-3. Add combine setting option
-	- merging json from multiple settings
-	- user has the ability to choose which record dump to use from which setting
-	- adding items to json array
-4. Plugin recommendations "dictionary"
-5. Main form (general UX stuff)
-6. Smashing algorithms -- TConflictThis determination 
-7. Backend
-
-msCombineForm
-TCombineForm
-
-SCROLLBOX WITH DYNAMICALLY CREATED COMPONENTS
-.------------------------------------------------------------. .----------------------------------------------.
-| [PANEL  [RECORD SIGNATURE]   ---  [COMBOBOX OF SETTINGS]]] | | Tree view of the currently selected record's |
-|    ...                       ---      ...                  | | definition for the selected setting          |
-'------------------------------------------------------------' '----------------------------------------------'
+1. Plugin recommendations "dictionary"
+2. Main form (general UX stuff)
+3. Plugin information form
+4. Smashing algorithms -- TConflictThis determination 
+5. Backend

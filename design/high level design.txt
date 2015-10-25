@@ -24,6 +24,8 @@ A:
 - Unsorted array handling
 - Record/subrecord priority
 - Record/subrecord preserve deletions option
+- Subrecord/record priority handling
+- Subrecord linking (possibly)
 
 Q: What information should we expose on plugins and their record makeup?
 A: What record groups are in the plugin.  How many records are in each record group.  The breakdown of new records/override records in the plugin.  The breakdown of new records/overrides in each record group.  A plugin dependency tree.  A breakdown of all record conflicts in the user's load order/between a selected set of plugins.  A breakdown of the elements that conflict in the user's load order/between a selected set of plugins.

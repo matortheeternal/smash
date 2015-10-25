@@ -6,7 +6,7 @@ uses
   Classes, SysUtils, StrUtils, shlObj, Dialogs, ComCtrls,
   // mte units
   mteHelpers, mteLogger, mteTracker,
-  // mp units
+  // ms units
   msFrontend,
   // xedit units
   wbBSA, wbInterface, wbImplementation;
@@ -353,7 +353,17 @@ begin
   if not settings.preserveTempPath then
     DeleteTempPath;
 
-  Tracker.Cancel := false;
+  // free all lists
+  FreeList(PluginsList);
+  FreeList(PatchesList);
+  FreeList(SmashSettings);
+  FreeList(GroupFilters);
+  FreeList(LabelFilters);
+  FreeList(BaseLog);
+  FreeList(Log);
+
+  if Assigned(Tracker) then
+    Tracker.Cancel := false;
   if Assigned(SaveCallback) then
     Synchronize(nil, SaveCallback);
 end;

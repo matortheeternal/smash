@@ -5,10 +5,13 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ExtCtrls, ComCtrls, Grids, ValEdit, CommCtrl, Menus,
+  ImgList,
+  // superobject
+  superobject,
   // mte units
-  mteHelpers, mteLogger, RttiTranslation,
+  mteHelpers, mteLogger, mteProgressForm, RttiTranslation,
   // ms units
-  msFrontend, msSettingForm;
+  msFrontend, msPriorityForm, msPluginSelectionForm, msConflictForm, msThreads;
 
 type
   TSettingsManager = class(TForm)
@@ -16,50 +19,75 @@ type
       Splitter: TSplitter;
       [FormSection('Settings')]
         pnlEntries: TPanel;
-        gbFiltering: TGroupBox;
-        lblName: TLabel;
-        edName: TEdit;
-        lblRecords: TLabel;
-        edRecords: TEdit;
         lvSettings: TListView;
         [FormSection('Settings Popup Menu')]
           SettingsPopupMenu: TPopupMenu;
           NewSettingItem: TMenuItem;
-          EditSettingItem: TMenuItem;
           DeleteSettingItem: TMenuItem;
       [FormSection('Details')]
         pnlDetails: TPanel;
-        pnlDictionaryInfo: TPanel;
-        lblDictionary: TLabel;
-        vl: TValueListEditor;
       [FormSection('Notes')]
-        pnlReportNotes: TPanel;
-        lblNotes: TLabel;
-        meNotes: TMemo;
     CloneSettingItem: TMenuItem;
-
+    tvRecords: TTreeView;
+    edName: TEdit;
+    lblName: TLabel;
+    lblDescription: TLabel;
+    meDescription: TMemo;
+    lblTree: TLabel;
+    TreePopupMenu: TPopupMenu;
+    ChangePriorityItem: TMenuItem;
+    ToggleNodesItem: TMenuItem;
+    IgnoreDeletionsItem: TMenuItem;
+    SingleEntityItem: TMenuItem;
+    PruneNodesItem: TMenuItem;
+    StateImages: TImageList;
+    FlagIcons: TImageList;
+    btnSave: TButton;
+    btnDiscard: TButton;
+    CombineSettingsItem: TMenuItem;
+    // TREE METHODS
+    procedure TreeDone;
+    procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
+    procedure tvRecordsCustomDrawItem(Sender: TCustomTreeView;
+      Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
+    procedure tvRecordsKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure tvRecordsMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure TreePopupMenuPopup(Sender: TObject);
+    procedure ToggleNodesItemClick(Sender: TObject);
+    procedure ChangePriorityItemClick(Sender: TObject);
+    procedure IgnoreDeletionsItemClick(Sender: TObject);
+    procedure SingleEntityItemClick(Sender: TObject);
+    procedure PruneNodesItemClick(Sender: TObject);
+    procedure BuildTreeFromPlugins(var sl: TStringList);
+    procedure BuildTree;
+    function DumpElement(node: TTreeNode): ISuperObject;
+    procedure DumpTree;
+    procedure DeleteNodes(var aList: TList);
+    procedure DeleteChildren(node: TTreeNode);
+    procedure AutoPrune;
+    function CanPruneRecords: boolean;
+    // SETTINGS MANAGER EVENTS
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure lvSettingsChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
     procedure lvSettingsData(Sender: TObject; Item: TListItem);
-    procedure UpdateSmashSettingsDetails;
-    procedure vlDrawCell(Sender: TObject; ACol, ARow: Integer;
-      Rect: TRect; State: TGridDrawState);
-    procedure lvSettingsColumnClick(Sender: TObject; Column: TListColumn);
     procedure lvSettingsDrawItem(Sender: TCustomListView; Item: TListItem;
       Rect: TRect; State: TOwnerDrawState);
-    function MatchesFilters(setting: TSmashSetting): boolean;
-    procedure ApplyFiltering;
-    procedure cbChange(Sender: TObject);
-    procedure edExit(Sender: TObject);
-    procedure edKeyPress(Sender: TObject; var Key: Char);
     procedure SplitterMoved(Sender: TObject);
     procedure NewSettingItemClick(Sender: TObject);
-    procedure EditSettingItemClick(Sender: TObject);
     procedure DeleteSettingItemClick(Sender: TObject);
     procedure CloneSettingItemClick(Sender: TObject);
     procedure SettingsPopupMenuPopup(Sender: TObject);
+    procedure btnSaveClick(Sender: TObject);
+    procedure btnDiscardClick(Sender: TObject);
+    procedure edNameChange(Sender: TObject);
+    procedure CombineSettings(var sl: TStringList);
+    procedure CombineSettingsItemClick(Sender: TObject);
+    procedure tvRecordsCollapsing(Sender: TObject; Node: TTreeNode;
+      var AllowCollapse: Boolean);
   private
     { Private declarations }
   public
@@ -71,16 +99,434 @@ const
   red = TColor($0000FF);
   yellow = TColor($00A8E5);
   green = TColor($009000);
+  collapseHitTestDelay = 0.1 * seconds;
 
 var
   SettingsManager: TSettingsManager;
-  columnToSort: integer;
-  ascending: boolean;
-  tempSmashSettings: TList;
+  NewSettings: TList;
+  currentSetting: TSmashSetting;
+  pForm: TProgressForm;
+  LastCollapseTime: TDateTime;
 
 implementation
 
 {$R *.dfm}
+
+{ Tree methods }
+procedure TSettingsManager.TreeDone;
+begin
+  xEditLogGroup := 'GENERAL';
+  pForm.SaveLog;
+  pForm.Visible := false;
+  FlashWindow(Application.Handle, True);
+  pForm.ShowModal;
+  pForm.Free;
+  Enabled := true;
+  ShowWindow(Handle, SW_RESTORE);
+  SetForegroundWindow(Handle);
+
+  // save setting if it's a new setting
+  if NewSettings.IndexOf(currentSetting) > -1 then
+    DumpTree;
+
+  // free lists
+  if Assigned(timeCosts) then timeCosts.Free;
+  if Assigned(pluginsToHandle) then pluginsToHandle.Free;
+end;
+
+procedure TSettingsManager.DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
+var
+  icon: TIcon;
+begin
+  icon := TIcon.Create;
+  FlagIcons.GetIcon(id, icon);
+  Canvas.Draw(x, y, icon);
+  Inc(x, 18);
+  icon.Free;
+end;
+
+procedure TSettingsManager.tvRecordsCollapsing(Sender: TObject; Node: TTreeNode;
+  var AllowCollapse: Boolean);
+begin
+  LastCollapseTime := Now;
+end;
+
+procedure TSettingsManager.tvRecordsCustomDrawItem(Sender: TCustomTreeView;
+  Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
+var
+  e: TElementData;
+  R: TRect;
+  x, y: Integer;
+begin
+  if Assigned(node.Data) then begin
+    e := TElementData(node.Data);
+    R := Node.DisplayRect(true);
+    x := R.Right + 6;
+    y := R.Top;
+
+    if e.ignoreDeletions then
+      DrawFlag(Sender.Canvas, x, y, 0);
+    if e.singleEntity then
+      DrawFlag(Sender.Canvas, x, y, 1);
+  end;
+end;
+
+procedure TSettingsManager.tvRecordsKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if (Key = VK_SPACE) and Assigned(tvRecords.Selected) then
+    CheckBoxManager(tvRecords.Selected);
+  // repaint tree view in case a single entity flag was unset
+  tvRecords.Repaint;
+end;
+
+procedure TSettingsManager.tvRecordsMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  HT: THitTests;
+begin
+  // this prevents a bug that happens when collapsing a node
+  // would cause the control to scroll up, putting the user's mouse
+  // above a checkbox
+  // the tree view collapse is triggered prior to this mouse down
+  // event, so the hacky solutin I came up with is to use a delay
+  // to exit this event if we collapsed a node within the last 0.1
+  // seconds
+  if Now - LastCollapseTime < collapseHitTestDelay then
+    exit;
+  HT := tvRecords.GetHitTestInfoAt(X, Y);
+  if (HT - [htOnStateIcon] <> HT) then
+    CheckBoxManager(tvRecords.Selected);
+  // repaint tree view in case a single entity flag was unset
+  tvRecords.Repaint;
+end;
+
+procedure TSettingsManager.TreePopupMenuPopup(Sender: TObject);
+var
+  bHasSelection, bHasChildren: boolean;
+  i: Integer;
+begin
+  bHasSelection := tvRecords.SelectionCount > 0;
+  bHasChildren := false;
+  for i := 0 to Pred(tvRecords.SelectionCount) do
+    bHasChildren := bHasChildren or tvRecords.Selections[i].HasChildren;
+  ToggleNodesItem.Enabled := bHasSelection;
+  IgnoreDeletionsItem.Enabled := bHasSelection and bHasChildren;
+  SingleEntityItem.Enabled := bHasSelection and bHasChildren;
+  PruneNodesItem.Enabled := bHasSelection;
+end;
+
+procedure TSettingsManager.ToggleNodesItemClick(Sender: TObject);
+var
+  i: Integer;
+begin
+  for i := 0 to Pred(tvRecords.SelectionCount) do
+    CheckboxManager(tvRecords.Selections[i]);
+end;
+
+procedure TSettingsManager.ChangePriorityItemClick(Sender: TObject);
+var
+  cForm: TPriorityForm;
+  i: Integer;
+  e: TElementData;
+  node: TTreeNode;
+begin
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
+    node := tvRecords.Selections[i];
+    e := TElementData(node.Data);
+    cForm := TPriorityForm.Create(self);
+    cForm.Caption := Format('Change node priority (%s)', [node.Text]);
+    cForm.Priority := e.priority;
+    if cForm.ShowModal = mrOK then begin
+      e.priority := cForm.Priority;
+      tvRecords.Selections[i].Data := Pointer(e);
+    end;
+    cForm.Free;
+  end;
+  tvRecords.Repaint;
+end;
+
+procedure TSettingsManager.IgnoreDeletionsItemClick(Sender: TObject);
+var
+  i: Integer;
+  node: TTreeNode;
+  e: TElementData;
+begin
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
+    node := tvRecords.Selections[i];
+    if not node.hasChildren then
+      continue;
+    e := TElementData(node.Data);
+    e.ignoreDeletions := not e.ignoreDeletions;
+    tvRecords.Selections[i].Data := Pointer(e);
+  end;
+  tvRecords.Repaint;
+end;
+
+procedure TSettingsManager.SingleEntityItemClick(Sender: TObject);
+var
+  i: Integer;
+  node: TTreeNode;
+  e: TElementData;
+begin
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
+    node := tvRecords.Selections[i];
+    if not node.hasChildren then
+      continue;
+    e := TElementData(node.Data);
+    e.singleEntity := not e.singleEntity;
+    if e.singleEntity then begin
+      SetChildren(node, cUnChecked);
+      node.StateIndex := cPartiallyChecked;
+    end
+    else begin
+      SetChildren(node, cChecked);
+      node.StateIndex := cChecked;
+    end;
+    UpdateParent(node.Parent);
+    tvRecords.Selections[i].Data := Pointer(e);
+  end;
+  tvRecords.Repaint;
+end;
+
+procedure TSettingsManager.PruneNodesItemClick(Sender: TObject);
+var
+  i: Integer;
+  node: TTreeNode;
+  nodesToPrune: TList;
+begin
+  nodesToPrune := TList.Create;
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
+    node := tvRecords.Selections[i];
+    if (node.Level = 1) and (node.StateIndex = cUnChecked) then
+      nodesToPrune.Add(node);
+  end;
+  DeleteNodes(nodesToPrune);
+  nodesToPrune.Free;
+  UpdateParent(tvRecords.Items[0].getFirstChild);
+end;
+
+procedure TSettingsManager.BuildTreeFromPlugins(var sl: TStringList);
+var
+  i: Integer;
+  plugin: TPlugin;
+begin
+  // create lists
+  pluginsToHandle := TList.Create;
+  timeCosts := TStringList.Create;
+
+  // populate lists
+  for i := 0 to Pred(sl.Count) do begin
+    plugin := PluginByFilename(sl[i]);
+    if not Assigned(plugin) then continue;
+    pluginsToHandle.Add(plugin);
+    timeCosts.Add(plugin.numRecords);
+  end;
+
+  // free and exit if no patches to check for errors
+  if pluginsToHandle.Count = 0 then begin
+    timeCosts.Free;
+    pluginsToHandle.Free;
+    exit;
+  end;
+
+  // prepare to build tree in separate thread
+  TreeView := tvRecords;
+  Enabled := false;
+
+  // show progress form
+  pForm := TProgressForm.Create(Self);
+  pForm.LogPath := LogPath;
+  pForm.PopupParent := Self;
+  pForm.Caption := GetString('mpProg_BuildingTree');
+  pForm.MaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
+  pForm.Show;
+
+  // start save thread
+  TreeCallback := TreeDone;
+  TTreeThread.Create;
+end;
+
+procedure TSettingsManager.BuildTree;
+var
+  slPlugins, slSelection: TStringList;
+  i, mr: Integer;
+  plugin: TPlugin;
+  selectionForm: TPluginSelectionForm;
+begin
+  // build list of plugin filenames
+  slPlugins := TStringList.Create;
+  slSelection := TStringList.Create;
+  for i := 0 to Pred(PluginsList.Count) do begin
+    plugin := TPlugin(PluginsList[i]);
+    slPlugins.Add(plugin.filename);
+  end;
+
+  // prompt user for plugin selectcion
+  selectionForm := TPluginSelectionForm.Create(self);
+  selectionForm.pluginsList := slPlugins;
+  selectionForm.selectionList := slSelection;
+  mr := selectionForm.ShowModal;
+  bOverridesOnly := selectionForm.overridesOnly;
+  if mr = mrOK then
+    BuildTreeFromPlugins(slSelection);
+
+  // free memory
+  selectionForm.Free;
+  slPlugins.Free;
+  slSelection.Free;
+
+  // delete setting if mr is cancel
+  if mr = mrCancel then begin
+    lvSettings.Items.Count := lvSettings.Items.Count - 1;
+    SmashSettings.Delete(SmashSettings.IndexOf(currentSetting));
+    NewSettings.Delete(NewSettings.IndexOf(currentSetting));
+    currentSetting.Free;
+    lvSettings.Repaint;
+    lvSettingsChange(nil, nil, TItemChange(nil));
+  end;
+end;
+
+function TSettingsManager.DumpElement(node: TTreeNode): ISuperObject;
+var
+  obj: ISuperObject;
+  child: TTreeNode;
+  e: TElementData;
+  i: Integer;
+begin
+  obj := SO;
+  // get name
+  obj.S['n'] := node.Text;
+  // get data properties
+  e := TElementData(node.Data);
+  obj.I['r'] := e.priority;
+  obj.I['p'] := IfThenInt(e.process);
+  obj.I['i'] := IfThenInt(e.ignoreDeletions);
+  obj.I['s'] := IfThenInt(e.singleEntity);
+
+  // exit if no children to dump
+  if node.hasChildren then begin
+    // dump subrecords (children)
+    obj.O['c'] := SA([]);
+    child := node.getFirstChild;
+    i := 0;
+    while Assigned(child) do begin
+      obj.A['c'].O[i] := DumpElement(child);
+      child := child.getNextSibling;
+      Inc(i);
+    end;
+  end;
+
+  Result := obj;
+end;
+
+procedure TSettingsManager.DumpTree;
+var
+  i: Integer;
+  obj: ISuperObject;
+  node, rootNode: TTreeNode;
+  sl: TStringList;
+begin
+  obj := SO;
+  obj.O['records'] := SA([]);
+  rootNode := tvRecords.Items[0];
+
+  // loop through records
+  node := rootNode.getFirstChild;
+  i := 0;
+  sl := TStringList.Create;
+  while Assigned(node) do begin
+    obj.A['records'].O[i] := DumpElement(node);
+    if node.StateIndex <> cUnChecked then
+      sl.Add(node.Text);
+    Inc(i);
+    node := node.getNextSibling;
+  end;
+
+  currentSetting.tree := obj;
+  currentSetting.records := sl.CommaText;
+  sl.Free;
+end;
+
+procedure TSettingsManager.edNameChange(Sender: TObject);
+begin
+  if Assigned(currentSetting) then
+    btnSave.Enabled := (currentSetting.name = edName.Text) or
+      not Assigned(SettingByName(edName.Text));
+end;
+
+procedure TSettingsManager.DeleteNodes(var aList: TList);
+var
+  i: Integer;
+  node: TTreeNode;
+begin
+  // delete nodes in reverse order
+   for i := Pred(aList.Count) downto 0 do begin
+    node := TTreeNode(aList[i]);
+    if node.HasChildren then
+      DeleteChildren(node);
+    tvRecords.Items.Delete(node);
+  end;
+end;
+
+procedure TSettingsManager.DeleteChildren(node: TTreeNode);
+var
+  nodesToDelete: TList;
+  child: TTreeNode;
+begin
+  nodesToDelete := TList.Create;
+  child := node.getFirstChild;
+  // get nodes to prune
+  while Assigned(child) do begin
+    nodesToDelete.Add(child);
+    child := child.getNextSibling;
+  end;
+  // delete nodes
+  DeleteNodes(nodesToDelete);
+  nodesToDelete.Free;
+end;
+
+procedure TSettingsManager.AutoPrune;
+var
+  mr: Integer;
+  nodesToPrune: TList;
+  node: TTreeNode;
+begin
+  mr := MessageDlg('Your setting tree has records that can be pruned.  '+
+    'Would you like to prune them?', mtConfirmation, [mbYes, mbNo], 0);
+  if mr = mrYes then begin
+    nodesToPrune := TList.Create;
+    node := tvRecords.Items[0].getFirstChild;
+    // get nodes to prune
+    while Assigned(node) do begin
+      if node.StateIndex = cUnChecked then
+        nodesToPrune.Add(node);
+      node := node.getNextSibling;
+    end;
+    // prune nodes
+    DeleteNodes(nodesToPrune);
+    nodesToPrune.Free;
+  end;
+end;
+
+function TSettingsManager.CanPruneRecords: boolean;
+var
+  node: TTreeNode;
+begin
+  Result := false;
+  node := tvRecords.Items[0].getFirstChild;
+  while Assigned(node) do begin
+    if node.StateIndex = cUnChecked then begin
+      Result := true;
+      break;
+    end;
+    node := node.getNextSibling;
+  end;
+end;
+
+{******************************************************************************}
+{ Settings Manager Events }
+{******************************************************************************}
 
 procedure TSettingsManager.FormCreate(Sender: TObject);
 begin
@@ -92,116 +538,84 @@ begin
   TRttiTranslation.Load(language, self);
 
   // initialize list view, SmashSettings list
-  tempSmashSettings := TList.Create;
-  columnToSort := -1;
+  NewSettings := TList.Create;
   lvSettings.OwnerDraw := not settings.simpleDictionaryView;
-  lvSettings.Items.Count := tempSmashSettings.Count;
+  lvSettings.Items.Count := SmashSettings.Count;
 end;
 
 procedure TSettingsManager.FormShow(Sender: TObject);
+const
+  TVS_NOTOOLTIPS = $0080;
 begin
-  // initialize list of entries
-  edName.Text := FilterFilename;
-  if FilterFilename <> '' then
-    Self.FocusControl(lvSettings);
-  ApplyFiltering;
+  // disable tool tips on tree view
+  SetWindowLong(tvRecords.Handle, GWL_STYLE,
+    GetWindowLong(tvRecords.Handle, GWL_STYLE) or TVS_NOTOOLTIPS);
 
-// force lvEntries to autosize columns
+  // force lvSettings to autosize columns
   lvSettings.Width := lvSettings.Width - 1;
   lvSettings.Width := lvSettings.Width + 1;
-end;
-
-// custom ValueListEditor draw for unselectable cells
-procedure TSettingsManager.vlDrawCell(Sender: TObject; ACol, ARow: Integer;
-      Rect: TRect; State: TGridDrawState);
-begin
-  vl.Canvas.Brush.Color := clWhite;
-  vl.Canvas.FillRect(Rect);
-  Rect.Left := Rect.Left + 2;
-  DrawText(vl.Canvas.Handle, PChar(vl.Cells[aCol, ARow]), -1, Rect,
-    DT_SINGLELINE or DT_LEFT OR DT_VCENTER or DT_NOPREFIX);
-end;
-
-// refresh SmashSettings Details ValueListEditor
-procedure TSettingsManager.UpdateSmashSettingsDetails;
-begin
-  vl.Strings.Clear;
-
-  // initialize SmashSettings details
-  vl.InsertRow(GetString('mpDct_NumSettings'), IntToStr(SmashSettings.Count), true);
-  vl.InsertRow(GetString('mpDct_SettingsDisplayed'), IntToStr(tempSmashSettings.Count), true);
 end;
 
 // update meNotes when user changes entry
 procedure TSettingsManager.lvSettingsChange(Sender: TObject; Item: TListItem;
   Change: TItemChange);
-var
-  setting: TSmashSetting;
 begin
-  if lvSettings.ItemIndex = -1 then begin
-    meNotes.Text := '';
+  tvRecords.Items.Clear;
+  if (lvSettings.ItemIndex = -1) then begin
+    currentSetting := nil;
+    edName.Text := '';
+    edName.Enabled := false;
+    meDescription.Text := '';
+    meDescription.Enabled := false;
+    tvRecords.Enabled := false;
+    btnSave.Enabled := false;
+    btnDiscard.Enabled := false;
     exit;
   end;
 
-  setting := TSmashSetting(tempSmashSettings[lvSettings.ItemIndex]);
-  meNotes.Text := StringReplace(setting.description, '@13', #13#10, [rfReplaceAll]);
-end;
-
-function CompareAsFloat(s1, s2: string): Integer;
-var
-  f1, f2: Real;
-begin
-  try
-    f1 := StrToFloat(s1);
-  except on Exception do
-    f1 := 0;
+  // set current setting values
+  edName.Enabled := true;
+  meDescription.Enabled := true;
+  tvRecords.Enabled := true;
+  btnSave.Enabled := true;
+  btnDiscard.Enabled := true;
+  currentSetting := TSmashSetting(SmashSettings[lvSettings.ItemIndex]);
+  edName.Text := currentSetting.name;
+  meDescription.Lines.Text := currentSetting.description;
+  if Assigned(currentSetting.tree) then
+    LoadTree(tvRecords, currentSetting)
+  else begin
+    BuildTree;
   end;
-  try
-    f2 := StrToFloat(s2);
-  except on Exception do
-    f2 := 0;
-  end;
-
-  if f1 = f2 then
-    Result := 0
-  else if f1 > f2 then
-    Result := 1
-  else
-    Result := -1;
 end;
 
-function CompareEntries(P1, P2: Pointer): Integer;
-var
-  setting1, setting2: TSmashSetting;
+procedure TSettingsManager.btnDiscardClick(Sender: TObject);
 begin
-  Result := 0;
-  setting1 := TSmashSetting(P1);
-  setting2 := TSmashSetting(P2);
-
-  if columnToSort = 0 then
-    Result := AnsiCompareText(setting1.name, setting2.name)
-  else if columnToSort = 1 then
-    Result := AnsiCompareText(setting1.records, setting2.records);
-
-  if ascending then
-    Result := -Result;
-end;
-
-procedure TSettingsManager.lvSettingsColumnClick(Sender: TObject;
-  Column: TListColumn);
-begin
-  ascending := (columnToSort = Column.Index) and (not ascending);
-  columnToSort := Column.Index;
-  tempSmashSettings.Sort(CompareEntries);
-  lvSettings.Repaint;
+  // reload the setting
   lvSettingsChange(nil, nil, TItemChange(nil));
+end;
+
+procedure TSettingsManager.btnSaveClick(Sender: TObject);
+var
+  index: Integer;
+begin
+  currentSetting.Rename(edName.Text);
+  currentSetting.description := meDescription.Lines.Text;
+  index := NewSettings.IndexOf(currentSetting);
+  if (index > -1) then begin
+    if CanPruneRecords then
+      AutoPrune;
+    NewSettings.Delete(index);
+  end;
+  DumpTree;
+  lvSettings.Repaint;
 end;
 
 procedure TSettingsManager.lvSettingsData(Sender: TObject; Item: TListItem);
 var
   entry: TSmashSetting;
 begin
-  entry := TSmashSetting(tempSmashSettings[Item.Index]);
+  entry := TSmashSetting(SmashSettings[Item.Index]);
   Item.Caption := entry.name;
   Item.SubItems.Add(entry.records);
   //lvSettings.Canvas.Font.Color := GetRatingColor(StrToFloat(entry.rating));
@@ -239,166 +653,140 @@ end;
 
 procedure TSettingsManager.SettingsPopupMenuPopup(Sender: TObject);
 var
-  bHasSelection: boolean;
+  bHasSelection, bHasMultiSelection: boolean;
 begin
   bHasSelection := Assigned(lvSettings.Selected);
-  EditSettingItem.Enabled := bHasSelection;
+  bHasMultiSelection := lvSettings.SelCount > 1;
   DeleteSettingItem.Enabled := bHasSelection;
   CloneSettingItem.Enabled := bHasSelection;
+  CombineSettingsItem.Enabled := bHasMultiSelection;
 end;
 
 procedure TSettingsManager.NewSettingItemClick(Sender: TObject);
 var
-  setting: TSmashSetting;
-  SettingForm: TSettingForm;
+  newSetting: TSmashSetting;
 begin
-  setting := TSmashSetting.Create;
-  SettingForm := TSettingForm.Create(self);
-  SettingForm.mode := smNew;
-  SettingForm.setting := setting;
-  if SettingForm.ShowModal = mrOK then begin
-    SmashSettings.Add(SettingForm.setting);
-    tempSmashSettings.Add(SettingForm.setting);
-    ApplyFiltering;
-  end;
-  SettingForm.Free;
-end;
-
-procedure TSettingsManager.EditSettingItemClick(Sender: TObject);
-var
-  i, index: Integer;
-  setting: TSmashSetting;
-  SettingForm: TSettingForm;
-begin
-  for i := 0 to Pred(lvSettings.Items.Count) do begin
-    if not lvSettings.Items[i].Selected then
-      continue;
-    setting := TSmashSetting(tempSmashSettings[i]);
-    index := SmashSettings.IndexOf(setting);
-    SettingForm := TSettingForm.Create(self);
-    SettingForm.mode := smEdit;
-    SettingForm.setting := setting;
-    if SettingForm.ShowModal = mrOK then begin
-      SmashSettings[index] := SettingForm.setting;
-      tempSmashSettings[i] := SettingForm.setting;
-      ApplyFiltering;
-    end;
-    SettingForm.Free;
-    break;
-  end;
+  newSetting := TSmashSetting.Create;
+  NewSettings.Add(newSetting);
+  SmashSettings.Add(newSetting);
+  lvSettings.Items.Count := lvSettings.Items.Count + 1;
 end;
 
 procedure TSettingsManager.DeleteSettingItemClick(Sender: TObject);
 var
-  i: Integer;
+  i, index: Integer;
   setting: TSmashSetting;
 begin
   for i := Pred(lvSettings.Items.Count) downto 0 do begin
     if not lvSettings.Items[i].Selected then
       continue;
     lvSettings.Items.Count := lvSettings.Items.Count - 1;
-    setting := TSmashSetting(tempSmashSettings[i]);
-    tempSmashSettings.Delete(i);
+    setting := TSmashSetting(SmashSettings[i]);
+    SmashSettings.Delete(i);
+    index := NewSettings.IndexOf(setting);
+    if index > -1 then
+      NewSettings.Delete(index);
     setting.Free;
   end;
+  lvSettingsChange(nil, nil, TItemChange(nil));
   lvSettings.Repaint;
 end;
 
 procedure TSettingsManager.CloneSettingItemClick(Sender: TObject);
 var
   setting, clonedSetting: TSmashSetting;
-  SettingForm: TSettingForm;
 begin
   clonedSetting := TSmashSetting.Create;
-  setting := TSmashSetting(tempSmashSettings[lvSettings.Selected.Index]);
-  SettingForm := TSettingForm.Create(self);
-  SettingForm.mode := smClone;
-  SettingForm.setting := clonedSetting.Clone(setting);
-  if SettingForm.ShowModal = mrOK then begin
-    SmashSettings.Add(SettingForm.setting);
-    tempSmashSettings.Add(SettingForm.setting);
-    ApplyFiltering;
-  end;
-  SettingForm.Free;
+  setting := TSmashSetting(SmashSettings[lvSettings.Selected.Index]);
+  clonedSetting.Clone(setting);
+  SmashSettings.Add(clonedSetting);
+  lvSettings.Items.Count := lvSettings.Items.Count + 1;
 end;
 
-{******************************************************************************}
-{ Filtering methods:
-  Methods for filtering the SmashSettings.
-  - MatchesFilters
-  - ApplyFilter
-  - cbChange
-  - edExit
-  - edKeyDown
-}
-{******************************************************************************}
-
-function TSettingsManager.MatchesFilters(setting: TSmashSetting): boolean;
+function GetRecordObject(tree: ISuperObject; sig: string): ISuperObject;
 var
-  bFilenameMatch, bRecordsMatch: boolean;
+  item: ISuperObject;
 begin
-  // get filter results
-  bFilenameMatch := (Length(Trim(edName.Text)) = 0)
-    or (Pos(Lowercase(edName.Text), Lowercase(setting.name)) > 0);
-  bRecordsMatch := (Length(Trim(edName.Text)) = 0)
-    or (Pos(Lowercase(edRecords.Text), Lowercase(setting.records)) > 0);
-  // must match all filters
-  Result := bFilenameMatch and bRecordsMatch;
+  Result := nil;
+  for item in tree['records'] do begin
+    if item.S['n'] = sig then begin
+      Result := item;
+      break;
+    end;
+  end;
+end;
+
+procedure TSettingsManager.CombineSettings(var sl: TStringList);
+var
+  i: Integer;
+  newSetting, aSetting: TSmashSetting;
+  recordObj: ISuperObject;
+begin
+  newSetting := TSmashSetting.Create;
+  newSetting.tree := SO;
+  newSetting.tree.O['records'] := SA([]);
+
+  for i := 0 to Pred(sl.Count) do begin
+    aSetting := TSmashSetting(sl.Objects[i]);
+    recordObj := GetRecordObject(aSetting.tree, sl[i]);
+    newSetting.tree.A['records'].Add(recordObj);
+  end;
+  newSetting.records := sl.CommaText;
+
+  // add new setting to display
+  SmashSettings.Add(newSetting);
+  lvSettings.Items.Count := lvSettings.Items.Count + 1;
+end;
+
+procedure TSettingsManager.CombineSettingsItemClick(Sender: TObject);
+var
+  i: Integer;
+  ListItem: TListItem;
+  settingsToCombine: TList;
+  setting: TSmashSetting;
+  slRecords, sl: TStringList;
+  j: Integer;
+  bConflicting: boolean;
+  cForm: TConflictForm;
+begin
+  settingsToCombine := TList.Create;
+  slRecords := TStringList.Create;
+  sl := TStringList.Create;
+  bConflicting := false;
+  for i := 0 to Pred(lvSettings.Items.Count) do begin
+    ListItem := lvSettings.Items[i];
+    if not ListItem.Selected then
+      continue;
+    setting := TSmashSetting(SmashSettings[i]);
+    settingsToCombine.Add(setting);
+    sl.CommaText := setting.records;
+    for j := 0 to Pred(sl.Count) do begin
+      if slRecords.IndexOf(sl[j]) > -1 then
+        bConflicting := true;
+      slRecords.AddObject(sl[j], TObject(setting));
+    end;
+  end;
+
+  if bConflicting then begin
+    cForm := TConflictForm.Create(self);
+    cForm.slConflicts := slRecords;
+    if cForm.ShowModal = mrOK then
+      CombineSettings(slRecords);
+  end
+  else begin
+    CombineSettings(slRecords);
+  end;
+
+  // free memory
+  settingsToCombine.Free;
+  slRecords.Free;
+  sl.Free;
 end;
 
 // repaint when splitter is moved
 procedure TSettingsManager.SplitterMoved(Sender: TObject);
 begin
-  Self.Repaint;
-end;
-
-procedure TSettingsManager.ApplyFiltering;
-var
-  i: Integer;
-  setting: TSmashSetting;
-begin
-  // prepare to change the entries displayed
-  lvSettings.Items.Count := 0;
-  tempSmashSettings.Clear;
-
-  // loop through the SmashSettings and add
-  for i := 0 to Pred(SmashSettings.Count) do begin
-    setting := TSmashSetting(SmashSettings[i]);
-    if MatchesFilters(setting) then
-      tempSmashSettings.Add(setting);
-  end;
-
-  // sort after filtering
-  tempSmashSettings.Sort(CompareEntries);
-
-  // update entries count and repaint
-  lvSettings.Items.Count := tempSmashSettings.Count;
-  lvSettingsChange(nil, nil, TItemChange(nil));
-  lvSettings.Repaint;
-
-  // update details
-  UpdateSmashSettingsDetails;
-end;
-
-// re-filter when the user changes a filter TComboBox
-procedure TSettingsManager.cbChange(Sender: TObject);
-begin
-  ApplyFiltering;
-end;
-
-// re-filter when the user exits a filter TEdit
-procedure TSettingsManager.edExit(Sender: TObject);
-begin
-  ApplyFiltering;
-end;
-
-// re-filter when the user presses enter in a filter TEdit
-procedure TSettingsManager.edKeyPress(Sender: TObject; var Key: Char);
-begin
-  if Key = #13 then begin
-    ApplyFiltering;
-    Key := #0;
-  end;
+  Repaint;
 end;
 
 end.

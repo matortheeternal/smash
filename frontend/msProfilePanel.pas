@@ -209,6 +209,7 @@ end;
 
 destructor TProfilePanel.Destroy;
 begin
+  aProfile.Free;
   GameImage.Free;
   lblName.Free;
   lblGame.Free;

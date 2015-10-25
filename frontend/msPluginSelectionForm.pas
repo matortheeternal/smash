@@ -16,7 +16,7 @@ type
     procedure FormShow(Sender: TObject);
     procedure CheckListBoxClick(Sender: TObject);
     procedure btnOKClick(Sender: TObject);
-    procedure CheckListBoxKeyDown(Sender: TObject; var Key: Word;
+    procedure CheckListBoxKeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
   private
     { Private declarations }
@@ -61,8 +61,8 @@ begin
   end;
 end;
 
-procedure TPluginSelectionForm.CheckListBoxKeyDown(Sender: TObject;
-  var Key: Word; Shift: TShiftState);
+procedure TPluginSelectionForm.CheckListBoxKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
 begin
   CheckListBoxClick(nil);
 end;

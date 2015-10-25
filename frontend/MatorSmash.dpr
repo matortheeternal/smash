@@ -28,8 +28,10 @@ uses
   msSplashForm in 'msSplashForm.pas' {SplashForm},
   msEditForm in 'msEditForm.pas' {EditForm},
   msSettingsManager in 'msSettingsManager.pas' {SettingsManager},
-  msSettingForm in 'msSettingForm.pas' {TSettingForm},
-  msPriorityForm in 'msPriorityForm.pas' {PriorityForm};
+  msPriorityForm in 'msPriorityForm.pas' {PriorityForm},
+  msPluginSelectionForm in 'msPluginSelectionForm.pas' {PluginSelectionForm},
+  msConflictForm in 'msConflictForm.pas' {ConflictForm},
+  msChoicePanel in 'msChoicePanel.pas';
 
 {$R *.res}
 {$MAXSTACKSIZE 2097152}
@@ -76,7 +78,8 @@ begin
   Application.CreateForm(TSplashForm, SplashForm);
   Application.CreateForm(TEditForm, EditForm);
   Application.CreateForm(TSettingsManager, SettingsManager);
-  Application.CreateForm(TSettingForm, SettingForm);
   Application.CreateForm(TPriorityForm, PriorityForm);
+  Application.CreateForm(TPluginSelectionForm, PluginSelectionForm);
+  Application.CreateForm(TConflictForm, ConflictForm);
   Application.Run;
 end.

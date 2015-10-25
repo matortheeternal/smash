@@ -115,3 +115,13 @@ msSet_lblNotes_Caption=Description:
 { TSettingsManager }
  
 msSet_CloneSettingItem_Caption=Clone setting
+msSet_lblDescription_Caption=Description
+msSet_lblTree_Caption=Tree
+msSet_ChangePriorityItem_Caption=Change priority
+msSet_ToggleNodesItem_Caption=Toggle nodes
+msSet_IgnoreDeletionsItem_Caption=Toggle ignore deletions
+msSet_SingleEntityItem_Caption=Toggle treat as single entity
+msSet_PruneNodesItem_Caption=Prune nodes
+msSet_btnSave_Caption=Save
+msSet_btnDiscard_Caption=Discard
+msSet_CombineSettingsItem_Caption=Combine settings

@@ -254,6 +254,7 @@ type
     gameMode: Integer;
     gamePath: string;
     constructor Create(name: string); virtual;
+    procedure Clone(p: TProfile);
     procedure Delete;
     procedure Rename(name: string);
   end;
@@ -334,6 +335,13 @@ type
   function ReportExistsFor(var plugin: TPlugin): boolean;
   procedure LoadReport(var report: TReport); overload;
   procedure LoadReport(const filename: string; var report: TReport); overload;
+  { Tree methods }
+  procedure SetChildren(node: TTreeNode; state: Integer);
+  procedure UpdateParent(node: TTreeNode);
+  procedure CheckBoxManager(node: TTreeNode);
+  procedure LoadElement(var tv: TTreeView; node: TTreeNode; obj: ISuperObject;
+    bWithinSingle: boolean);
+  procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
   { Helper methods }
   procedure DeleteTempPath;
   procedure ShowProgressForm(parent: TForm; var pf: TProgressForm; s: string);
@@ -2158,6 +2166,171 @@ end;
 
 
 {******************************************************************************}
+{ Tree Methods
+  Helper methods for dealing with trees of nodes.
+}
+{******************************************************************************}
+
+{
+  SetChildren
+  Sets the StateIndex attribute of all the children of @node
+  to @state.  Uses recursion.
+}
+procedure SetChildren(node: TTreeNode; state: Integer);
+var
+  e: TElementData;
+  tmp: TTreeNode;
+begin
+  // exit if we don't have a node to work with
+  if not Assigned(node) then exit;
+
+  // loop through children setting StateIndex to state
+  // if child has children, recurse into that child
+  tmp := node.getFirstChild;
+  while Assigned(tmp) do begin
+    tmp.StateIndex := state;
+    e := TElementData(tmp.Data);
+    e.process := state <> cUnChecked;
+    tmp.Data := Pointer(e);
+    if tmp.HasChildren then
+      SetChildren(tmp, state);
+    tmp := tmp.getNextSibling;
+  end;
+end;
+
+{
+  UpdateParent
+  Calculates and sets the StateIndex attribute for @node based
+  on the StateIndex values of its children.  Uses recursion to
+  update parents of the parent that was updated.
+}
+procedure UpdateParent(node: TTreeNode);
+var
+  tmp: TTreeNode;
+  state: Integer;
+  e: TElementData;
+begin
+  // exit if we don't have a node to work with
+  if not Assigned(node) then exit;
+
+  // parent state is checked if all siblings are checked
+  state := cChecked;
+  tmp := node.getFirstChild;
+  while Assigned(tmp) do begin
+    if tmp.StateIndex <> cChecked then begin
+      state := cPartiallyChecked;
+      break;
+    end;
+    tmp := tmp.getNextSibling;
+  end;
+
+  // parent state is unchecked if all siblings are unchecked
+  if state = cPartiallyChecked then begin
+    state := cUnChecked;
+    tmp := node.getFirstChild;
+    while Assigned(tmp) do begin
+      if tmp.StateIndex <> cUnChecked then begin
+        state := cPartiallyChecked;
+        break;
+      end;
+      tmp := tmp.getNextSibling;
+    end;
+  end;
+
+  // set state, recurse to next parent
+  node.StateIndex := state;
+  e := TElementData(node.Data);
+  e.process := state <> cUnChecked;
+  e.singleEntity := false;
+  node.Data := Pointer(e);
+  tmp := node.Parent;
+  UpdateParent(tmp);
+end;
+
+{
+  CheckBoxManager
+  Manages checkboxes in the TTreeView.  Changes the StateIndex
+  of the checkbox associated with @node.  Uses SetChildren and
+  UpdateParent.  Called by tvClick and tvKeyDown.
+}
+procedure CheckBoxManager(node: TTreeNode);
+var
+  e: TElementData;
+begin
+  // exit if we don't have a node to work with
+  if not Assigned(node) then exit;
+
+  // if unchecked or partially checked, set to checked and
+  // set all children to checked, update parents
+  if (node.StateIndex = cUnChecked)
+  or (node.StateIndex = cPartiallyChecked) then begin
+    node.StateIndex := cChecked;
+    e := TElementData(node.Data);
+    e.process := true;
+    e.singleEntity := false;
+    node.Data := Pointer(e);
+    UpdateParent(node.Parent);
+    SetChildren(node, cChecked);
+  end
+  // if checked, set to unchecked and set all children to
+  // unchecked, update parents
+  else if node.StateIndex = cChecked then begin
+    node.StateIndex := cUnChecked;
+    e := TElementData(node.Data);
+    node.Data := Pointer(e);
+    e.process := false;
+    e.singleEntity := false;
+    UpdateParent(node.Parent);
+    SetChildren(node, cUnChecked);
+  end;
+end;
+
+procedure LoadElement(var tv: TTreeView; node: TTreeNode; obj: ISuperObject;
+  bWithinSingle: boolean);
+var
+  item: ISuperObject;
+  child: TTreeNode;
+  bProcess, bIgnoreDeletions, bIsSingle: boolean;
+begin
+  if not Assigned(obj) then
+    exit;
+  child := tv.Items.AddChild(node, obj.S['n']);
+  bProcess := obj.I['p'] = 1;
+  bIgnoreDeletions := obj.I['i'] = 1;
+  bIsSingle := obj.I['s'] = 1;
+  bWithinSingle := bWithinSingle or bIsSingle;
+  if bIsSingle then
+    child.StateIndex := cPartiallyChecked
+  else if bProcess then
+    child.StateIndex := cChecked
+  else
+    child.StateIndex := cUnChecked;
+  child.Data := Pointer(TElementData.Create( obj.I['r'], bProcess,
+      bIgnoreDeletions, bIsSingle ));
+  if Assigned(obj.O['c']) then try
+    for item in obj['c'] do
+      LoadElement(tv, child, item, bWithinSingle);
+    if not bWithinSingle then
+      UpdateParent(child);
+  except
+    on x : Exception do
+      // nothing
+  end;
+end;
+
+procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
+var
+  obj, item: ISuperObject;
+  rootNode: TTreeNode;
+begin
+  rootNode := tv.Items.Add(nil, 'Records');
+  obj := aSetting.tree;
+  for item in obj['records'] do
+    LoadElement(tv, rootNode, item, false);
+end;
+
+
+{******************************************************************************}
 { Helper methods
   Set of methods to help with working with Patch Plugins types.
 
@@ -3530,8 +3703,9 @@ constructor TSmashSetting.Clone(s: TSmashSetting);
 begin
   name := s.name+' clone';
   hash := '$00000000';
+  records := s.records;
   description := s.description;
-  tree := s.tree;
+  tree := s.tree.Clone;
 end;
 
 procedure TSmashSetting.LoadDump(dump: ISuperObject);
@@ -3643,6 +3817,13 @@ end;
 constructor TProfile.Create(name: string);
 begin
   self.name := name;
+end;
+
+procedure TProfile.Clone(p: TProfile);
+begin
+  name := p.name;
+  gameMode := p.gameMode;
+  gamePath := p.gamePath;
 end;
 
 procedure TProfile.Delete;

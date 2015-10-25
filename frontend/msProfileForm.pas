@@ -124,14 +124,15 @@ begin
     for i := 0 to Pred(ProfilePanels.Count) do begin
       p := TProfilePanel(ProfilePanels[i]);
       if p.Selected then begin
-        CurrentProfile := p.GetProfile;
+        CurrentProfile := TProfile.Create('');
+        CurrentProfile.Clone(p.GetProfile);
         break;
       end;
     end;
   end;
 
   // free memory
-  ProfilePanels.Free;
+  FreeList(ProfilePanels);
 end;
 
 procedure TProfileForm.FormCreate(Sender: TObject);

@@ -28,6 +28,7 @@ uses
   function IsDotFile(fn: string): boolean;
   procedure SaveStringToFile(s: string; fn: string);
   function ApplyTemplate(const template: string; var map: TStringList): string;
+  procedure FreeList(var lst: TList);
   { Windows API functions }
   procedure ForceForeground(hWnd: THandle);
   function FileNameValid(filename: string): boolean;
@@ -382,6 +383,20 @@ begin
     Result := StringReplace(Result, openTag + name + closeTag, value, [rfReplaceAll]);
   end;
 end;
+
+procedure FreeList(var lst: TList);
+var
+  i: Integer;
+  obj: TObject;
+begin
+  for i := Pred(lst.Count) downto 0 do begin
+    obj := TObject(lst[i]);
+    lst.Delete(i);
+    obj.Free;
+  end;
+  lst.Free;
+end;
+
 
 {******************************************************************************}
 { Windows API functions
