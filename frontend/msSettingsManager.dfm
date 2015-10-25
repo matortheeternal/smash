@@ -118,7 +118,6 @@ object SettingsManager: TSettingsManager
         Width = 477
         Height = 21
         Anchors = [akTop, akRight]
-        NumbersOnly = True
         TabOrder = 1
         OnExit = edExit
         OnKeyPress = edKeyPress
@@ -197,6 +196,7 @@ object SettingsManager: TSettingsManager
     end
   end
   object SettingsPopupMenu: TPopupMenu
+    OnPopup = SettingsPopupMenuPopup
     Left = 48
     Top = 104
     object NewSettingItem: TMenuItem
@@ -210,6 +210,10 @@ object SettingsManager: TSettingsManager
     object DeleteSettingItem: TMenuItem
       Caption = 'Delete setting'
       OnClick = DeleteSettingItemClick
+    end
+    object CloneSettingItem: TMenuItem
+      Caption = 'Clone setting'
+      OnClick = CloneSettingItemClick
     end
   end
 end

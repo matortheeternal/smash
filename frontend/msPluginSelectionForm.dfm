@@ -11,6 +11,7 @@ object PluginSelectionForm: TPluginSelectionForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -36,7 +37,7 @@ object PluginSelectionForm: TPluginSelectionForm
     ItemHeight = 13
     TabOrder = 0
     OnClick = CheckListBoxClick
-    ExplicitHeight = 257
+    OnKeyDown = CheckListBoxKeyDown
   end
   object btnOK: TButton
     Left = 170
@@ -48,7 +49,6 @@ object PluginSelectionForm: TPluginSelectionForm
     Caption = 'OK'
     TabOrder = 1
     OnClick = btnOKClick
-    ExplicitTop = 329
   end
   object btnCancel: TButton
     Left = 251
@@ -60,7 +60,6 @@ object PluginSelectionForm: TPluginSelectionForm
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 2
-    ExplicitTop = 329
   end
   object kbOverridesOnly: TCheckBox
     Left = 8

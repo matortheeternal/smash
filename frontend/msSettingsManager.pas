@@ -36,6 +36,7 @@ type
         pnlReportNotes: TPanel;
         lblNotes: TLabel;
         meNotes: TMemo;
+    CloneSettingItem: TMenuItem;
 
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -57,6 +58,8 @@ type
     procedure NewSettingItemClick(Sender: TObject);
     procedure EditSettingItemClick(Sender: TObject);
     procedure DeleteSettingItemClick(Sender: TObject);
+    procedure CloneSettingItemClick(Sender: TObject);
+    procedure SettingsPopupMenuPopup(Sender: TObject);
   private
     { Private declarations }
   public
@@ -234,6 +237,16 @@ end;
 }
 {******************************************************************************}
 
+procedure TSettingsManager.SettingsPopupMenuPopup(Sender: TObject);
+var
+  bHasSelection: boolean;
+begin
+  bHasSelection := Assigned(lvSettings.Selected);
+  EditSettingItem.Enabled := bHasSelection;
+  DeleteSettingItem.Enabled := bHasSelection;
+  CloneSettingItem.Enabled := bHasSelection;
+end;
+
 procedure TSettingsManager.NewSettingItemClick(Sender: TObject);
 var
   setting: TSmashSetting;
@@ -241,6 +254,7 @@ var
 begin
   setting := TSmashSetting.Create;
   SettingForm := TSettingForm.Create(self);
+  SettingForm.mode := smNew;
   SettingForm.setting := setting;
   if SettingForm.ShowModal = mrOK then begin
     SmashSettings.Add(SettingForm.setting);
@@ -256,12 +270,13 @@ var
   setting: TSmashSetting;
   SettingForm: TSettingForm;
 begin
-  for i := 0 to lvSettings.Items.Count do begin
+  for i := 0 to Pred(lvSettings.Items.Count) do begin
     if not lvSettings.Items[i].Selected then
       continue;
     setting := TSmashSetting(tempSmashSettings[i]);
     index := SmashSettings.IndexOf(setting);
     SettingForm := TSettingForm.Create(self);
+    SettingForm.mode := smEdit;
     SettingForm.setting := setting;
     if SettingForm.ShowModal = mrOK then begin
       SmashSettings[index] := SettingForm.setting;
@@ -274,8 +289,37 @@ begin
 end;
 
 procedure TSettingsManager.DeleteSettingItemClick(Sender: TObject);
+var
+  i: Integer;
+  setting: TSmashSetting;
 begin
-  // ?
+  for i := Pred(lvSettings.Items.Count) downto 0 do begin
+    if not lvSettings.Items[i].Selected then
+      continue;
+    lvSettings.Items.Count := lvSettings.Items.Count - 1;
+    setting := TSmashSetting(tempSmashSettings[i]);
+    tempSmashSettings.Delete(i);
+    setting.Free;
+  end;
+  lvSettings.Repaint;
+end;
+
+procedure TSettingsManager.CloneSettingItemClick(Sender: TObject);
+var
+  setting, clonedSetting: TSmashSetting;
+  SettingForm: TSettingForm;
+begin
+  clonedSetting := TSmashSetting.Create;
+  setting := TSmashSetting(tempSmashSettings[lvSettings.Selected.Index]);
+  SettingForm := TSettingForm.Create(self);
+  SettingForm.mode := smClone;
+  SettingForm.setting := clonedSetting.Clone(setting);
+  if SettingForm.ShowModal = mrOK then begin
+    SmashSettings.Add(SettingForm.setting);
+    tempSmashSettings.Add(SettingForm.setting);
+    ApplyFiltering;
+  end;
+  SettingForm.Free;
 end;
 
 {******************************************************************************}

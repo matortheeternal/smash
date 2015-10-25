@@ -1,10 +1,19 @@
 1. Fix memory leaks
-2. Force setting names to be unique
-	- Provide user with a unique name when they create a new setting or clone an existing setting
-	- Disallow user from creating/cloning/editing a setting to a name that is taken
-3. Add clone setting option
-4. Add prune tree option
-	- Popup menu for the tree
-	- There will also be a prompt when saving a setting asking the user if they want to prune the tree.  (ONLY FOR NEW SETTINGS).
-5. Add visualization for the other node data (priority, single entity, ignore deletions).
-6. Adjust UX for settings manager
+2. Adjust UX for settings manager
+3. Add combine setting option
+	- merging json from multiple settings
+	- user has the ability to choose which record dump to use from which setting
+	- adding items to json array
+4. Plugin recommendations "dictionary"
+5. Main form (general UX stuff)
+6. Smashing algorithms -- TConflictThis determination 
+7. Backend
+
+msCombineForm
+TCombineForm
+
+SCROLLBOX WITH DYNAMICALLY CREATED COMPONENTS
+.------------------------------------------------------------. .----------------------------------------------.
+| [PANEL  [RECORD SIGNATURE]   ---  [COMBOBOX OF SETTINGS]]] | | Tree view of the currently selected record's |
+|    ...                       ---      ...                  | | definition for the selected setting          |
+'------------------------------------------------------------' '----------------------------------------------'

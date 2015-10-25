@@ -82,10 +82,12 @@ type
     records: string;
     tree: ISuperObject;
     constructor Create;
+    destructor Destroy; override;
     constructor Clone(s: TSmashSetting);
     procedure LoadDump(dump: ISuperObject);
     function Dump: ISuperObject;
     procedure Save;
+    procedure Rename(newName: string);
   end;
   TReport = class(TObject)
   public
@@ -338,6 +340,7 @@ type
   function GetRatingColor(rating: real): integer;
   function GetEntry(name, numRecords, version: string): TSmashSetting;
   function PluginLoadOrder(filename: string): integer;
+  function SettingByName(name: string): TSmashSetting;
   function PluginByFilename(filename: string): TPlugin;
   function PatchByName(patches: TList; name: string): TPatch;
   function PatchByFilename(patches: TList; filename: string): TPatch;
@@ -2003,10 +2006,10 @@ begin
   if FindFirst(path + '*.json', faAnyFile, info) <> 0 then
     exit;
   repeat
+    sl := TStringList.Create;
     try
-      aSetting := TSmashSetting.Create;
-      sl := TStringList.Create;
       sl.LoadFromFile(path + info.Name);
+      aSetting := TSmashSetting.Create;
       obj := SO(PChar(sl.Text));
       if Assigned(obj) then begin
         aSetting.LoadDump(obj);
@@ -2246,6 +2249,22 @@ begin
     plugin := TPlugin(PluginsList[i]);
     if plugin.filename = filename then begin
       Result := i;
+      exit;
+    end;
+  end;
+end;
+
+{ Gets a smash setting matching the given name. }
+function SettingByName(name: string): TSmashSetting;
+var
+  i: integer;
+  aSetting: TSmashSetting;
+begin
+  Result := nil;
+  for i := 0 to Pred(SmashSettings.Count) do begin
+    aSetting := TSmashSetting(SmashSettings[i]);
+    if aSetting.name = name then begin
+      Result := aSetting;
       exit;
     end;
   end;
@@ -3476,18 +3495,40 @@ begin
 end;
 
 { TSmashSetting }
+function GetUniqueSettingName: string;
+var
+  i: Integer;
+begin
+  Result := 'NewSetting';
+  i := 1;
+  while Assigned(SettingByName(Result)) do begin
+    Inc(i);
+    Result := 'NewSetting' + IntToStr(i);
+  end;
+end;
+
 constructor TSmashSetting.Create;
 begin
-  name := 'NewSetting';
+  name := GetUniqueSettingName;
   hash := '$00000000';
   description := '';
   records := '';
   tree := nil;
 end;
 
+destructor TSmashSetting.Destroy;
+begin
+  name := '';
+  hash := '';
+  description := '';
+  records := '';
+  if Assigned(tree) then tree._Release;
+  tree := nil;
+end;
+
 constructor TSmashSetting.Clone(s: TSmashSetting);
 begin
-  name := s.name;
+  name := s.name+' clone';
   hash := '$00000000';
   description := s.description;
   tree := s.tree;
@@ -3526,6 +3567,17 @@ begin
   path := Format('%s\settings\%s.json', [ProgramPath, name]);
   ForceDirectories(ExtractFilePath(path));
   Dump.SaveTo(path);
+end;
+
+procedure TSmashSetting.Rename(newName: string);
+var
+  oldPath, newPath: string;
+begin
+  oldPath := ProgramPath + 'settings\' + name + '.json';
+  newPath := ProgramPath + 'settings\' + newName + '.json';
+  if FileExists(oldpath) then
+    RenameFile(oldpath, newpath);
+  name := newName;
 end;
 
 { TSettings constructor }
