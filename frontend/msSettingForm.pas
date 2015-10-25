@@ -554,7 +554,11 @@ begin
 end;
 
 procedure TSettingForm.FormShow(Sender: TObject);
+const
+  TVS_NOTOOLTIPS = $0080;
 begin
+  SetWindowLong(tvRecords.Handle, GWL_STYLE,
+    GetWindowLong(tvRecords.Handle, GWL_STYLE) or TVS_NOTOOLTIPS);
   edName.Text := setting.name;
   meDescription.Lines.Text := setting.description;
   if Assigned(setting.tree) then
