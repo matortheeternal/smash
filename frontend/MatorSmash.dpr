@@ -49,7 +49,7 @@ begin
   // set important vars
   SysUtils.FormatSettings.DecimalSeparator := '.';
   Application.HintHidePause := 8000;
-  ReportMemoryLeaksOnShutdown := true;
+  //ReportMemoryLeaksOnShutdown := true;
   ProgramPath := ExtractFilePath(ParamStr(0));
 
   // get command line arguments

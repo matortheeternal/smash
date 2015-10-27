@@ -399,10 +399,10 @@ begin
   obj.S['n'] := node.Text;
   // get data properties
   e := TElementData(node.Data);
-  obj.I['r'] := e.priority;
-  obj.I['p'] := IfThenInt(e.process);
-  obj.I['i'] := IfThenInt(e.ignoreDeletions);
-  obj.I['s'] := IfThenInt(e.singleEntity);
+  if (e.priority > 0) then obj.I['r'] := e.priority;
+  if (e.process) then obj.I['p'] := 1;
+  if (e.ignoreDeletions) then obj.I['i'] := 1;
+  if (e.singleEntity) then obj.I['s'] := 1;
 
   // exit if no children to dump
   if node.hasChildren then begin

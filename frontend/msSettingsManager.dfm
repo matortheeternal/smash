@@ -39,7 +39,6 @@ object SettingsManager: TSettingsManager
     Caption = 'pnlEntries'
     Constraints.MinWidth = 650
     TabOrder = 0
-    ExplicitHeight = 682
     object lvSettings: TListView
       Left = 4
       Top = 4
@@ -71,8 +70,6 @@ object SettingsManager: TSettingsManager
       OnChange = lvSettingsChange
       OnData = lvSettingsData
       OnDrawItem = lvSettingsDrawItem
-      ExplicitWidth = 836
-      ExplicitHeight = 673
     end
   end
   object pnlDetails: TPanel
@@ -83,9 +80,6 @@ object SettingsManager: TSettingsManager
     Align = alClient
     Constraints.MinWidth = 300
     TabOrder = 1
-    ExplicitLeft = 847
-    ExplicitWidth = 417
-    ExplicitHeight = 682
     object lblName: TLabel
       Left = 8
       Top = 10
@@ -136,8 +130,6 @@ object SettingsManager: TSettingsManager
       OnCustomDrawItem = tvRecordsCustomDrawItem
       OnKeyDown = tvRecordsKeyDown
       OnMouseDown = tvRecordsMouseDown
-      ExplicitWidth = 400
-      ExplicitHeight = 406
     end
     object edName: TEdit
       Left = 8
@@ -150,7 +142,6 @@ object SettingsManager: TSettingsManager
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 1
       OnChange = edNameChange
-      ExplicitWidth = 400
     end
     object meDescription: TMemo
       Left = 8
@@ -162,7 +153,6 @@ object SettingsManager: TSettingsManager
       Align = alCustom
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 2
-      ExplicitWidth = 400
     end
     object btnSave: TButton
       Left = 247
@@ -174,7 +164,6 @@ object SettingsManager: TSettingsManager
       Caption = 'Save'
       TabOrder = 3
       OnClick = btnSaveClick
-      ExplicitTop = 649
     end
     object btnDiscard: TButton
       Left = 328
@@ -186,7 +175,6 @@ object SettingsManager: TSettingsManager
       Caption = 'Discard'
       TabOrder = 4
       OnClick = btnDiscardClick
-      ExplicitTop = 649
     end
   end
   object SettingsPopupMenu: TPopupMenu
@@ -241,7 +229,7 @@ object SettingsManager: TSettingsManager
     Left = 784
     Top = 256
     Bitmap = {
-      494C0101040008003C0011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010104000800400011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000440000002200000001002000000000002024
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -553,7 +541,7 @@ object SettingsManager: TSettingsManager
     Left = 856
     Top = 256
     Bitmap = {
-      494C010102000800340010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010102000800380010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000DCEEDC0074BA7400349A34000C860C000C860C002C962C006CB66C00D4EA

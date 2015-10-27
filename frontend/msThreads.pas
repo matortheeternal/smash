@@ -362,8 +362,6 @@ begin
   FreeList(BaseLog);
   FreeList(Log);
 
-  if Assigned(Tracker) then
-    Tracker.Cancel := false;
   if Assigned(SaveCallback) then
     Synchronize(nil, SaveCallback);
 end;

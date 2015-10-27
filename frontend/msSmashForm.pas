@@ -15,7 +15,7 @@ uses
   mteHelpers, mteTracker, mteLogger, mteProgressForm, mteTaskHandler,
   RttiTranslation,
   // ms units
-  msFrontend, msThreads, msOptionsForm, msEditForm, msSettingForm,
+  msFrontend, msThreads, msOptionsForm, msEditForm,
   msSettingsManager, msSplashForm,
   // tes5edit units
   wbBSA, wbHelpers, wbInterface, wbImplementation;

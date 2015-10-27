@@ -2291,10 +2291,12 @@ var
   item: ISuperObject;
   child: TTreeNode;
   bProcess, bIgnoreDeletions, bIsSingle: boolean;
+  priority: Integer;
 begin
   if not Assigned(obj) then
     exit;
   child := tv.Items.AddChild(node, obj.S['n']);
+  priority := obj.I['r'];
   bProcess := obj.I['p'] = 1;
   bIgnoreDeletions := obj.I['i'] = 1;
   bIsSingle := obj.I['s'] = 1;
@@ -2305,7 +2307,7 @@ begin
     child.StateIndex := cChecked
   else
     child.StateIndex := cUnChecked;
-  child.Data := Pointer(TElementData.Create( obj.I['r'], bProcess,
+  child.Data := Pointer(TElementData.Create( priority, bProcess,
       bIgnoreDeletions, bIsSingle ));
   if Assigned(obj.O['c']) then try
     for item in obj['c'] do
