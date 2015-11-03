@@ -31,7 +31,8 @@ uses
   msPriorityForm in 'msPriorityForm.pas' {PriorityForm},
   msPluginSelectionForm in 'msPluginSelectionForm.pas' {PluginSelectionForm},
   msConflictForm in 'msConflictForm.pas' {ConflictForm},
-  msChoicePanel in 'msChoicePanel.pas';
+  msChoicePanel in 'msChoicePanel.pas',
+  msSmash in 'msSmash.pas';
 
 {$R *.res}
 {$MAXSTACKSIZE 2097152}

@@ -84,6 +84,7 @@ type
     constructor Create;
     destructor Destroy; override;
     constructor Clone(s: TSmashSetting);
+    function GetRecordDef(sig: string): ISuperObject;
     procedure LoadDump(dump: ISuperObject);
     function Dump: ISuperObject;
     procedure Save;
@@ -119,6 +120,7 @@ type
     hasData: boolean;
     hash: string;
     setting: string;
+    smashSetting: TSmashSetting;
     fileSize: Int64;
     dateModified: string;
     filename: string;
@@ -127,7 +129,6 @@ type
     numOverrides: string;
     author: string;
     dataPath: string;
-    entry: TSmashSetting;
     description: TStringList;
     masters: TStringList;
     requiredBy: TStringList;
@@ -3708,6 +3709,18 @@ begin
   records := s.records;
   description := s.description;
   tree := s.tree.Clone;
+end;
+
+function TSmashSetting.GetRecordDef(sig: string): ISuperObject;
+var
+  item: ISuperObject;
+begin
+  Result := nil;
+  // loop through record objects
+  for item in tree['records'] do begin
+    if item.S['n'] = sig then
+      Result := item;
+  end;
 end;
 
 procedure TSmashSetting.LoadDump(dump: ISuperObject);

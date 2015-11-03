@@ -117,6 +117,7 @@
 				<Form>ConflictForm</Form>
 			</DCCReference>
 			<DCCReference Include="msChoicePanel.pas"/>
+			<DCCReference Include="msSmash.pas"/>
 			<None Include="ModelSupport_MergePlugins\default.txvpck"/>
 			<None Include="ModelSupport_MatorSmash\default.txaPackage"/>
 			<None Include="ModelSupport_MatorSmash\default.txvpck"/>
