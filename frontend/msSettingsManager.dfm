@@ -3,7 +3,7 @@ object SettingsManager: TSettingsManager
   Top = 0
   Caption = 'Settings Manager'
   ClientHeight = 582
-  ClientWidth = 1064
+  ClientWidth = 1024
   Color = clBtnFace
   Constraints.MinHeight = 520
   Constraints.MinWidth = 960
@@ -75,14 +75,16 @@ object SettingsManager: TSettingsManager
   object pnlDetails: TPanel
     Left = 653
     Top = 0
-    Width = 411
+    Width = 371
     Height = 582
     Align = alClient
     Constraints.MinWidth = 300
     TabOrder = 1
+    ExplicitLeft = 656
+    ExplicitWidth = 411
     object lblName: TLabel
       Left = 8
-      Top = 10
+      Top = 12
       Width = 27
       Height = 13
       Margins.Left = 8
@@ -92,10 +94,11 @@ object SettingsManager: TSettingsManager
     end
     object lblDescription: TLabel
       Left = 8
-      Top = 53
+      Top = 60
       Width = 53
       Height = 13
       Margins.Left = 8
+      Margins.Top = 8
       Align = alCustom
       Caption = 'Description'
     end
@@ -108,10 +111,20 @@ object SettingsManager: TSettingsManager
       Align = alCustom
       Caption = 'Tree'
     end
+    object Label1: TLabel
+      Left = 8
+      Top = 36
+      Width = 25
+      Height = 13
+      Margins.Left = 8
+      Margins.Top = 8
+      Align = alCustom
+      Caption = 'Color'
+    end
     object tvRecords: TTreeView
       Left = 8
       Top = 237
-      Width = 394
+      Width = 354
       Height = 306
       Margins.Left = 8
       Align = alCustom
@@ -130,11 +143,12 @@ object SettingsManager: TSettingsManager
       OnCustomDrawItem = tvRecordsCustomDrawItem
       OnKeyDown = tvRecordsKeyDown
       OnMouseDown = tvRecordsMouseDown
+      ExplicitWidth = 394
     end
     object edName: TEdit
-      Left = 8
-      Top = 29
-      Width = 394
+      Left = 152
+      Top = 9
+      Width = 210
       Height = 21
       Margins.Left = 8
       Margins.Right = 8
@@ -142,20 +156,22 @@ object SettingsManager: TSettingsManager
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 1
       OnChange = edNameChange
+      ExplicitWidth = 250
     end
     object meDescription: TMemo
       Left = 8
-      Top = 72
-      Width = 394
-      Height = 140
+      Top = 79
+      Width = 354
+      Height = 133
       Margins.Left = 8
       Margins.Right = 8
       Align = alCustom
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 2
+      ExplicitWidth = 394
     end
     object btnSave: TButton
-      Left = 247
+      Left = 207
       Top = 549
       Width = 75
       Height = 25
@@ -164,9 +180,10 @@ object SettingsManager: TSettingsManager
       Caption = 'Save'
       TabOrder = 3
       OnClick = btnSaveClick
+      ExplicitLeft = 247
     end
     object btnDiscard: TButton
-      Left = 328
+      Left = 288
       Top = 549
       Width = 75
       Height = 25
@@ -175,6 +192,18 @@ object SettingsManager: TSettingsManager
       Caption = 'Discard'
       TabOrder = 4
       OnClick = btnDiscardClick
+      ExplicitLeft = 328
+    end
+    object cbColor: TColorBox
+      Left = 152
+      Top = 36
+      Width = 210
+      Height = 22
+      Margins.Right = 8
+      Align = alCustom
+      Anchors = [akLeft, akTop, akRight, akBottom]
+      TabOrder = 5
+      ExplicitWidth = 250
     end
   end
   object SettingsPopupMenu: TPopupMenu
@@ -229,7 +258,7 @@ object SettingsManager: TSettingsManager
     Left = 784
     Top = 256
     Bitmap = {
-      494C010104000800400011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010104000800440011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000440000002200000001002000000000002024
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -541,7 +570,7 @@ object SettingsManager: TSettingsManager
     Left = 856
     Top = 256
     Bitmap = {
-      494C010102000800380010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C0101020008003C0010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000DCEEDC0074BA7400349A34000C860C000C860C002C962C006CB66C00D4EA

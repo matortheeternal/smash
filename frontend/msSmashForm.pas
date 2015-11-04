@@ -57,8 +57,9 @@ type
           PluginsListView: TListView;
           [FormSection('Plugins Popup Menu')]
             PluginsPopupMenu: TPopupMenu;
+            AddToPatchItem: TMenuItem;
             OpenPluginLocationItem: TMenuItem;
-            [FormSection('Errors Submenu')]
+            SmashSettingItem: TMenuItem;
         [FormSection('Patches Tab')]
           PatchesTabSheet: TTabSheet;
           PatchesListView: TListView;
@@ -136,6 +137,7 @@ type
     // PLUGINS LIST VIEW EVENTS
     procedure UpdatePluginDetails;
     procedure AddPluginsToPatch(var patch: TPatch);
+    procedure ChangePatchSetting(aSetting: TSmashSetting);
     procedure PluginsListViewChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
     procedure PluginsListViewData(Sender: TObject; Item: TListItem);
@@ -146,6 +148,7 @@ type
     procedure UpdatePluginsPopupMenu;
     procedure AddToNewPatchClick(Sender: TObject);
     procedure AddToPatchClick(Sender: TObject);
+    procedure ChangeSettingClick(Sender: TObject);
     procedure RemoveFromPatchItemClick(Sender: TObject);
     procedure OpenPluginLocationItemClick(Sender: TObject);
     // SMASH LIST VIEW EVENTS
@@ -854,6 +857,29 @@ begin
   AddDetailsList(GetString('msMain_Masters'), plugin.masters);
 end;
 
+procedure TSmashForm.ChangePatchSetting(aSetting: TSmashSetting);
+var
+  i: Integer;
+  ListItem: TListItem;
+  plugin: TPlugin;
+begin
+  // loop through plugins list, adding selected plugins to patch
+  for i := 0 to Pred(PluginsListView.Items.Count) do begin
+    ListItem := PluginsListView.Items[i];
+    if not ListItem.Selected then
+      continue;
+    plugin := TPlugin(PluginsList[i]);
+    plugin.setting := aSetting.name;
+    plugin.smashSetting := aSetting;
+  end;
+
+  // update and repaint
+  UpdatePatches;
+  UpdateListViews;
+  UpdateQuickbar;
+  UpdateStatusBar;
+end;
+
 procedure TSmashForm.AddPluginsToPatch(var patch: TPatch);
 var
   i: integer;
@@ -898,7 +924,10 @@ begin
   Item.SubItems.Add(plugin.filename);
   Item.SubItems.Add(plugin.setting);
   Item.SubItems.Add(plugin.patch);
-  //PluginsListView.Canvas.Font.Color := GetRatingColor(StrToFloatDef(plugin.entry.rating, -2.0));
+  if Assigned(plugin.smashSetting) then
+    PluginsListView.Canvas.Font.Color := plugin.smashSetting.color
+  else
+    PluginsListView.Canvas.Font.Color := clGray;
   PluginsListView.Canvas.Font.Style := PluginsListView.Canvas.Font.Style + [fsBold];
 end;
 
@@ -950,11 +979,12 @@ procedure TSmashForm.UpdatePluginsPopupMenu;
 var
   i: Integer;
   patch: TPatch;
-  AddToPatchItem, MenuItem: TMenuItem;
+  aSetting: TSmashSetting;
+  MenuItem: TMenuItem;
 begin
-  // clear popup menu
-  AddToPatchItem := PluginsPopupMenu.Items[0];
+  // clear submenus
   AddToPatchItem.Clear;
+  SmashSettingItem.Clear;
 
   // add <New Patch> option to Plugins popup menu
   MenuItem := TMenuItem.Create(AddToPatchItem);
@@ -962,7 +992,7 @@ begin
   MenuItem.OnClick := AddToNewPatchClick;
   AddToPatchItem.Add(MenuItem);
 
-  // add patches to plugins popup menu
+  // add patches to submenu
   for i := 0 to Pred(PatchesList.Count) do begin
     patch := TPatch(PatchesList[i]);
     MenuItem := TMenuItem.Create(AddToPatchItem);
@@ -970,13 +1000,35 @@ begin
     MenuItem.OnClick := AddToPatchClick;
     AddToPatchItem.Add(MenuItem);
   end;
+
+  // add smash settings to submenu
+  for i := 0 to Pred(SmashSettings.Count) do begin
+    aSetting := TSmashSetting(SmashSettings[i]);
+    MenuItem := TMenuItem.Create(SmashSettingItem);
+    MenuItem.Caption := aSetting.name;
+    MenuItem.OnClick := ChangeSettingClick;
+    SmashSettingItem.Add(MenuItem);
+  end;
 end;
 
 procedure TSmashForm.AddToPatchClick(Sender: TObject);
+var
+  MenuItem: TMenuItem;
+  patch: TPatch;
 begin
-  {MenuItem := TMenuItem(Sender);
+  MenuItem := TMenuItem(Sender);
   patch := PatchesList[AddToPatchItem.IndexOf(MenuItem) - 1];
-  AddPluginsToPatch(patch);}
+  AddPluginsToPatch(patch);
+end;
+
+procedure TSmashForm.ChangeSettingClick(Sender: TObject);
+var
+  MenuItem: TMenuItem;
+  aSetting: TSmashSetting;
+begin
+  MenuItem := TMenuItem(Sender);
+  aSetting := SmashSettings[SmashSettingItem.IndexOf(MenuItem)];
+  ChangePatchSetting(aSetting);
 end;
 
 procedure TSmashForm.AddToNewPatchClick(Sender: TObject);
@@ -1077,7 +1129,6 @@ begin
   AddDetailsItem(GetString('msMain_DateBuilt'), DateBuiltString(patch.dateBuilt));
   AddDetailsList(GetString('msMain_Plugins'), patch.plugins);
   AddDetailsItem(' ', ' ');
-  AddDetailsItem(GetString('msMain_Setting'), patch.setting, false);
   if patch.files.Count < 250 then begin
     sl := TStringList.Create;
     sl.Text := StringReplace(patch.files.Text, settings.patchDirectory, '', [rfReplaceAll]);
@@ -1682,7 +1733,7 @@ begin
   pForm := TProgressForm.Create(Self);
   pForm.LogPath := LogPath;
   pForm.PopupParent := Self;
-  pForm.Caption := GetString('mpProg_Merging');
+  pForm.Caption := GetString('mpProg_Smashing');
   pForm.MaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
   pForm.Show;
 
@@ -1839,6 +1890,9 @@ begin
 end;
 
 procedure TSmashForm.BuildButtonClick(Sender: TObject);
+var
+  i, timeCost: Integer;
+  patch: TPatch;
 begin
   // exit if the loader isn't done
   if not bLoaderDone then begin
@@ -1852,7 +1906,7 @@ begin
     exit;
   end;
 
-  {// calculate time costs, prepare patches
+  // calculate time costs, prepare patches
   timeCosts := TStringList.Create;
   patchesToBuild := TList.Create;
   for i := 0 to Pred(PatchesList.Count) do begin
@@ -1885,7 +1939,7 @@ begin
 
   // start patch thread
   PatchCallback := ProgressDone;
-  TPatchThread.Create; }
+  TPatchThread.Create;
 end;
 
 { Submit report }
@@ -1894,7 +1948,7 @@ begin
   // ?
 end;
 
-{ View the dictionary file }
+{ Edit smash settings }
 procedure TSmashForm.SettingsButtonClick(Sender: TObject);
 var
   smForm: TSettingsManager;
@@ -1902,6 +1956,13 @@ begin
   smForm := TSettingsManager.Create(self);
   smForm.ShowModal;
   smForm.Free;
+
+  // update
+  UpdatePluginsPopupMenu;
+  UpdatePatches;
+  UpdateListViews;
+  UpdateQuickbar;
+  UpdateStatusBar;
 end;
 
 { Options }

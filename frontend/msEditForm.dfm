@@ -2,7 +2,7 @@ object EditForm: TEditForm
   Left = 0
   Top = 0
   Caption = 'Edit patch'
-  ClientHeight = 186
+  ClientHeight = 151
   ClientWidth = 333
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,14 +18,16 @@ object EditForm: TEditForm
     Left = 8
     Top = 8
     Width = 317
-    Height = 139
+    Height = 104
     ActivePage = EditTabSheet
     Align = alCustom
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     TabWidth = 60
+    ExplicitHeight = 138
     object EditTabSheet: TTabSheet
       Caption = 'Edit'
+      ExplicitHeight = 68
       object lblName: TLabel
         Left = 12
         Top = 13
@@ -39,13 +41,6 @@ object EditForm: TEditForm
         Width = 42
         Height = 13
         Caption = 'Filename'
-      end
-      object lblSetting: TLabel
-        Left = 12
-        Top = 67
-        Width = 34
-        Height = 13
-        Caption = 'Setting'
       end
       object edName: TEdit
         Left = 102
@@ -67,22 +62,11 @@ object EditForm: TEditForm
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 1
       end
-      object cbSetting: TComboBox
-        Left = 102
-        Top = 64
-        Width = 202
-        Height = 21
-        Margins.Right = 8
-        Align = alCustom
-        Style = csDropDownList
-        Anchors = [akLeft, akTop, akRight]
-        TabOrder = 2
-      end
     end
   end
   object btnOK: TButton
     Left = 250
-    Top = 153
+    Top = 118
     Width = 75
     Height = 25
     Align = alCustom
@@ -90,5 +74,6 @@ object EditForm: TEditForm
     Caption = 'OK'
     TabOrder = 1
     OnClick = btnOKClick
+    ExplicitTop = 153
   end
 end

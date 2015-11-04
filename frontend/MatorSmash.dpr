@@ -19,6 +19,7 @@ uses
   Dialogs,
   Controls,
   SysUtils,
+  mteHelpers,
   msProfileForm in 'msProfileForm.pas' {ProfileForm},
   msProfilePanel in 'msProfilePanel.pas',
   msSmashForm in 'msSmashForm.pas' {SmashForm},
@@ -32,7 +33,8 @@ uses
   msPluginSelectionForm in 'msPluginSelectionForm.pas' {PluginSelectionForm},
   msConflictForm in 'msConflictForm.pas' {ConflictForm},
   msChoicePanel in 'msChoicePanel.pas',
-  msSmash in 'msSmash.pas';
+  msSmash in 'msSmash.pas',
+  msAlgorithm in 'msAlgorithm.pas';
 
 {$R *.res}
 {$MAXSTACKSIZE 2097152}
@@ -83,4 +85,12 @@ begin
   Application.CreateForm(TPluginSelectionForm, PluginSelectionForm);
   Application.CreateForm(TConflictForm, ConflictForm);
   Application.Run;
+
+  // free all lists
+  FreeList(PluginsList);
+  FreeList(PatchesList);
+  FreeList(SmashSettings);
+  FreeList(GroupFilters);
+  FreeList(LabelFilters);
+  FreeList(BaseLog);
 end.

@@ -81,6 +81,7 @@ type
     description: string;
     records: string;
     tree: ISuperObject;
+    color: Int64;
     constructor Create;
     destructor Destroy; override;
     constructor Clone(s: TSmashSetting);
@@ -148,7 +149,6 @@ type
     filename: string;
     dateBuilt: TDateTime;
     bIgnoreNonContiguous: boolean;
-    setting: string;
     dataPath: string;
     status: TPatchStatusID;
     plugin: TPlugin;
@@ -204,38 +204,19 @@ type
     errorMessageColor: Int64;
     logMessageTemplate: string;
     preserveTempPath: boolean;
-    [IniSection('Merging')]
+    [IniSection('Patching')]
     patchDirectory: string;
-    handleFaceGenData: boolean;
-    handleVoiceAssets: boolean;
-    handleMCMTranslations: boolean;
-    handleINIs: boolean;
-    handleSEQ: boolean;
-    handleScriptFragments: boolean;
-    handleSelfReference: boolean;
-    extractBSAs: boolean;
-    buildPatchdBSA: boolean;
-    batCopy: boolean;
-    bForceOversizedBSA: boolean;
-    bSkipOversizedBSA: boolean;
-    debugRenumbering: boolean;
     debugPatchStatus: boolean;
-    debugAssetCopying: boolean;
-    debugRecordCopying: boolean;
     debugMasters: boolean;
-    debugBatchCopying: boolean;
-    debugBSAs: boolean;
-    debugScriptFragments: boolean;
+    debugArrays: boolean;
+    debugSkips: boolean;
+    debugTraversal: boolean;
+    debugTypes: boolean;
+    debugChanges: boolean;
     [IniSection('Integrations')]
     usingMO: boolean;
     MOPath: string;
     MOModsPath: string;
-    copyGeneralAssets: boolean;
-    compilerPath: string;
-    decompilerPath: string;
-    flagsPath: string;
-    bsaOptPath: string;
-    bsaOptOptions: string;
     constructor Create; virtual;
     procedure GenerateKey;
   end;
@@ -272,6 +253,9 @@ type
   function RemoveFileIndex(formID: string): string;
   function LocalFormID(aRecord: IwbMainRecord): integer;
   function LoadOrderPrefix(aRecord: IwbMainRecord): integer;
+  function etToString(et: TwbElementType): string;
+  function dtToString(dt: TwbDefType): string;
+  function IsSorted(se: IwbElement): boolean;
   function CountOverrides(aFile: IwbFile): integer;
   procedure AddRequiredBy(filename: string; var masters: TStringList);
   procedure GetMasters(aFile: IwbFile; var sl: TStringList);
@@ -661,6 +645,59 @@ end;
 function LoadOrderPrefix(aRecord: IwbMainRecord): integer;
 begin
   Result := aRecord.LoadOrderFormID and $FF000000;
+end;
+
+{ Converts a TwbElementType to a string }
+function etToString(et: TwbElementType): string;
+begin
+  case Ord(et) of
+    Ord(etFile): Result := 'etFile';
+    Ord(etMainRecord): Result := 'etMainRecord';
+    Ord(etGroupRecord): Result := 'etGroupRecord';
+    Ord(etSubRecord): Result := 'etSubRecord';
+    Ord(etSubRecordStruct): Result := 'etSubRecordStruct';
+    Ord(etSubRecordArray): Result := 'etSubRecordArray';
+    Ord(etSubRecordUnion): Result := 'etSubRecordUnion';
+    Ord(etArray): Result := 'etArray';
+    Ord(etStruct): Result := 'etStruct';
+    Ord(etValue): Result := 'etValue';
+    Ord(etFlag): Result := 'etFlag';
+    Ord(etStringListTerminator): Result := 'etStringListTerminator';
+    Ord(etUnion): Result := 'etUnion';
+  end;
+end;
+
+{ Converts a TwbDefType to a string }
+function dtToString(dt: TwbDefType): string;
+begin
+  case Ord(dt) of
+    Ord(dtRecord): Result := 'dtRecord';
+    Ord(dtSubRecord): Result := 'dtSubRecord';
+    Ord(dtSubRecordArray): Result := 'dtSubRecordArray';
+    Ord(dtSubRecordStruct): Result := 'dtSubRecordStruct';
+    Ord(dtSubRecordUnion): Result := 'dtSubRecordUnion';
+    Ord(dtString): Result := 'dtString';
+    Ord(dtLString): Result := 'dtLString';
+    Ord(dtLenString): Result := 'dtLenString';
+    Ord(dtByteArray): Result := 'dtByteArray';
+    Ord(dtInteger): Result := 'dtInteger';
+    Ord(dtIntegerFormater): Result := 'dtIntegerFormatter';
+    Ord(dtFloat): Result := 'dtFloat';
+    Ord(dtArray): Result := 'dtArray';
+    Ord(dtStruct): Result := 'dtStruct';
+    Ord(dtUnion): Result := 'dtUnion';
+    Ord(dtEmpty): Result := 'dtEmpty';
+  end;
+end;
+
+{ Returns true if @se is a sorted container }
+function IsSorted(se: IwbElement): boolean;
+var
+  Container: IwbSortableContainer;
+begin
+  Result := false;
+  if Supports(se, IwbSortableContainer, Container) then
+    Result := Container.Sorted;
 end;
 
 { Returns the number of override records in a file }
@@ -2001,6 +2038,21 @@ begin
   Tracker.Write(' ');
 end;
 
+procedure CreateSkipSetting;
+var
+  skipSetting: TSmashSetting;
+  index: Integer;
+begin
+  index := SmashSettings.Add(TSmashSetting.Create);
+  skipSetting := SmashSettings[index];
+  skipSetting.name := 'Skip';
+  skipSetting.color := clGray;
+  skipSetting.description := 'Special setting.  Any plugin with this setting '+
+    'will be excluded from patch creation.';
+  skipSetting.tree := SO();
+  skipSetting.tree.O['records'] := SA([]);
+end;
+
 procedure LoadSmashSettings;
 var
   info: TSearchRec;
@@ -2012,6 +2064,8 @@ begin
   SmashSettings := TList.Create;
   path := ProgramPath + 'settings\';
   ForceDirectories(path);
+
+  // load setting files from settings path
   if FindFirst(path + '*.json', faAnyFile, info) <> 0 then
     exit;
   repeat
@@ -2035,6 +2089,10 @@ begin
       end;
     end;
   until FindNext(info) <> 0;
+
+  // create skip setting if it isn't assigned
+  if SettingByName('Skip') = nil then
+    CreateSkipSetting;
 end;
 
 procedure SavePluginInfo;
@@ -2087,7 +2145,7 @@ var
   plugin: TPlugin;
   obj, pluginItem: ISuperObject;
   sl: TStringList;
-  filename, hash, setting: string;
+  filename, hash: string;
 begin
   // don't load file if it doesn't exist
   filename := ProfilePath + 'PluginInfo.json';
@@ -2103,13 +2161,11 @@ begin
   for pluginItem in obj['plugins'] do begin
     filename := pluginItem.AsObject.S['filename'];
     hash := pluginItem.AsObject.S['hash'];
-    setting := pluginItem.AsObject.S['setting'];
     plugin := PluginByFileName(filename);
     if not Assigned(plugin) then
       continue;
-    if plugin.hash = hash then begin
-      plugin.setting := setting;
-    end;
+    if (plugin.hash = hash) and (plugin.filename = filename) then
+      plugin.LoadInfoDump(pluginItem);
   end;
 
   // finalize
@@ -2328,6 +2384,11 @@ var
 begin
   rootNode := tv.Items.Add(nil, 'Records');
   obj := aSetting.tree;
+  if not Assigned(obj) then
+    exit;
+  if not Assigned(obj['records']) then
+    exit;
+
   for item in obj['records'] do
     LoadElement(tv, rootNode, item, false);
 end;
@@ -3259,6 +3320,8 @@ constructor TPlugin.Create;
 begin
   hasData := false;
   patch := ' ';
+  setting := 'Skip';
+  smashSetting := SettingByName(setting);
   description := TStringList.Create;
   masters := TStringList.Create;
   requiredBy := TStringList.Create;
@@ -3360,6 +3423,11 @@ end;
 procedure TPlugin.LoadInfoDump(obj: ISuperObject);
 begin
   setting := obj.AsObject.S['setting'];
+  smashSetting := SettingByName(setting);
+  if not Assigned(smashSetting) then begin
+    setting := 'Skip';
+    smashSetting := SettingByName(setting);
+  end;
 end;
 
 { TPatch Constructor }
@@ -3378,7 +3446,6 @@ begin
   geckScripts := TStringList.Create;
   navConflicts := TStringList.Create;
   ignoredDependencies := TStringList.Create;
-  setting := 'Default';
   fails := TStringList.Create;
 end;
 
@@ -3410,7 +3477,6 @@ begin
   obj.S['name'] := name;
   obj.S['filename'] := filename;
   obj.S['dateBuilt'] := DateTimeToStr(dateBuilt);
-  obj.S['setting'] := setting;
   obj.B['bIgnoreNonContiguous'] := bIgnoreNonContiguous;
 
   // plugins, pluginSizes, pluginDates, masters
@@ -3446,7 +3512,6 @@ begin
   // load object attributes
   name := obj.AsObject.S['name'];
   filename := obj.AsObject.S['filename'];
-  setting := obj.AsObject.S['setting'];
   try
     bIgnoreNonContiguous := obj.AsObject.B['bIgnoreNonContiguous'];
   except on Exception do
@@ -3687,6 +3752,7 @@ constructor TSmashSetting.Create;
 begin
   name := GetUniqueSettingName;
   hash := '$00000000';
+  color := clBlack;
   description := '';
   records := '';
   tree := nil;
@@ -3696,6 +3762,7 @@ destructor TSmashSetting.Destroy;
 begin
   name := '';
   hash := '';
+  color := 0;
   description := '';
   records := '';
   if Assigned(tree) then tree._Release;
@@ -3706,6 +3773,7 @@ constructor TSmashSetting.Clone(s: TSmashSetting);
 begin
   name := s.name+' clone';
   hash := '$00000000';
+  color := s.color;
   records := s.records;
   description := s.description;
   tree := s.tree.Clone;
@@ -3726,6 +3794,7 @@ end;
 procedure TSmashSetting.LoadDump(dump: ISuperObject);
 begin
   name := dump.S['name'];
+  color := dump.I['color'];
   hash := dump.S['hash'];
   description := dump.S['description'];
   records := dump.S['records'];
@@ -3743,6 +3812,7 @@ begin
   // normal attributes
   obj.S['records'] := records;
   obj.S['description'] := description;
+  obj.I['color'] := color;
   obj.S['hash'] := hash;
   obj.S['name'] := name;
 
@@ -3782,18 +3852,7 @@ begin
   updateProgram := false;
   usingMO := false;
   MOPath := '';
-  copyGeneralAssets := false;
   patchDirectory := wbDataPath;
-  handleFaceGenData := true;
-  handleVoiceAssets := true;
-  handleMCMTranslations := true;
-  handleINIs := true;
-  handleSEQ := true;
-  handleScriptFragments := false;
-  handleSelfReference := false;
-  extractBSAs := false;
-  buildPatchdBSA := false;
-  batCopy := true;
   generalMessageColor := clGreen;
   loadMessageColor := clPurple;
   clientMessageColor := clBlue;

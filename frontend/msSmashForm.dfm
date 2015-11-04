@@ -774,7 +774,6 @@ object SmashForm: TSmashForm
     Top = 8
   end
   object PluginsPopupMenu: TPopupMenu
-    OnPopup = PluginsPopupMenuPopup
     Left = 56
     Top = 112
     object AddToPatchItem: TMenuItem
@@ -782,6 +781,11 @@ object SmashForm: TSmashForm
       object NewPatchItem: TMenuItem
         Caption = '<New Patch>'
         OnClick = AddToNewPatchClick
+      end
+    end
+    object SmashSettingItem: TMenuItem
+      Caption = 'Smash setting'
+      object TMenuItem
       end
     end
     object RemoveFromPatchItem: TMenuItem
@@ -847,7 +851,7 @@ object SmashForm: TSmashForm
     Left = 1008
     Top = 8
     Bitmap = {
-      494C010107001400100240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C0101070014001C0240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000000100004000000001002000000000000000
       0100000000000000000000000000000000000000000000000000000000000000
       000000000000000000000000000000000000000000000000000000000000E2E2

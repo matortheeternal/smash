@@ -15,10 +15,8 @@ type
     btnOK: TButton;
     lblName: TLabel;
     lblFilename: TLabel;
-    lblSetting: TLabel;
     edName: TEdit;
     edFilename: TEdit;
-    cbSetting: TComboBox;
     procedure FormShow(Sender: TObject);
     procedure btnOKClick(Sender: TObject);
   private
@@ -39,7 +37,6 @@ procedure TEditForm.btnOKClick(Sender: TObject);
 begin
   patch.name := edName.Text;
   patch.filename := edFilename.Text;
-  patch.setting := cbSetting.Text;
   ModalResult := mrOK;
 end;
 
@@ -47,8 +44,6 @@ procedure TEditForm.FormShow(Sender: TObject);
 begin
   edName.Text := patch.name;
   edFilename.Text := patch.filename;
-  cbSetting.Items.Text := 'Test Setting';
-  cbSetting.ItemIndex := 0;
 end;
 
 end.

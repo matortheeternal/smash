@@ -125,3 +125,7 @@ msSet_PruneNodesItem_Caption=Prune nodes
 msSet_btnSave_Caption=Save
 msSet_btnDiscard_Caption=Discard
 msSet_CombineSettingsItem_Caption=Combine settings
+msMain_AddToPatchItem_Caption=Add to patch
+msMain_SmashSettingItem_Caption=Smash setting
+{ ## Patches Tab ## }
+msSet_Label1_Caption=Color

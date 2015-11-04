@@ -9,14 +9,12 @@ uses
   // mte units
   mteHelpers, mteLogger, mteTracker,
   // ms units
-  msFrontend,
+  msFrontend, msAlgorithm,
   // xEdit units
-  wbBSA, wbHelpers, wbInterface, wbImplementation, wbDefinitionsFNV,
-  wbDefinitionsFO3, wbDefinitionsTES3, wbDefinitionsTES4, wbDefinitionsTES5;
+  wbInterface, wbImplementation;
 
   procedure BuildPatch(var patch: TPatch);
-  //procedure DeleteOldPatchFiles(var patch: TPatch);
-  //procedure RebuildPatch(var patch: TPatch);
+  procedure RebuildPatch(var patch: TPatch);
 
 implementation
 
@@ -96,8 +94,8 @@ begin
     Tracker.Write('Adding masters...');
     for i := 0 to Pred(lst.Count) do begin
       plugin := TPlugin(lst[i]);
-      slMasters.AddObject(plugin.filename, patch.plugins.Objects[i]);
       GetMasters(plugin._File, slMasters);
+      slMasters.AddObject(plugin.filename, patch.plugins.Objects[i]);
     end;
     try
       slMasters.CustomSort(PatchPluginsCompare);
@@ -121,7 +119,8 @@ begin
   end;
 end;
 
-procedure BuildOverridesList(var patch: TPatch; var lst, records: TList);
+procedure BuildOverridesList(var patch: TPatch; var lst: TList;
+  var records: TInterfaceList);
 var
   i, j: Integer;
   plugin: TPlugin;
@@ -156,13 +155,13 @@ begin
       if not Assigned(recObj) then
         continue;
       // add record to overrides list
-      if records.IndexOf(TObject(rec)) = -1 then
-        records.Add(TObject(rec));
+      if records.IndexOf(rec) = -1 then
+        records.Add(rec);
     end;
   end;
 end;
 
-procedure SmashRecords(var patch: TPatch; var records: TList);
+procedure SmashRecords(var patch: TPatch; var records: TInterfaceList);
 var
   i: Integer;
   rec, ovr, patchRec: IwbMainRecord;
@@ -176,17 +175,24 @@ begin
   patchFile := patch.plugin._File;
   // loop through records to smash
   for i := 0 to Pred(records.Count) do begin
-    rec := IwbMainRecord(records[i]);
+    if not Supports(records[i], IwbMainRecord, rec) then
+      exit;
     Tracker.StatusMessage(Format('Smashing record (%d/%d)',
       [i + 1, records.Count]));
     // loop through record's overrides
+    patchRec := nil;
     for j := 0 to Pred(rec.OverrideCount) do begin
       ovr := rec.Overrides[j];
       f := ovr._File;
-      plugin := PluginByFileName(f.Name);
+      plugin := PluginByFileName(f.FileName);
+      if not Assigned(plugin) then
+        continue;
       // skip overrides in plugins that are skipped
       if plugin.setting = 'Skip' then
         continue;
+      // skip ctIdenticalToMaster overrides
+      {if (ConflictThisForMainRecord(ovr) = ctIdenticalToMaster) then
+        continue;}
 
       // skip overrides according to smash setting
       aSetting := plugin.smashSetting;
@@ -197,6 +203,7 @@ begin
       // copy record to smashed patch if it hasn't been copied yet
       if not Assigned(patchRec) then try
         e := ovr.WinningOverride as IwbElement;
+        Tracker.Write('    Copying record '+e.Name);
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'');
         patchRec := eCopy as IwbMainRecord;
       except on x: Exception do
@@ -205,8 +212,9 @@ begin
 
       // finally, recursively copy overridden elements
       try
-        Tracker.Write('Smashing record '+ovr.Name+' from file: '+f.Name);
-        // rcore(ovr, rec, patchRec, patchRec, aSetting);
+        Tracker.Write('Smashing record '+ovr.Name+' from file: '+f.FileName);
+        rcore(IwbElement(ovr), IwbElement(rec), IwbElement(patchRec), patchRec,
+          2, recObj);
       except
         on x: Exception do
           Tracker.Write('    Exception smashing record: '+ovr.Name+' : '+x.Message);
@@ -256,13 +264,14 @@ end;
 procedure BuildPatch(var patch: TPatch);
 var
   patchFile: IwbFile;
-  pluginsToPatch, recordsList: TList;
+  pluginsToPatch: TList;
+  recordsList: TInterfaceList;
   time: TDateTime;
 begin
   // initialize
   Tracker.Write('Building patch: '+patch.name);
   time := Now;
-  patch.fails.Clear; 
+  patch.fails.Clear;
   pluginsToPatch := TList.Create;
   
   // set up directories
@@ -281,14 +290,14 @@ begin
     AddRequiredMasters(patch, pluginsToPatch);
 
     // build list of overrides
-    recordsList := TList.Create;
+    recordsList := TInterfaceList.Create;
     BuildOverridesList(patch, pluginsToPatch, recordsList);
 
     // smash records
     SmashRecords(patch, recordsList);
 
     // clean patch (Masters, ITPOs)
-    CleanPatch(patch);
+    //CleanPatch(patch);
 
     // save patch and associated files
     SavePatchFiles(patch);
@@ -316,6 +325,12 @@ begin
     pluginsToPatch.Free;
   if Assigned(recordsList) then
     recordsList.Free;
+end;
+
+procedure RebuildPatch(var patch: TPatch);
+begin
+  // TODO: Clear records?
+  BuildPatch(patch);
 end;
 
 end.

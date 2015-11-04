@@ -7,7 +7,7 @@ uses
   // mte units
   mteHelpers, mteLogger, mteTracker,
   // ms units
-  msFrontend,
+  msFrontend, msSmash,
   // xedit units
   wbBSA, wbInterface, wbImplementation;
 
@@ -295,12 +295,12 @@ begin
     if Tracker.Cancel then break;
     patch := TPatch(patchesToBuild[i]);
     StatusCallback(Format('%s "%s" (%d/%d)',
-      [GetString('mpProg_Merging'), patch.name, i + 1, patchesToBuild.Count]));
+      [GetString('mpProg_Smashing'), patch.name, i + 1, patchesToBuild.Count]));
     try
       if (patch.status in RebuildStatuses) then
-        //RebuildPatch(patch)
+        RebuildPatch(patch)
       else
-        //BuildMerge(patch);
+        BuildPatch(patch);
     except
       on x : Exception do begin
         patch.status := psFailed;
@@ -353,14 +353,10 @@ begin
   if not settings.preserveTempPath then
     DeleteTempPath;
 
-  // free all lists
-  FreeList(PluginsList);
-  FreeList(PatchesList);
-  FreeList(SmashSettings);
-  FreeList(GroupFilters);
-  FreeList(LabelFilters);
-  FreeList(BaseLog);
-  FreeList(Log);
+  // unbind events
+  Logger.OnLogEvent := nil;
+  Tracker.OnLogEvent := nil;
+  Tracker.OnStatusEvent := nil;
 
   if Assigned(SaveCallback) then
     Synchronize(nil, SaveCallback);

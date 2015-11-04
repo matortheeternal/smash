@@ -24,7 +24,7 @@ object OptionsForm: TOptionsForm
     Top = 8
     Width = 568
     Height = 401
-    ActivePage = GeneralTabSheet
+    ActivePage = IntegrationsTabSheet
     Align = alCustom
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
@@ -324,10 +324,6 @@ object OptionsForm: TOptionsForm
     object AdvancedTabSheet: TTabSheet
       Caption = 'Advanced'
       ImageIndex = 2
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbBackend: TGroupBox
         Left = 6
         Top = 72
@@ -608,10 +604,6 @@ object OptionsForm: TOptionsForm
     object IntegrationsTabSheet: TTabSheet
       Caption = 'Integrations'
       ImageIndex = 3
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbModOrganizer: TGroupBox
         Left = 6
         Top = 6
@@ -676,20 +668,12 @@ object OptionsForm: TOptionsForm
           TabOrder = 1
           OnExit = appendBackslashOnExit
         end
-        object kbCopyGeneralAssets: TCheckBox
-          Left = 192
-          Top = 20
-          Width = 133
-          Height = 17
-          Caption = 'Copy general asssets'
-          TabOrder = 2
-        end
         object edModOrganizerModsPath: TEdit
           Left = 192
           Top = 74
           Width = 321
           Height = 21
-          TabOrder = 3
+          TabOrder = 2
           OnExit = appendBackslashOnExit
         end
       end
@@ -732,7 +716,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C010101000800300110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010101000800340110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

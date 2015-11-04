@@ -73,7 +73,6 @@ type
         btnDetect: TButton;
         gbModOrganizer: TGroupBox;
         kbUsingMO: TCheckBox;
-        kbCopyGeneralAssets: TCheckBox;
         lblModOrganizerPath: TLabel;
         edModOrganizerPath: TEdit;
         lblModOrganizerModsPath: TLabel;
@@ -240,7 +239,6 @@ begin
   settings.usingMO := kbUsingMO.Checked;
   settings.MOPath := edModOrganizerPath.Text;
   settings.MOModsPath := edModOrganizerModsPath.Text;
-  settings.copyGeneralAssets := kbCopyGeneralAssets.Checked;
 
   SaveSettings;
 end;
@@ -450,7 +448,6 @@ begin
   kbUsingMO.Checked := settings.usingMO;
   edModOrganizerPath.Text := settings.MOPath;
   edModOrganizerModsPath.Text := settings.MOModsPath;
-  kbCopyGeneralAssets.Checked := settings.copyGeneralAssets;
 
   // disable controls if not using mod organizer
   kbUsingMOClick(nil);
@@ -510,8 +507,6 @@ begin
   edModOrganizerModsPath.Enabled := b;
   btnBrowseMO.Enabled := b;
   btnBrowseMOMods.Enabled := b;
-  kbCopyGeneralAssets.Enabled := b;
-  kbCopyGeneralAssets.Checked := b;
 end;
 
 procedure TOptionsForm.meTemplateChange(Sender: TObject);

@@ -45,6 +45,8 @@ type
     btnSave: TButton;
     btnDiscard: TButton;
     CombineSettingsItem: TMenuItem;
+    Label1: TLabel;
+    cbColor: TColorBox;
     // TREE METHODS
     procedure TreeDone;
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
@@ -565,6 +567,8 @@ begin
     currentSetting := nil;
     edName.Text := '';
     edName.Enabled := false;
+    cbColor.Selected := clBlack;
+    cbColor.Enabled := false;
     meDescription.Text := '';
     meDescription.Enabled := false;
     tvRecords.Enabled := false;
@@ -575,12 +579,14 @@ begin
 
   // set current setting values
   edName.Enabled := true;
+  cbColor.Enabled := true;
   meDescription.Enabled := true;
   tvRecords.Enabled := true;
   btnSave.Enabled := true;
   btnDiscard.Enabled := true;
   currentSetting := TSmashSetting(SmashSettings[lvSettings.ItemIndex]);
   edName.Text := currentSetting.name;
+  cbColor.Selected := TColor(currentSetting.color);
   meDescription.Lines.Text := currentSetting.description;
   if Assigned(currentSetting.tree) then
     LoadTree(tvRecords, currentSetting)
@@ -600,6 +606,7 @@ var
   index: Integer;
 begin
   currentSetting.Rename(edName.Text);
+  currentSetting.color := cbColor.Selected;
   currentSetting.description := meDescription.Lines.Text;
   index := NewSettings.IndexOf(currentSetting);
   if (index > -1) then begin
