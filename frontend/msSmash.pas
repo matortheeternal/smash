@@ -207,17 +207,17 @@ begin
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'');
         patchRec := eCopy as IwbMainRecord;
       except on x: Exception do
-        Tracker.Write('    Exception copying record '+ovr.Name+' : '+x.Message);
+        Tracker.Write('      Exception copying record '+ovr.Name+' : '+x.Message);
       end;
 
       // finally, recursively copy overridden elements
       try
-        Tracker.Write('Smashing record '+ovr.Name+' from file: '+f.FileName);
+        Tracker.Write('    Smashing record '+ovr.Name+' from file: '+f.FileName);
         rcore(IwbElement(ovr), IwbElement(rec), IwbElement(patchRec), patchRec,
-          2, recObj);
+          1, recObj);
       except
         on x: Exception do
-          Tracker.Write('    Exception smashing record: '+ovr.Name+' : '+x.Message);
+          Tracker.Write('      Exception smashing record: '+ovr.Name+' : '+x.Message);
       end;
     end;
   end;

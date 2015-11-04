@@ -138,14 +138,14 @@ procedure CopyElementValue(se, me, de: IwbElement);
 begin
   if Assigned(me) and settings.debugChanges then begin
     if (not settings.debugTraversal) then
-      Tracker.Write('    '+se.Path);
-    Tracker.Write('      > Found differing values: '+se.EditValue+' and '+me.EditValue);
+      Tracker.Write('      '+se.Path);
+    Tracker.Write('        > Found differing values: '+se.EditValue+' and '+me.EditValue);
   end;
   // try to copy element value to destination element from source element
   try
     de.EditValue := se.EditValue;
   except on x : Exception do
-    Tracker.Write('      !! Copy element value exception: '+x.Message);
+    Tracker.Write('        !! Copy element value exception: '+x.Message);
   end;
 end;
 
@@ -164,7 +164,7 @@ end;
 procedure rcore(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
   depth: Integer; obj: ISuperObject);
 var
-  i, j: integer;
+  i: integer;
   srcContainer, dstContainer, mstContainer: IwbContainerElementRef;
   se, me, de: IwbElement;
   et: TwbElementType;
@@ -184,46 +184,30 @@ begin
   CopyElementsIfMissing(srcContainer, dstContainer, mstContainer, dstRec);
 
   // loop through subelements
-  i := 0;
-  j := 0;
-  while i < srcContainer.ElementCount do begin
+  for i := 0 to Pred(srcContainer.ElementCount) do begin
     // assign source, destination, master elements
     se := srcContainer.Elements[i];
     de := dstContainer.ElementByName[se.Name];
     me := mstContainer.ElementByName[se.Name];
-
-    // deftype and elementtype
-    et := se.ElementType;
-    dt := se.Def.DefType;
 
     // skip according to setting
     elementObj := GetChildObj(obj, se.Name);
     skip := not (Assigned(elementObj) and (elementObj.I['p'] = 1));
     if skip then begin
       if settings.debugSkips then
-        Tracker.Write('  Skipping '+se.Path);
-      Inc(i);
-      Inc(j);
+        Tracker.Write('      Skipping '+se.Path);
       continue;
     end;
+
+    // deftype and elementtype
+    et := se.ElementType;
+    dt := se.Def.DefType;
 
     // debug messages
     if settings.debugTraversal then
-      Tracker.Write('    '+se.Path);
+      Tracker.Write('      '+se.Path);
     if settings.debugTypes then
-      Tracker.Write('    ets: '+etToString(et)+'  dts: '+dtToString(dt));
-
-    // if destination element doesn't match source element
-    if (se.Name <> de.Name) then begin
-      // if we're not at the end of the destination elements
-      // proceed to next destination element
-      // else proceed to next source element
-      if (j < dstContainer.ElementCount) then
-        Inc(j)
-      else
-        Inc(i);
-      continue;
-    end;
+      Tracker.Write('      ets: '+etToString(et)+'  dts: '+dtToString(dt));
 
     // handle array, recurse deeper, or copy element value
     if (et = etSubRecordArray) or (dt = dtArray) then
@@ -232,10 +216,6 @@ begin
       RecurseDeeper(se, me, de, dstRec, depth, elementObj)
     else if (dt in ValueElements) and (se.EditValue <> me.EditValue) then
       CopyElementValue(se, me, de);
-
-    // proceed to next element
-    Inc(i);
-    Inc(j);
   end;
 end;
 

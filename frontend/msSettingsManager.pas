@@ -620,12 +620,12 @@ end;
 
 procedure TSettingsManager.lvSettingsData(Sender: TObject; Item: TListItem);
 var
-  entry: TSmashSetting;
+  aSetting: TSmashSetting;
 begin
-  entry := TSmashSetting(SmashSettings[Item.Index]);
-  Item.Caption := entry.name;
-  Item.SubItems.Add(entry.records);
-  //lvSettings.Canvas.Font.Color := GetRatingColor(StrToFloat(entry.rating));
+  aSetting := TSmashSetting(SmashSettings[Item.Index]);
+  Item.Caption := aSetting.name;
+  Item.SubItems.Add(aSetting.records);
+  lvSettings.Canvas.Font.Color := aSetting.color;
   lvSettings.Canvas.Font.Style := [fsBold];
 end;
 
