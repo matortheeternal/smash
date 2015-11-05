@@ -69,10 +69,10 @@ type
   TElementData = Record
     priority: byte;
     process: boolean;
-    ignoreDeletions: boolean;
+    preserveDeletions: boolean;
     singleEntity: boolean;
     constructor Create(priority: byte; process: boolean;
-      ignoreDeletions: boolean; singleEntity: boolean); overload;
+      preserveDeletions: boolean; singleEntity: boolean); overload;
   end;
   TSmashSetting = class(TObject)
   public
@@ -2347,7 +2347,7 @@ procedure LoadElement(var tv: TTreeView; node: TTreeNode; obj: ISuperObject;
 var
   item: ISuperObject;
   child: TTreeNode;
-  bProcess, bIgnoreDeletions, bIsSingle: boolean;
+  bProcess, bPreserveDeletions, bIsSingle: boolean;
   priority: Integer;
 begin
   if not Assigned(obj) then
@@ -2355,7 +2355,7 @@ begin
   child := tv.Items.AddChild(node, obj.S['n']);
   priority := obj.I['r'];
   bProcess := obj.I['p'] = 1;
-  bIgnoreDeletions := obj.I['i'] = 1;
+  bPreserveDeletions := obj.I['d'] = 1;
   bIsSingle := obj.I['s'] = 1;
   bWithinSingle := bWithinSingle or bIsSingle;
   if bIsSingle then
@@ -2365,7 +2365,7 @@ begin
   else
     child.StateIndex := cUnChecked;
   child.Data := Pointer(TElementData.Create( priority, bProcess,
-      bIgnoreDeletions, bIsSingle ));
+      bPreserveDeletions, bIsSingle ));
   if Assigned(obj.O['c']) then try
     for item in obj['c'] do
       LoadElement(tv, child, item, bWithinSingle);
@@ -3727,11 +3727,11 @@ begin
 end;
 
 constructor TElementData.Create(priority: Byte; process: Boolean;
-  ignoreDeletions: Boolean; singleEntity: Boolean);
+  preserveDeletions: Boolean; singleEntity: Boolean);
 begin
   self.priority := priority;
   self.process := process;
-  self.ignoreDeletions := ignoreDeletions;
+  self.preserveDeletions := preserveDeletions;
   self.singleEntity := singleEntity;
 end;
 

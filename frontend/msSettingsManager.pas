@@ -37,7 +37,7 @@ type
     TreePopupMenu: TPopupMenu;
     ChangePriorityItem: TMenuItem;
     ToggleNodesItem: TMenuItem;
-    IgnoreDeletionsItem: TMenuItem;
+    PreserveDeletionsItem: TMenuItem;
     SingleEntityItem: TMenuItem;
     PruneNodesItem: TMenuItem;
     StateImages: TImageList;
@@ -59,7 +59,7 @@ type
     procedure TreePopupMenuPopup(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
     procedure ChangePriorityItemClick(Sender: TObject);
-    procedure IgnoreDeletionsItemClick(Sender: TObject);
+    procedure PreserveDeletionsItemClick(Sender: TObject);
     procedure SingleEntityItemClick(Sender: TObject);
     procedure PruneNodesItemClick(Sender: TObject);
     procedure BuildTreeFromPlugins(var sl: TStringList);
@@ -166,7 +166,7 @@ begin
     x := R.Right + 6;
     y := R.Top;
 
-    if e.ignoreDeletions then
+    if e.preserveDeletions then
       DrawFlag(Sender.Canvas, x, y, 0);
     if e.singleEntity then
       DrawFlag(Sender.Canvas, x, y, 1);
@@ -213,7 +213,7 @@ begin
   for i := 0 to Pred(tvRecords.SelectionCount) do
     bHasChildren := bHasChildren or tvRecords.Selections[i].HasChildren;
   ToggleNodesItem.Enabled := bHasSelection;
-  IgnoreDeletionsItem.Enabled := bHasSelection and bHasChildren;
+  PreserveDeletionsItem.Enabled := bHasSelection and bHasChildren;
   SingleEntityItem.Enabled := bHasSelection and bHasChildren;
   PruneNodesItem.Enabled := bHasSelection;
 end;
@@ -248,7 +248,7 @@ begin
   tvRecords.Repaint;
 end;
 
-procedure TSettingsManager.IgnoreDeletionsItemClick(Sender: TObject);
+procedure TSettingsManager.PreserveDeletionsItemClick(Sender: TObject);
 var
   i: Integer;
   node: TTreeNode;
@@ -259,7 +259,7 @@ begin
     if not node.hasChildren then
       continue;
     e := TElementData(node.Data);
-    e.ignoreDeletions := not e.ignoreDeletions;
+    e.preserveDeletions := not e.preserveDeletions;
     tvRecords.Selections[i].Data := Pointer(e);
   end;
   tvRecords.Repaint;
@@ -402,8 +402,9 @@ begin
   // get data properties
   e := TElementData(node.Data);
   if (e.priority > 0) then obj.I['r'] := e.priority;
-  if (e.process) then obj.I['p'] := 1;
-  if (e.ignoreDeletions) then obj.I['i'] := 1;
+  if (node.StateIndex <> cUnChecked) then
+    obj.I['p'] := 1;
+  if (e.preserveDeletions) then obj.I['d'] := 1;
   if (e.singleEntity) then obj.I['s'] := 1;
 
   // exit if no children to dump
@@ -605,9 +606,14 @@ procedure TSettingsManager.btnSaveClick(Sender: TObject);
 var
   index: Integer;
 begin
+  // adjust the current setting's attributes
   currentSetting.Rename(edName.Text);
   currentSetting.color := cbColor.Selected;
   currentSetting.description := meDescription.Lines.Text;
+
+  // prompt user to auto-prune the tree if it's a new setting and
+  // we can prune records,
+  // then dump the records tree
   index := NewSettings.IndexOf(currentSetting);
   if (index > -1) then begin
     if CanPruneRecords then
@@ -615,6 +621,11 @@ begin
     NewSettings.Delete(index);
   end;
   DumpTree;
+
+  // save the setting to disk
+  currentSetting.Save;
+
+  // repaint list view
   lvSettings.Repaint;
 end;
 

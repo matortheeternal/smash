@@ -1914,7 +1914,7 @@ begin
     Logger.Write('MERGE', 'Build', 'Building '+patch.name);
     if not (patch.status in BuildStatuses) then
       continue;
-    timeCost := patch.GetTimeCost * 2;
+    timeCost := patch.GetTimeCost;
     patchesToBuild.Add(patch);
     timeCosts.Add(IntToStr(timeCost));
   end;

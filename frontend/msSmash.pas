@@ -144,16 +144,22 @@ begin
     for j := 0 to Pred(aFile.RecordCount) do begin
       rec := aFile.Records[j];
       // skip non-override records
-      if rec.IsMaster then
+      if rec.IsMaster then begin
+        Tracker.UpdateProgress(1);
         continue;
+      end;
       // skip records that have 1 or fewer overrides
       rec := rec.MasterOrSelf;
-      if rec.OverrideCount < 2 then
+      if rec.OverrideCount < 2 then begin
+        Tracker.UpdateProgress(1);
         continue;
+      end;
       // skip records according to smash setting
       recObj := aSetting.GetRecordDef(rec.Signature);
-      if not Assigned(recObj) then
+      if not Assigned(recObj) then begin
+        Tracker.UpdateProgress(1);
         continue;
+      end;
       // add record to overrides list
       if records.IndexOf(rec) = -1 then
         records.Add(rec);
@@ -179,6 +185,7 @@ begin
       exit;
     Tracker.StatusMessage(Format('Smashing record (%d/%d)',
       [i + 1, records.Count]));
+    Tracker.UpdateProgress(1);
     // loop through record's overrides
     patchRec := nil;
     for j := 0 to Pred(rec.OverrideCount) do begin
@@ -214,7 +221,7 @@ begin
       try
         Tracker.Write('    Smashing record '+ovr.Name+' from file: '+f.FileName);
         rcore(IwbElement(ovr), IwbElement(rec), IwbElement(patchRec), patchRec,
-          1, recObj);
+          3, recObj, false, false);
       except
         on x: Exception do
           Tracker.Write('      Exception smashing record: '+ovr.Name+' : '+x.Message);

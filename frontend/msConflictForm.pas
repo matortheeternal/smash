@@ -75,7 +75,7 @@ begin
     x := R.Right + 6;
     y := R.Top;
 
-    if e.ignoreDeletions then
+    if e.preserveDeletions then
       DrawFlag(Sender.Canvas, x, y, 0);
     if e.singleEntity then
       DrawFlag(Sender.Canvas, x, y, 1);
