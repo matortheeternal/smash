@@ -11,6 +11,7 @@ uses
   function TitleCase(sText: String): String;
   function SentenceCase(sText: string): string;
   function csvText(s: string): string;
+  function GetTextIn(str: string; open, close: char): string;
   function FormatByteSize(const bytes: Int64): string;
   function DateBuiltString(date: TDateTime): string;
   function DateTimeToSQL(date: TDateTime): string;
@@ -148,6 +149,27 @@ end;
 function csvText(s: string): string;
 begin
   result := StringReplace(Trim(s), #13, ', ', [rfReplaceAll]);
+end;
+
+{ Returns a substring of @str between characters @open and @close }
+function GetTextIn(str: string; open, close: char): string;
+var
+  i, openIndex: integer;
+  bOpen: boolean;
+begin
+  Result := '';
+  bOpen := false;
+  openIndex := 0;
+  for i := 0 to Length(str) do begin
+    if not bOpen and (str[i] = open) then begin
+      openIndex := i;
+      bOpen := true;
+    end;
+    if bOpen and (str[i] = close) then begin
+      Result := Copy(str, openIndex + 2, (i - 1) - (openIndex + 2));
+      break;
+    end;
+  end;
 end;
 
 { Format file byte size }

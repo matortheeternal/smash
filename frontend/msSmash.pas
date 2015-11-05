@@ -122,7 +122,7 @@ end;
 procedure BuildOverridesList(var patch: TPatch; var lst: TList;
   var records: TInterfaceList);
 var
-  i, j: Integer;
+  i, j, skips: Integer;
   plugin: TPlugin;
   aSetting: TSmashSetting;
   aFile: IwbFile;
@@ -141,29 +141,34 @@ begin
 
     // loop through file records
     Tracker.Write('Processing '+plugin.filename);
+    skips := 0;
     for j := 0 to Pred(aFile.RecordCount) do begin
       rec := aFile.Records[j];
       // skip non-override records
       if rec.IsMaster then begin
-        Tracker.UpdateProgress(1);
+        Inc(skips);
         continue;
       end;
       // skip records that have 1 or fewer overrides
       rec := rec.MasterOrSelf;
+      // TODO: determine if > 2 overrides are in the plugins we're patching
       if rec.OverrideCount < 2 then begin
-        Tracker.UpdateProgress(1);
+        Inc(skips);
         continue;
       end;
       // skip records according to smash setting
       recObj := aSetting.GetRecordDef(rec.Signature);
       if not Assigned(recObj) then begin
-        Tracker.UpdateProgress(1);
+        Inc(skips);
         continue;
       end;
       // add record to overrides list
       if records.IndexOf(rec) = -1 then
         records.Add(rec);
     end;
+
+    // update progress bar
+    Tracker.UpdateProgress(skips);
   end;
 end;
 
@@ -193,6 +198,8 @@ begin
       f := ovr._File;
       plugin := PluginByFileName(f.FileName);
       if not Assigned(plugin) then
+        continue;
+      if patch.plugins.IndexOf(plugin.filename) = -1 then
         continue;
       // skip overrides in plugins that are skipped
       if plugin.setting = 'Skip' then

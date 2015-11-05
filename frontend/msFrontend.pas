@@ -255,6 +255,9 @@ type
   function LoadOrderPrefix(aRecord: IwbMainRecord): integer;
   function etToString(et: TwbElementType): string;
   function dtToString(dt: TwbDefType): string;
+  function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;
+  function IndexedPath(e: IwbElement): string;
+  function GetAllValues(e: IwbElement): string;
   function IsSorted(se: IwbElement): boolean;
   function CountOverrides(aFile: IwbFile): integer;
   procedure AddRequiredBy(filename: string; var masters: TStringList);
@@ -687,6 +690,83 @@ begin
     Ord(dtStruct): Result := 'dtStruct';
     Ord(dtUnion): Result := 'dtUnion';
     Ord(dtEmpty): Result := 'dtEmpty';
+  end;
+end;
+
+function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;
+var
+  i, index: integer;
+  path: TStringList;
+  c: IwbContainerElementRef;
+begin
+  // replace forward slashes with backslashes
+  ip := StringReplace(ip, '/', '\', [rfReplaceAll]);
+
+  // prepare path stringlist delimited by backslashes
+  path := TStringList.Create;
+  path.Delimiter := '\';
+  path.StrictDelimiter := true;
+  path.DelimitedText := ip;
+
+  // treat e as a container
+  if not Supports(e, IwbContainerElementRef, c) then
+    exit;
+
+  // traverse path
+  for i := 0 to Pred(path.count) do begin
+    if Pos('[', path[i]) > 0 then begin
+      index := StrToInt(GetTextIn(path[i], '[', ']'));
+      e := c.Elements[index];
+      if not Supports(e, IwbContainerElementRef, c) then
+        exit;
+    end
+    else begin
+      e := c.ElementByPath[path[i]];
+      if not Supports(e, IwbContainerElementRef, c) then
+        exit;
+    end;
+  end;
+
+  // set result
+  Result := e;
+end;
+
+function IndexedPath(e: IwbElement): string;
+var
+  c: IwbContainer;
+  a: string;
+begin
+  c := e.Container;
+  while (e.ElementType <> etMainRecord) do begin
+    if c.ElementType = etSubRecordArray then
+      a := '['+IntToStr(c.IndexOf(e))+']'
+    else
+      a := e.Name;
+    if Result <> '' then
+      Result := a + '\' + Result
+    else
+      Result := a;
+    e := c;
+    c := e.Container;
+  end;
+end;
+
+{ Returns a string hash of all of the values contained in an element }
+function GetAllValues(e: IwbElement): string;
+var
+  i: integer;
+  c: IwbContainerElementRef;
+begin
+  Result := e.EditValue;
+  if not Supports(e, IwbContainerElementRef, c) then
+    exit;
+
+  // loop through children elements
+  for i := 0 to Pred(c.ElementCount) do begin
+    if (Result <> '') then
+      Result := Result + ';' + GetAllValues(c.Elements[i])
+    else
+      Result := GetAllValues(c.Elements[i]);
   end;
 end;
 

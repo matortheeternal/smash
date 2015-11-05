@@ -1,0 +1,20 @@
+Things to handle: ignoring deletions, treat as single entity, priority, linking
+
+Ignoring deletions:
+When applied to an element, ignore deletions in any of its children elements.
+-- boolean set to rcore
+-- leads us to not call "delete elements if missing"
+-- passed to HandleArray
+
+Treat as single entity:
+When applied to an element, any change in that its children's values leads us to copy the entire element to replace the destination element.
+-- boolean set to rcore
+-- rcore made into a function that returns true whenever a change occurs
+-- rcore doesn't call CopyElementValue when a value is different, simply returning true instead
+-- HandleArray also made into a function that returns true whenever a change occurs
+-- Array handlers return true when they detect an element has been added/deleted/changed
+
+Priority:
+Overrides load order on a per-element basis.  When priority for an element in a record in a file exceeds the priority of the same element in other files we use that element in destination record.  (remove?)
+
+Linking:
