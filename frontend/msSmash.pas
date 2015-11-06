@@ -150,9 +150,8 @@ begin
         continue;
       end;
       // skip records that have 1 or fewer overrides
-      rec := rec.MasterOrSelf;
-      // TODO: determine if > 2 overrides are in the plugins we're patching
-      if rec.OverrideCount < 2 then begin
+      rec := rec.Master;
+      if OverrideCountInFiles(rec, patch.plugins) < 2 then begin
         Inc(skips);
         continue;
       end;
@@ -166,8 +165,8 @@ begin
       if records.IndexOf(rec) = -1 then
         records.Add(rec);
     end;
-
-    // update progress bar
+    
+    // update progress bar for file
     Tracker.UpdateProgress(skips);
   end;
 end;
@@ -228,7 +227,7 @@ begin
       try
         Tracker.Write('    Smashing record '+ovr.Name+' from file: '+f.FileName);
         rcore(IwbElement(ovr), IwbElement(rec), IwbElement(patchRec), patchRec,
-          3, recObj, false, false);
+          recObj, false, false);
       except
         on x: Exception do
           Tracker.Write('      Exception smashing record: '+ovr.Name+' : '+x.Message);

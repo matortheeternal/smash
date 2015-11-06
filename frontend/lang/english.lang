@@ -129,3 +129,4 @@ msMain_AddToPatchItem_Caption=Add to patch
 msMain_SmashSettingItem_Caption=Smash setting
 { ## Patches Tab ## }
 msSet_Label1_Caption=Color
+msSet_PreserveDeletionsItem_Caption=Toggle preserve deletions

@@ -259,6 +259,7 @@ type
   function IndexedPath(e: IwbElement): string;
   function GetAllValues(e: IwbElement): string;
   function IsSorted(se: IwbElement): boolean;
+  function OverrideCountInFiles(rec: IwbMainRecord; var files: TStringList): Integer;
   function CountOverrides(aFile: IwbFile): integer;
   procedure AddRequiredBy(filename: string; var masters: TStringList);
   procedure GetMasters(aFile: IwbFile; var sl: TStringList);
@@ -790,6 +791,20 @@ begin
   for i := 0 to Pred(aFile.GetRecordCount) do begin
     aRecord := aFile.GetRecord(i);
     if IsOverride(aRecord) then
+      Inc(Result);
+  end;
+end;
+
+{ Returns the number of overrides of the specified record in the specified file set }
+function OverrideCountInFiles(rec: IwbMainRecord; var files: TStringList): Integer;
+var
+  i: Integer;
+  ovr: IwbMainRecord;
+begin
+  Result := 0;
+  for i := 0 to Pred(rec.OverrideCount) do begin
+    ovr := rec.Overrides[i];
+    if files.IndexOf(ovr._File.FileName) > -1 then
       Inc(Result);
   end;
 end;

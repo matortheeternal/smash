@@ -13,17 +13,16 @@ uses
   // xEdit components
   wbInterface, wbImplementation;
 
-  procedure AddElementsToList(element: IwbElement; var sl: TStringList);
   function HandleElementLife(srcCont, dstCont, mstCont: IwbContainerElementRef;
     dstRec: IwbMainRecord; bSingle, bDeletions: boolean): boolean;
   function HandleArray(se, me, de: IwbElement; et: TwbElementType;
-    dstrec: IwbMainRecord; depth: Integer; obj: ISuperObject;
+    dstrec: IwbMainRecord; obj: ISuperObject;
     bSingle, bDeletions: boolean): boolean;
-  procedure CopyElementValue(se, me, de: IwbElement; depth: Integer);
+  procedure CopyElementValue(se, me, de: IwbElement);
   function HandleElement(se, me, de: IwbElement; dstRec: IwbMainRecord;
-    depth: Integer; obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+    obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
   function rcore(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
-    depth: Integer; obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+    obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 
 const
   valueElements: set of TwbDefType =
@@ -33,10 +32,48 @@ const
      dtByteArray,
      dtString,
      dtLString,
-     dtLenString];
+     dtLenString,
+     dtSubRecord];
 
 implementation
 
+{ 
+  ElementByKey: 
+  Gets an element from a container, @e, matching a specified @key.
+  If @bUseSortKey is true uses SortKey, else uses GetAllValues.
+}
+function ElementByKey(e: IwbElement; key: string; bUseSortKey: boolean): IwbElement;
+var
+  i: Integer;
+  c: IwbContainerElementRef;
+  element: IwbElement;
+  eKey: string;
+begin
+  if not Supports(e, IwbContainerElementRef, c) then 
+    exit;
+  
+  // loop through children elements
+  for i := 0 to Pred(c.ElementCount) do begin
+    element := c.Elements[i];
+    // get sort key if bUseSortKey, else get values key
+    if bUseSortKey then
+      eKey := element.SortKey[false]
+    else
+      eKey := GetAllValues(element);
+    // if keys match result is current element
+    if eKey = key then begin
+      Result := element;
+      break;
+    end;
+  end;
+end;
+
+{ 
+  GetChildObj: 
+  Gets the child json object from a node in a TSmashSetting tree
+  @obj matching @name.  Returns nil if a matching child is not 
+  found.
+}
 function GetChildObj(obj: ISuperObject; name: string): ISuperObject;
 var
   item: ISuperObject;
@@ -54,23 +91,11 @@ begin
   end;
 end;
 
-procedure AddElementsToList(element: IwbElement; var sl: TStringList);
-var
-  i: integer;
-  childElement: IwbElement;
-  container: IwbContainerElementRef;
-begin
-  // exit if element isn't a container
-  if not Supports(element, IwbContainerElementRef, container) then
-    exit;
-
-  // loop through children
-  for i := 0 to Pred(container.ElementCount) do begin
-    childElement := container.Elements[i];
-    sl.Add(childElement.Name);
-  end;
-end;
-
+{
+  HandleElementLife:
+  Called by rcore.  Handles the creation/deletion of elemnents in the
+  destination patch record @dstRec.
+}
 function HandleElementLife(srcCont, dstCont, mstCont: IwbContainerElementRef;
   dstRec: IwbMainRecord; bSingle, bDeletions: boolean): boolean;
 var
@@ -88,10 +113,9 @@ begin
     // that it was deleted and shouldn't be copied.
     if not (Assigned(dstCont.ElementByName[element.Name])
     or Assigned(mstCont.ElementByName[element.Name])) then begin
-      if bSingle then begin
-        Result := true;
-        break;
-      end;
+      Result := true;
+      if bSingle then 
+        exit;
       wbCopyElementToRecord(element, dstRec, false, true);
     end;
   end;
@@ -100,14 +124,21 @@ begin
   if bDeletions then begin
     for i := Pred(dstCont.ElementCount) downto 0 do begin
       element := dstCont.Elements[i];
-      if Assigned(mstCont.ElementByName[element.Name])
-      and not Assigned(srcCont.ElementByName[element.Name]) then
+      if Assigned(mstCont.ElementByName[element.Name]) and 
+      not Assigned(srcCont.ElementByName[element.Name]) then begin
+        Result := true;
+        if bSingle then
+          exit;
         dstCont.RemoveElement(element);
+      end;
     end;
   end;
 end;
 
-// BuildSortKeyList: puts the sort keys of elements in a stringlist
+{ 
+  BuildSortKeyList: 
+  Puts the sort keys of elements in @element in a stringlist @sl.
+}
 procedure BuildSortKeyList(element: IInterface; var sl: TStringList);
 var
   i, n: integer;
@@ -129,7 +160,7 @@ begin
       skAdj := sk + '-' + IntTostr(n);
     end;
     if settings.debugArrays and (n > 0) then
-      Tracker.Write('    Adjusted SortKey: '+skAdj);
+      Tracker.Write('        Adjusted SortKey: '+skAdj);
     sl.Add(skAdj);
   end;
 end;
@@ -139,57 +170,37 @@ function GetMasterElement(src, se: IwbElement; dstRec: IwbMainRecord): IwbElemen
 const
   debugGetMaster = false;
 var
-  i, j: integer;
-  p, sk: string;
-  ovrElement, me: IwbElement;
-  ovr, mst: IwbMainRecord;
-  ovrCont: IwbContainerElementRef;
-  sorted: boolean;
+  i: integer;
+  path, key: string;
+  mstRec, ovr: IwbMainRecord;
+  mst: IwbElement;
+  bSorted: boolean;
 begin
   Result := nil;
-  mst := dstRec.MasterOrSelf;
-  p := IndexedPath(src);
-  sk := se.SortKey[false];
-  sorted := not (sk = '');
-  // if sorted, look for an element matching sort key
-  if sorted then begin
-    if debugGetMaster then
-      Tracker.Write('  Called GetMasterElement at path '+p+
-        ' looking for SortKey '+se.SortKey[false]);
-    // loop from override 0 to the second to last override
-    for i := 0 to mst.OverrideCount - 2 do begin
-      ovr := mst.Overrides[i];
-      ovrElement := ElementByIndexedPath(mst, p);
-      if not Supports(ovrElement, IwbContainerElementRef, ovrCont) then
-        continue;
-      for j := 0 to Pred(ovrCont.ElementCount) do begin
-        me := ovrCont.Elements[j];
-        if (me.SortKey[false] = sk) then begin
-          Result := me;
-          exit;
-        end;
-      end;
-    end;
-  end
-  // if unsorted, look for the element using GetAllValues
-  else begin
-    sk := GetAllValues(se);
-    if debugGetMaster then
-      Tracker.Write('  Called GetMasterElement at path '+p+' looking for '+sk);
-    ovrElement := mst.ElementByPath[p];
-    for i := 0 to mst.OverrideCount - 2 do begin
-      ovr := mst.Overrides[i];
-      ovrElement := ElementByIndexedPath(mst, p);
-      if not Supports(ovrElement, IwbContainerElementRef, ovrCont) then
-        continue;
-      for j := 0 to Pred(ovrCont.ElementCount) do begin
-        me := ovrCont.Elements[j];
-        if (GetAllValues(me) = sk) then begin
-          Result := me;
-          break;
-        end;
-      end;
-    end;
+  mstRec := dstRec.MasterOrSelf;
+  path := IndexedPath(src);
+  bSorted := IsSorted(src);
+  
+  // if sorted, use SortKey, else use GetAllValues
+  if bSorted then 
+    key := se.SortKey[false]
+  else
+    key := GetAllValues(se);
+    
+  // debug message
+  if debugGetMaster then 
+    Tracker.Write('      Called GetMasterElement at path '+path+' looking for key '+key);
+    
+  // loop from override 0 to the second to last override
+  // last override is in our patch, we don't want to process that one
+  for i := 0 to mstRec.OverrideCount - 2 do begin
+    ovr := mstRec.Overrides[i];
+    mst := ElementByIndexedPath(mstRec, path);
+    Result := ElementByKey(mst, key, bSorted);
+    
+    // break if we found a subrecord matching the sortkey
+    if Result <> nil then
+      break;
   end;
 end;
 
@@ -205,8 +216,7 @@ begin
 
     if (s_ndx = -1) and (d_ndx > -1) then begin
       if settings.debugArrays then
-        Tracker.Write('      > Removing element '+dstCont.Elements[d_ndx].Path+
-          ' with key: '+slDst[d_ndx]);
+        Tracker.Write('        > Removing element '+dstCont.Elements[d_ndx].Path+' with key: '+slDst[d_ndx]);
       dstCont.RemoveElement(d_ndx);
       slDst.Delete(d_ndx);
     end;
@@ -214,9 +224,9 @@ begin
 end;
 
 function MergeSorted(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
-  depth: Integer; obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+  obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 var
-  i, m_ndx, s_ndx, d_ndx: integer;
+  i, m_ndx, d_ndx: integer;
   me, se: IwbElement;
   slMst, slDst, slSrc: TStringList;
   srcCont, dstCont: IwbContainerElementRef;
@@ -253,39 +263,38 @@ begin
     et := se.ElementType;
     if (d_ndx = -1) and (m_ndx = -1) then begin
       if settings.debugArrays then
-        Tracker.Write('      > Adding element '+IntToStr(i)+' at '+dst.Path+
-          ' with key: '+slSrc[i]);
+        Tracker.Write('        > Adding element '+IntToStr(i)+' at '+dst.Path+' with key: '+slSrc[i]);
       me := dstCont.Assign(dstCont.ElementCount, se, false);
-      if settings.debugArrays then
-        Tracker.Write('      > '+GetAllValues(me));
       slDst.Add(slSrc[i]);
     end
     // Step 3.5: If array element is in dst and has subelements, traverse it.
-    else if (d_ndx > -1) and ((dt = dtStruct) or (et = etSubRecordArray)) then begin
+    else if (d_ndx > -1) and Supports(se, IwbContainer) then begin
 	    if settings.debugTraversal then
-        Tracker.Write('      > Traversing element '+se.Path+' with key: '+slSrc[i]);
-      if settings.debugTraversal and settings.debugArrays then
-        Tracker.Write('      > Source Element: '+GetAllValues(se)+
-          #13#10'      > Destination Element: '+GetAllValues(dstCont.Elements[d_ndx]));
+        Tracker.Write('        > Traversing element '+se.Path+' with key: '+slSrc[i]);
+      if settings.debugTraversal and settings.debugArrays then begin
+        Tracker.Write('        > Source Element: '+GetAllValues(se));
+        Tracker.Write('        > Destination Element: '+GetAllValues(dstCont.Elements[d_ndx]));
+      end;
       try
         rcore(se, GetMasterElement(src, se, dstrec), dstCont.Elements[d_ndx],
-          dstrec, depth + 2, obj, bSingle, bDeletions);
+          dstrec, GetChildObj(obj, se.Name), bSingle, bDeletions);
       except on x : Exception do begin
-          Tracker.Write('      !! rcore exception: '+x.Message);
+          Tracker.Write('      rcore: Exception at '+se.Path+': '+x.Message);
         end;
       end;
     end
     else if (d_ndx > -1) and (et = etSubRecordStruct) then begin
 	    if settings.debugTraversal then
-        Tracker.Write('      > Traversing element '+se.Path+' with key: '+slSrc[i]);
-      if settings.debugTraversal and settings.debugArrays then
-        Tracker.Write('      > Source Element: '+GetAllValues(se)+
-        #13#10'      > Destination Element: '+GetAllValues(dstCont.Elements[d_ndx]));
+        Tracker.Write('        > Traversing element '+se.Path+' with key: '+slSrc[i]);
+      if settings.debugTraversal and settings.debugArrays then begin
+        Tracker.Write('        > Source Element: '+GetAllValues(se));
+        Tracker.Write('        > Destination Element: '+GetAllValues(dstCont.Elements[d_ndx]));
+      end;
       try
         rcore(se, GetMasterElement(src, se, dstrec), dstCont.Elements[d_ndx], dstrec,
-          depth + 2, obj, bSingle, bDeletions);
+          GetChildObj(obj, se.Name), bSingle, bDeletions);
       except on x : Exception do begin
-          Tracker.Write('      !! rcore exception: '+x.Message);
+          Tracker.Write('      rcore: Exception at '+se.Path+': '+x.Message);
         end;
       end;
     end;
@@ -323,121 +332,150 @@ begin
 end;
 
 function MergeUnsorted(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
-  depth: Integer; obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+  obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 var
-  i, m_ndx, s_ndx, d_ndx: integer;
-  se: IwbElement;
+  srcCont, mstCont, dstCont: IwbContainerElementRef;
   slMst, slSrc, slDst: TStringList;
-  srcCont, dstCont: IwbContainerElementRef;
+  i, s_ndx, m_ndx, d_ndx: Integer;
+  se: IwbElement;
 begin
   Result := false;
-
+  
+  // exit if source or destination can't be treated as a container
   if not Supports(src, IwbContainerElementRef, srcCont) then
+    exit;
+  if not Supports(mst, IwbContainerElementRef, mstCont) then
     exit;
   if not Supports(dst, IwbContainerElementRef, dstCont) then
     exit;
-
-  // Step 1: build lists of elements in each array for easy comparison
-  slSrc := TStringList.Create;
+  
+  // Build lists of elements in each array for easy comparison
   slMst := TStringList.Create;
+  slSrc := TStringList.Create;
   slDst := TStringList.Create;
-  BuildElementList(src, slSrc);
-  BuildElementList(mst, slMst);
-  BuildElementList(dst, slDst);
-
-  // Step 2: Remove elements that are in mst and dst, but missing from src
-  if bDeletions then
-    Result := RemoveArrayElements(slSrc, slMst, slDst, dstCont);
-
-
-  // Step 3: Copy array elements in src that aren't in mst or dst
-  // TODO: Make into separate method
-  for i := 0 to Pred(slSrc.Count) do begin
-    d_ndx := slDst.IndexOf(slSrc[i]);
-    m_ndx := slMst.IndexOf(slSrc[i]);
-    se := srcCont.Elements[i];
-
-    if (m_ndx = -1) and (d_ndx = -1) then begin
-      if settings.debugArrays then
-        Tracker.Write('      > Adding element at '+dst.Path+' with values: '+slSrc[i]);
-      dstCont.Assign(dstCont.ElementCount, se, false);
-      slDst.Add(slSrc[i]);
+  try
+    BuildElementList(mst, slMst);
+    BuildElementList(src, slSrc);
+    BuildElementList(dst, slDst);
+    
+    // ELEMENT DELETION:
+    // Remove elements that are in master and destination, but 
+    // missing from source
+    if bDeletions then
+      for i := 0 to Pred(slMst.Count) do begin
+        s_ndx := slSrc.IndexOf(slMst[i]);
+        d_ndx := slDst.IndexOf(slMst[i]);
+        
+        // element from master isn't in source, but is in destination
+        if (s_ndx = -1) and (d_ndx > -1) then begin
+          Result := true;
+          // if we're in a treat as single, exit without removing anything 
+          if bSingle then 
+            exit;
+          // remove element from destination
+          if settings.debugArrays then
+            Tracker.Write('        > Removing element at '+dst.Path+' with values: '+slMst[i]);
+          dstCont.RemoveElement(d_ndx);
+          slDst.Delete(d_ndx);
+        end;
+      end;
+    
+    // ELEMENT ADDITION:
+    // Copy array elements in source that aren't in master 
+    // or destination
+    for i := 0 to slSrc.Count - 1 do begin
+      d_ndx := slDst.IndexOf(slSrc[i]);
+      m_ndx := slMst.IndexOf(slSrc[i]);
+      se := srcCont.Elements[i];
+      
+      if (m_ndx = -1) and (d_ndx = -1) then begin
+        Result := true;
+        // if we're in a treat as single, exit without adding anything 
+        if bSingle then 
+          exit;
+        // add element to destination
+        if settings.debugArrays then
+          Tracker.Write('        > Adding element at '+dst.Path+' with values: '+slSrc[i]);
+        dstCont.Assign(dstCont.ElementCount, se, false);
+        slDst.Add(slSrc[i]);
+      end;
     end;
+  finally
+    // free lists.
+    slMst.Free;
+    slSrc.Free;
+    slDst.Free;
   end;
-
-  // Step 4: Free lists.
-  slMst.Free;
-  slSrc.Free;
-  slDst.Free;
 end;
 
 function HandleArray(se, me, de: IwbElement; et: TwbElementType;
-  dstrec: IwbMainRecord; depth: Integer; obj: ISuperObject;
-  bSingle, bDeletions: boolean): boolean;
-var
-  indent: string;
+  dstrec: IwbMainRecord; obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 begin
   Result := false;
-  indent := StringOfChar(' ', depth * 2);
 
   // if sorted, deal with sorted array
   if IsSorted(se) then begin
     if settings.debugArrays then
-      Tracker.Write(indent+'Sorted array found: '+se.Path);
+      Tracker.Write('      Sorted array found: '+se.Path);
     try
-      Result := MergeSorted(me, se, de, dstrec, depth, obj, bSingle, bDeletions);
+      Result := MergeSorted(me, se, de, dstrec, obj, bSingle, bDeletions);
     except on x : Exception do
-      Tracker.Write(indent+'MergeSortedArray: Exception '+x.Message);
+      Tracker.Write('        MergeSortedArray: Exception at '+se.Path+': '+x.Message);
     end;
   end
   // else deal with unsorted etSubRecordArray
   else if (et = etSubRecordArray) then begin
     if settings.debugArrays then
-      Tracker.Write(indent+'Unsorted etSubRecordArray found: '+se.Path);
+      Tracker.Write('      Unsorted etSubRecordArray found: '+se.Path);
     try
-      Result := MergeUnsorted(me, se, de, dstrec, depth, obj, bSingle, bDeletions);
+      Result := MergeUnsorted(me, se, de, dstrec, obj, bSingle, bDeletions);
     except on x : Exception do
-      Tracker.Write(indent+'MergeUnsortedArray: Exception '+x.Message);
+      Tracker.Write('        MergeUnsortedArray: Exception at '+se.Path+': '+x.Message);
     end;
   end
   // else deal with unsorted dtArray
   else begin
     if settings.debugArrays then
-      Tracker.Write(indent+'Unsorted dtArray found: '+se.Path);
+      Tracker.Write('      Unsorted dtArray found: '+se.Path);
     try
-      Result := rcore(se, me, de, dstrec, depth + 1, obj, bSingle, bDeletions);
+      Result := MergeUnsorted(me, se, de, dstrec, obj, bSingle, bDeletions);
     except on x : Exception do
-      Tracker.Write(indent+'rcore: Exception '+x.Message);
+      Tracker.Write('        MergeUnsortedArray: Exception at '+se.Path+': '+x.Message);
     end;
   end;
 end;
 
-procedure CopyElementValue(se, me, de: IwbElement; depth: Integer);
-var
-  indent: string;
+{ 
+  CopyElementValue:
+  Copies the edit value of @se to @de.
+}
+procedure CopyElementValue(se, me, de: IwbElement);
 begin
-  indent := StringOfChar(' ', depth * 2);
-
   if Assigned(me) and settings.debugChanges then begin
     if (not settings.debugTraversal) then
-      Tracker.Write(indent+se.Path);
-    Tracker.Write(indent+'> Found differing values: '+se.EditValue+', '+me.EditValue);
+      Tracker.Write('      '+se.Path);
+    Tracker.Write('      > Found differing values: '+se.EditValue+', '+me.EditValue);
   end;
 
   // try to copy element value to destination element from source element
   try
     de.EditValue := se.EditValue;
   except on x : Exception do
-    Tracker.Write(indent+'CopyElementValue: Exception '+x.Message);
+    Tracker.Write('      CopyElementValue: Exception '+x.Message);
   end;
 end;
 
+{
+  HandleElement:
+  Wrapper function around the logic for recursing into child 
+  elements (rcore), handling an array, or copying element values.
+}
 function HandleElement(se, me, de: IwbElement; dstRec: IwbMainRecord;
-  depth: Integer; obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+  obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 var
   et: TwbElementType;
   dt: TwbDefType;
-  indent: string;
+  container: IwbContainer;
 begin
   Result := false;
 
@@ -446,33 +484,49 @@ begin
   dt := se.Def.DefType;
 
   // debug messages
-  indent := StringOfChar(' ', depth * 2);
   if settings.debugTraversal then
-    Tracker.Write(indent+se.Path);
+    Tracker.Write('      '+se.Path);
   if settings.debugTypes then
-    Tracker.Write(indent+'ets: '+etToString(et)+'  dts: '+dtToString(dt));
+    Tracker.Write('      ets: '+etToString(et)+'  dts: '+dtToString(dt));
 
   // handle array, recurse deeper, or copy element value
   if (et = etSubRecordArray) or (dt = dtArray) then
-    Result := HandleArray(se, me, de, et, dstRec, depth, obj, bSingle, bDeletions)
-  else if Supports(se, IwbContainer) and (dt <> dtInteger) then begin
+    Result := HandleArray(se, me, de, et, dstRec, obj, bSingle, bDeletions)
+  else if (dt <> dtInteger) and Supports(se, IwbContainer, container)
+  and (container.ElementCount > 0) then begin
+    Tracker.Write('        Treating as container');
     try
-      Result := rcore(se, me, de, dstrec, depth + 1, obj, bSingle, bDeletions);
+      Result := rcore(se, me, de, dstrec, obj, bSingle, bDeletions);
     except on x : Exception do
-      Tracker.Write(indent+'rcore: Exception at '+se.Path+': '+x.Message);
+      Tracker.Write('      rcore: Exception at '+se.Path+': '+x.Message);
     end;
   end
-  else if (dt in ValueElements) and (se.EditValue <> me.EditValue) then begin
+  else if {(dt in ValueElements) and} (se.EditValue <> me.EditValue) then begin
     if not bSingle then
-      CopyElementValue(se, me, de, depth);
+      CopyElementValue(se, me, de);
     Result := true;
-  end;
+  end
+  else if settings.debugChanges then
+    Tracker.Write('        No changes found');
 end;
 
-//======================================================================
-// rcore: Recursively Copy Overridden Elements
+{
+  rcore:
+  Recursively copy overridden elements.  Recursively traverses elements,
+  comparing between a source element (from an override record) @src, a 
+  master element @mst, and a destination element @dst.  Tracks the 
+  destination patch record for element copying through @dstRec.  Uses a 
+  json tree @obj to determine user settings for traversal.  Uses @bSingle 
+  to determine when we're in a "single entity" as specified by the user, 
+  and @bDeletions to determine when it's ok to delete removed elements 
+  from the destination patch record.
+  
+  - Uses HandleElementExistence to resolve element creation/deletion.
+  - Uses HandleElement to handle arrays, recurse deeper, or copy element
+    values
+}
 function rcore(src, mst, dst: IwbElement; dstRec: IwbMainRecord;
-  depth: Integer; obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+  obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 var
   i: integer;
   srcCont, dstCont, mstCont: IwbContainerElementRef;
@@ -508,7 +562,7 @@ begin
     process := Assigned(eObj) and (eObj.I['p'] = 1);
     if not process then begin
       if settings.debugSkips then
-        Tracker.Write(StringOfChar(' ', depth * 2) + 'Skipping '+se.Path);
+        Tracker.Write('      Skipping '+se.Path);
       continue;
     end;
 
@@ -517,7 +571,7 @@ begin
     eDeletions := bDeletions or (eObj.I['i'] = 1);
 
     // handle element
-    Result := HandleElement(se, me, de, dstRec, depth, eObj, eSingle, eDeletions);
+    Result := HandleElement(se, me, de, dstRec, eObj, eSingle, eDeletions);
 
     // if we're in a single entity and an element is changed, break
     // we don't need to handle anything anymore
