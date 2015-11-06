@@ -339,14 +339,12 @@ begin
   TryToFree(Log);
   TryToFree(settings);
   TryToFree(CurrentProfile);
-  TryToFree(timeCosts);
   TryToFree(ActiveMods);
   TryToFree(statistics);
   TryToFree(sessionStatistics);
   TryToFree(status);
   TryToFree(remoteStatus);
   TryToFree(TCPClient);
-  handler._Release;
 end;
 
 procedure TSmashForm.WMSize(var AMessage: TMessage);

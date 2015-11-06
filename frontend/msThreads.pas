@@ -79,6 +79,7 @@ var
   wbPluginsFileName: string;
   sl: TStringList;
   i: integer;
+  bsaFileName: string;
   plugin: TPlugin;
   aFile: IwbFile;
 begin
@@ -121,8 +122,8 @@ begin
     wbLanguage := settings.language;
     wbEditAllowed := True;
     handler := wbCreateContainerHandler;
-    handler._AddRef;
     LoadExcludedGroups;
+    handler.AddFolder(wbDataPath);
 
     // IF AUTOMATIC UPDATING IS ENABLED, CHECK FOR UPDATE
     InitializeClient;
@@ -189,12 +190,18 @@ begin
     for i := 0 to Pred(sl.Count) do begin
       Tracker.Write('Loading '+sl[i]);
       try
+        // load plugin and add to pluginslist
         plugin := TPlugin.Create;
         plugin.filename := sl[i];
         plugin._File := wbFile(wbDataPath + sl[i], i);
         plugin._File._AddRef;
         plugin.GetData;
         PluginsList.Add(Pointer(plugin));
+
+        // load bsa if it exists
+        bsaFileName := ChangeFileExt(sl[i], '.bsa');
+        if FileExists(wbDataPath + bsaFileName) then
+          handler.AddBSA(wbDataPath + bsaFileName);
       except
         on x: Exception do begin
           Logger.Write('ERROR', 'Load', 'Exception loading '+sl[i]);

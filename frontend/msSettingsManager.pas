@@ -57,7 +57,6 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure TreePopupMenuPopup(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
-    procedure ChangePriorityItemClick(Sender: TObject);
     procedure PreserveDeletionsItemClick(Sender: TObject);
     procedure SingleEntityItemClick(Sender: TObject);
     procedure PruneNodesItemClick(Sender: TObject);

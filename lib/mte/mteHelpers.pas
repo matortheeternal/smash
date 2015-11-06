@@ -423,7 +423,6 @@ var
 begin
   for i := Pred(lst.Count) downto 0 do begin
     obj := TObject(lst[i]);
-    lst.Delete(i);
     TryToFree(obj);
   end;
   lst.Free;

@@ -1684,18 +1684,6 @@ end;
 }
 {******************************************************************************}
 
-function HasSignature(sig: TwbSignature; a: TwbSignatures): boolean;
-var
-  i: Integer;
-begin
-  Result := false;
-  for i := Low(a) to High(a) do
-    if sig = a[i] then begin
-      Result := true;
-      break;
-    end;
-end;
-
 procedure LoadExcludedGroups;
 begin
   SetLength(excludedGroups, 9);
@@ -3470,7 +3458,6 @@ begin
   hashes.Free;
   masters.Free;
   fails.Free;
-  plugin.Free;
   inherited;
 end;
 
