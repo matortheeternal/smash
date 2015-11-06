@@ -29,6 +29,7 @@ uses
   function IsDotFile(fn: string): boolean;
   procedure SaveStringToFile(s: string; fn: string);
   function ApplyTemplate(const template: string; var map: TStringList): string;
+  procedure TryToFree(obj: TObject);
   procedure FreeList(var lst: TList);
   { Windows API functions }
   procedure ForceForeground(hWnd: THandle);
@@ -406,6 +407,15 @@ begin
   end;
 end;
 
+procedure TryToFree(obj: TObject);
+begin
+  if Assigned(obj) then try
+    obj.Free;
+  except
+    on x: Exception do // nothing
+  end;
+end;
+
 procedure FreeList(var lst: TList);
 var
   i: Integer;
@@ -414,7 +424,7 @@ begin
   for i := Pred(lst.Count) downto 0 do begin
     obj := TObject(lst[i]);
     lst.Delete(i);
-    obj.Free;
+    TryToFree(obj);
   end;
   lst.Free;
 end;

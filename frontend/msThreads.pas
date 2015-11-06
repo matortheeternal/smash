@@ -67,6 +67,7 @@ implementation
 { TConnectThread }
 procedure TConnectThread.Execute;
 begin
+  FreeOnTerminate := true;
   ConnectToServer;
   if Assigned(ConnectCallback) then
     Synchronize(nil, ConnectCallback);
@@ -81,6 +82,7 @@ var
   plugin: TPlugin;
   aFile: IwbFile;
 begin
+  FreeOnTerminate := true;
   try
     // INITIALIZE VARIABLES
     ProgramVersion := GetVersionMem;
@@ -95,7 +97,6 @@ begin
     bLoaderDone := false;
     LastStatusTime := 0;
     Status := TmsStatus.Create;
-    LoadChangelog;
 
     // SET GAME VARS
     SetGame(CurrentProfile.gameMode);
@@ -105,6 +106,7 @@ begin
 
     // INITIALIZE SETTINGS FOR GAME
     LoadSettings;
+    LoadStatistics;
     LoadLanguage;
     if settings.usingMO then
       ModOrganizerInit;
@@ -234,6 +236,8 @@ begin
     end;
   end;
 
+  // increment times run and call the callback
+  Inc(sessionStatistics.timesRun);
   if Assigned(InitCallback) then
     Synchronize(nil, InitCallback);
 end;
@@ -253,6 +257,7 @@ var
   f: IwbFile;
   plugin: TPlugin;
 begin
+  FreeOnTerminate := true;
   StatusCallback(Format('%s (%d/%d)',
     [GetString('mpMain_LoaderInProgress'), 1, PluginsList.Count]));
   try
@@ -290,6 +295,7 @@ var
   i: integer;
   patch: TPatch;
 begin
+  FreeOnTerminate := true;
   // build merges
   for i := 0 to Pred(patchesToBuild.Count) do begin
     if Tracker.Cancel then break;
@@ -326,6 +332,7 @@ end;
 { TSaveThread }
 procedure TSaveThread.Execute;
 begin
+  FreeOnTerminate := true;
   // send statistics, then disconnect from the server
   if not settings.dontSendStatistics then
     SendStatistics;
@@ -457,34 +464,29 @@ var
   plugin: TPlugin;
   sl: TStringList;
 begin
-  // execute thread
-  {rootNode := TreeView.Items.Add(nil, 'Records');
-  for i := 0 to Pred(pluginsToHandle.Count) do begin
-    if Tracker.Cancel then break;
-    plugin := TPlugin(pluginsToHandle[i]);
-    Tracker.Write('Building tree for '+plugin.filename);
-    BuildTreeRecords(rootNode, plugin._File, bOverridesOnly);
-    Tracker.Write(' ');
-    Tracker.SetProgress(IntegerListSum(timeCosts, i));
-    if Tracker.Cancel then Tracker.Write('Tree building canceled.');
-  end; }
+  FreeOnTerminate := true;
   sl := TStringList.Create;
-  sl.Sorted := true;
-  for i := 0 to Pred(pluginsToHandle.Count) do begin
-    if Tracker.Cancel then break;
-    plugin := TPlugin(pluginsToHandle[i]);
-    Tracker.Write('Building tree for '+plugin.filename);
-    LoadRecordData(sl, plugin._File);
-    Tracker.SetProgress(IntegerListSum(timeCosts, i));
-    if Tracker.Cancel then Tracker.Write('Tree building canceled.');
-  end;
-  rootNode := TreeView.Items.Add(nil, 'Records');
-  rootNode.StateIndex := cUnChecked;
-  Tracker.Write(' ');
-  Tracker.Write('Preparing tree for display...');
-  StringsToNodes(rootNode, sl);
-  FreeStringTree(sl);
+  try
+    // build stringtree for plugins
+    sl.Sorted := true;
+    for i := 0 to Pred(pluginsToHandle.Count) do begin
+      if Tracker.Cancel then break;
+      plugin := TPlugin(pluginsToHandle[i]);
+      Tracker.Write('Building tree for '+plugin.filename);
+      LoadRecordData(sl, plugin._File);
+      Tracker.SetProgress(IntegerListSum(timeCosts, i));
+      if Tracker.Cancel then Tracker.Write('Tree building canceled.');
+    end;
 
+    // build node tree from stringtree
+    rootNode := TreeView.Items.Add(nil, 'Records');
+    rootNode.StateIndex := cUnChecked;
+    Tracker.Write(' ');
+    Tracker.Write('Preparing tree for display...');
+    StringsToNodes(rootNode, sl);
+  finally
+    FreeStringTree(sl);
+  end;
   // say thread is done if it wasn't cancelled
   if not Tracker.Cancel then
     Tracker.Write('All done!');

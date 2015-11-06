@@ -107,9 +107,6 @@
 			<DCCReference Include="msSettingsManager.pas">
 				<Form>SettingsManager</Form>
 			</DCCReference>
-			<DCCReference Include="msPriorityForm.pas">
-				<Form>PriorityForm</Form>
-			</DCCReference>
 			<DCCReference Include="msPluginSelectionForm.pas">
 				<Form>PluginSelectionForm</Form>
 			</DCCReference>
@@ -172,7 +169,7 @@
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">0</VersionInfo>
 						<VersionInfo Name="Release">1</VersionInfo>
-						<VersionInfo Name="Build">5</VersionInfo>
+						<VersionInfo Name="Build">7</VersionInfo>
 						<VersionInfo Name="Debug">True</VersionInfo>
 						<VersionInfo Name="PreRelease">True</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -184,7 +181,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName"/>
 						<VersionInfoKeys Name="FileDescription"/>
-						<VersionInfoKeys Name="FileVersion">0.0.1.5</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.0.1.7</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName"/>
 						<VersionInfoKeys Name="LegalCopyright"/>
 						<VersionInfoKeys Name="LegalTrademarks"/>

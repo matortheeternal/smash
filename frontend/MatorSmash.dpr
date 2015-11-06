@@ -29,7 +29,6 @@ uses
   msSplashForm in 'msSplashForm.pas' {SplashForm},
   msEditForm in 'msEditForm.pas' {EditForm},
   msSettingsManager in 'msSettingsManager.pas' {SettingsManager},
-  msPriorityForm in 'msPriorityForm.pas' {PriorityForm},
   msPluginSelectionForm in 'msPluginSelectionForm.pas' {PluginSelectionForm},
   msConflictForm in 'msConflictForm.pas' {ConflictForm},
   msChoicePanel in 'msChoicePanel.pas',
@@ -61,8 +60,6 @@ begin
   // initialize application, load settings
   Application.Initialize;
   ForceDirectories(ProgramPath + 'profiles');
-  LoadSettings;
-  LoadStatistics;
 
   // have user select game mode
   if not bProfileProvided then begin
@@ -73,7 +70,6 @@ begin
   end;
 
   // run main application
-  Inc(sessionStatistics.timesRun);
   Application.Title := 'Mator Smash';
   Application.CreateForm(TSmashForm, SmashForm);
   Application.CreateForm(TProfileForm, ProfileForm);
@@ -81,16 +77,7 @@ begin
   Application.CreateForm(TSplashForm, SplashForm);
   Application.CreateForm(TEditForm, EditForm);
   Application.CreateForm(TSettingsManager, SettingsManager);
-  Application.CreateForm(TPriorityForm, PriorityForm);
   Application.CreateForm(TPluginSelectionForm, PluginSelectionForm);
   Application.CreateForm(TConflictForm, ConflictForm);
   Application.Run;
-
-  // free all lists
-  FreeList(PluginsList);
-  FreeList(PatchesList);
-  FreeList(SmashSettings);
-  FreeList(GroupFilters);
-  FreeList(LabelFilters);
-  FreeList(BaseLog);
 end.

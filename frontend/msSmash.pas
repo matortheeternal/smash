@@ -263,13 +263,11 @@ begin
     Tracker.Write(' ');
     Tracker.Write('Saving: ' + path);
     patchFile.WriteToStream(FileStream, False);
-    patch.files.Add(path);
   finally
     FileStream.Free;
   end;
 
   // save files, fails, plugins
-  patch.files.SaveToFile(patchFilePrefix+'_files.txt');
   patch.fails.SaveToFile(patchFilePrefix+'_fails.txt');
   patch.plugins.SaveToFile(patchFilePrefix+'_plugins.txt');
 end;
@@ -310,7 +308,7 @@ begin
     SmashRecords(patch, recordsList);
 
     // clean patch (Masters, ITPOs)
-    //CleanPatch(patch);
+    CleanPatch(patch);
 
     // save patch and associated files
     SavePatchFiles(patch);
@@ -334,10 +332,8 @@ begin
   end;
 
   // clean up
-  if Assigned(pluginsToPatch) then
-    pluginsToPatch.Free;
-  if Assigned(recordsList) then
-    recordsList.Free;
+  TryToFree(pluginsToPatch);
+  TryToFree(recordsList);
 end;
 
 procedure RebuildPatch(var patch: TPatch);

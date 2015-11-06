@@ -31,13 +31,15 @@ type
         NewButton: TSpeedButton;
         BuildButton: TSpeedButton;
         SubmitButton: TSpeedButton;
-        SettingsButton: TSpeedButton;
+        ManageButton: TSpeedButton;
+        DictionaryButton: TSpeedButton;
         OptionsButton: TSpeedButton;
         UpdateButton: TSpeedButton;
         HelpButton: TSpeedButton;
         bhBuild: TBalloonHint;
         bhNew: TBalloonHint;
         bhSubmit: TBalloonHint;
+        bhManage: TBalloonHint;
         bhDict: TBalloonHint;
         bhOptions: TBalloonHint;
         bhUpdate: TBalloonHint;
@@ -110,6 +112,7 @@ type
     procedure FormShow(Sender: TObject);
     procedure LoaderStatus(s: string);
     procedure LoaderDone;
+    procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure SaveDone;
     procedure ConnectDone;
@@ -189,13 +192,14 @@ type
     procedure CreatePatchButtonClick(Sender: TObject);
     procedure BuildButtonClick(Sender: TObject);
     procedure SubmitButtonClick(Sender: TObject);
-    procedure SettingsButtonClick(Sender: TObject);
+    procedure ManageButtonClick(Sender: TObject);
     procedure OptionsButtonClick(Sender: TObject);
     procedure UpdateButtonClick(Sender: TObject);
     procedure HelpButtonClick(Sender: TObject);
     procedure ToggleAutoScrollItemClick(Sender: TObject);
     procedure DetailsCopyToClipboardItemClick(Sender: TObject);
     procedure ImageDisconnectedClick(Sender: TObject);
+    procedure DictionaryButtonClick(Sender: TObject);
   protected
     procedure WMSize(var AMessage: TMessage); message WM_SIZE;
     procedure WMMove(var AMessage: TMessage); message WM_MOVE;
@@ -318,6 +322,33 @@ begin
   bCreated := true;
 end;
 
+procedure TSmashForm.FormDestroy(Sender: TObject);
+begin
+  // free all lists
+  FreeList(SmashSettings);
+  FreeList(GroupFilters);
+  FreeList(LabelFilters);
+  FreeList(BaseLog);
+  FreeList(PatchesList);
+  FreeList(PluginsList);
+
+  // free final items
+  TryToFree(dictionary);
+  TryToFree(blacklist);
+  TryToFree(language);
+  TryToFree(Log);
+  TryToFree(settings);
+  TryToFree(CurrentProfile);
+  TryToFree(timeCosts);
+  TryToFree(ActiveMods);
+  TryToFree(statistics);
+  TryToFree(sessionStatistics);
+  TryToFree(status);
+  TryToFree(remoteStatus);
+  TryToFree(TCPClient);
+  handler._Release;
+end;
+
 procedure TSmashForm.WMSize(var AMessage: TMessage);
 begin
   if not bCreated then
@@ -392,17 +423,19 @@ begin
   NewButton.Flat := true;
   BuildButton.Flat := true;
   SubmitButton.Flat := true;
-  SettingsButton.Flat := true;
+  ManageButton.Flat := true;
+  DictionaryButton.Flat := true;
   OptionsButton.Flat := true;
   UpdateButton.Flat := true;
   HelpButton.Flat := true;
   IconList.GetBitmap(0, NewButton.Glyph);
   IconList.GetBitmap(1, BuildButton.Glyph);
   IconList.GetBitmap(2, SubmitButton.Glyph);
-  IconList.GetBitmap(3, SettingsButton.Glyph);
-  IconList.GetBitmap(4, OptionsButton.Glyph);
-  IconList.GetBitmap(5, UpdateButton.Glyph);
-  IconList.GetBitmap(6, HelpButton.Glyph);
+  IconList.GetBitmap(3, ManageButton.Glyph);
+  IconList.GetBitmap(4, DictionaryButton.Glyph);
+  IconList.GetBitmap(5, OptionsButton.Glyph);
+  IconList.GetBitmap(6, UpdateButton.Glyph);
+  IconList.GetBitmap(7, HelpButton.Glyph);
 
   // STATUSBAR VALUES
   StatusPanelLanguage.Caption := settings.language;
@@ -1109,7 +1142,6 @@ procedure TSmashForm.UpdatePatchDetails;
 var
   patchItem: TListItem;
   patch: TPatch;
-  sl: TStringList;
 begin
   // don't do anything if no item selected
   patchItem := PatchesListView.Selected;
@@ -1129,14 +1161,6 @@ begin
   AddDetailsItem(GetString('msMain_DateBuilt'), DateBuiltString(patch.dateBuilt));
   AddDetailsList(GetString('msMain_Plugins'), patch.plugins);
   AddDetailsItem(' ', ' ');
-  if patch.files.Count < 250 then begin
-    sl := TStringList.Create;
-    sl.Text := StringReplace(patch.files.Text, settings.patchDirectory, '', [rfReplaceAll]);
-    AddDetailsList(GetString('msMain_Files'), sl);
-    sl.Free;
-  end
-  else
-    AddDetailsItem(GetString('msMain_Files'), GetString('msMain_TooManyFiles'));
   if patch.fails.Count < 250 then
     AddDetailsList(GetString('msMain_Fails'), patch.fails)
   else
@@ -1839,7 +1863,8 @@ begin
     NewButton.Enabled := false;
     BuildButton.Enabled := false;
     SubmitButton.Enabled := false;
-    SettingsButton.Enabled := false;
+    ManageButton.Enabled := false;
+    DictionaryButton.Enabled := false;
     OptionsButton.Enabled := true;
     UpdateButton.Enabled := false;
     HelpButton.Enabled := false;
@@ -1949,7 +1974,7 @@ begin
 end;
 
 { Edit smash settings }
-procedure TSmashForm.SettingsButtonClick(Sender: TObject);
+procedure TSmashForm.ManageButtonClick(Sender: TObject);
 var
   smForm: TSettingsManager;
 begin
@@ -1963,6 +1988,12 @@ begin
   UpdateListViews;
   UpdateQuickbar;
   UpdateStatusBar;
+end;
+
+{ View dictionary }
+procedure TSmashForm.DictionaryButtonClick(Sender: TObject);
+begin
+  // ?
 end;
 
 { Options }

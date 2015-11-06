@@ -11,7 +11,7 @@ uses
   // mte units
   mteHelpers, mteLogger, mteProgressForm, RttiTranslation,
   // ms units
-  msFrontend, msPriorityForm, msPluginSelectionForm, msConflictForm, msThreads;
+  msFrontend, msPluginSelectionForm, msConflictForm, msThreads;
 
 type
   TSettingsManager = class(TForm)
@@ -35,7 +35,6 @@ type
     meDescription: TMemo;
     lblTree: TLabel;
     TreePopupMenu: TPopupMenu;
-    ChangePriorityItem: TMenuItem;
     ToggleNodesItem: TMenuItem;
     PreserveDeletionsItem: TMenuItem;
     SingleEntityItem: TMenuItem;
@@ -90,6 +89,7 @@ type
     procedure CombineSettingsItemClick(Sender: TObject);
     procedure tvRecordsCollapsing(Sender: TObject; Node: TTreeNode;
       var AllowCollapse: Boolean);
+    procedure tvRecordsKeyPress(Sender: TObject; var Key: Char);
   private
     { Private declarations }
   public
@@ -176,10 +176,17 @@ end;
 procedure TSettingsManager.tvRecordsKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
-  if (Key = VK_SPACE) and Assigned(tvRecords.Selected) then
+  if (Key = VK_SPACE) and Assigned(tvRecords.Selected) then begin
     CheckBoxManager(tvRecords.Selected);
-  // repaint tree view in case a single entity flag was unset
-  tvRecords.Repaint;
+    // repaint tree view in case a single entity flag was unset
+    tvRecords.Repaint;
+  end;
+end;
+
+procedure TSettingsManager.tvRecordsKeyPress(Sender: TObject; var Key: Char);
+begin
+  if Key = ' ' then
+    Key := #0;
 end;
 
 procedure TSettingsManager.tvRecordsMouseDown(Sender: TObject; Button: TMouseButton;
@@ -224,28 +231,6 @@ var
 begin
   for i := 0 to Pred(tvRecords.SelectionCount) do
     CheckboxManager(tvRecords.Selections[i]);
-end;
-
-procedure TSettingsManager.ChangePriorityItemClick(Sender: TObject);
-var
-  cForm: TPriorityForm;
-  i: Integer;
-  e: TElementData;
-  node: TTreeNode;
-begin
-  for i := 0 to Pred(tvRecords.SelectionCount) do begin
-    node := tvRecords.Selections[i];
-    e := TElementData(node.Data);
-    cForm := TPriorityForm.Create(self);
-    cForm.Caption := Format('Change node priority (%s)', [node.Text]);
-    cForm.Priority := e.priority;
-    if cForm.ShowModal = mrOK then begin
-      e.priority := cForm.Priority;
-      tvRecords.Selections[i].Data := Pointer(e);
-    end;
-    cForm.Free;
-  end;
-  tvRecords.Repaint;
 end;
 
 procedure TSettingsManager.PreserveDeletionsItemClick(Sender: TObject);
@@ -700,6 +685,7 @@ begin
       continue;
     lvSettings.Items.Count := lvSettings.Items.Count - 1;
     setting := TSmashSetting(SmashSettings[i]);
+    RemoveSettingFromPlugins(setting);
     SmashSettings.Delete(i);
     index := NewSettings.IndexOf(setting);
     if index > -1 then

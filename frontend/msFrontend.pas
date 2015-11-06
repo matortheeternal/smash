@@ -148,20 +148,13 @@ type
     name: string;
     filename: string;
     dateBuilt: TDateTime;
-    bIgnoreNonContiguous: boolean;
     dataPath: string;
     status: TPatchStatusID;
     plugin: TPlugin;
     plugins: TStringList;
     hashes: TStringList;
     masters: TStringList;
-    map: TStringList;
-    lmap: TStringList;
-    files: TStringList;
     fails: TStringList;
-    ignoredDependencies: TStringList;
-    geckScripts: TStringList;
-    navConflicts: TStringList;
     constructor Create; virtual;
     destructor Destroy; override;
     function Dump: ISuperObject;
@@ -279,7 +272,6 @@ type
     var errors: TStringList): IwbMainRecord;
   function CheckForErrors(const aElement: IwbElement; lastRecord: IwbMainRecord;
     var errors: TStringList): IwbMainRecord;
-  procedure CreateSEQFile(patch: TPatch);
   { Load order functions }
   procedure RemoveCommentsAndEmpty(var sl: TStringList);
   procedure RemoveMissingFiles(var sl: TStringList);
@@ -310,7 +302,6 @@ type
   procedure SaveSettings(var s: TSettings; path: string); overload;
   procedure LoadStatistics;
   procedure SaveStatistics;
-  procedure LoadChangelog;
   procedure LoadDictionary;
   procedure RenameSavedPlugins;
   procedure SavePatches;
@@ -332,6 +323,7 @@ type
     bWithinSingle: boolean);
   procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
   { Helper methods }
+  procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
   procedure DeleteTempPath;
   procedure ShowProgressForm(parent: TForm; var pf: TProgressForm; s: string);
   function GetRatingColor(rating: real): integer;
@@ -434,7 +426,7 @@ var
   dictionary, blacklist, PluginsList, PatchesList, BaseLog, Log,
   LabelFilters, GroupFilters, pluginsToHandle, patchesToBuild, SmashSettings: TList;
   TreeView: TTreeView;
-  timeCosts, changelog, language: TStringList;
+  timeCosts, language, ActiveMods: TStringList;
   settings: TSettings;
   CurrentProfile: TProfile;
   statistics, sessionStatistics: TStatistics;
@@ -448,7 +440,6 @@ var
   ProgramVersion, xEditLogLabel, xEditLogGroup, DataPath, GamePath,
   ProfilePath: string;
   ConnectionAttempts: Integer;
-  ActiveMods: TStringList;
   TCPClient: TidTCPClient;
   AppStartTime, LastStatusTime: TDateTime;
   GameMode: TGameMode;
@@ -546,22 +537,24 @@ begin
   gameName := mode.gameName;
   keys := TStringList.Create;
   appIDs := TStringList.Create;
-  appIDs.CommaText := mode.appIDs;
+  try
+    appIDs.CommaText := mode.appIDs;
 
-  // add keys to check
-  keys.Add(sBethRegKey + gameName + '\Installed Path');
-  keys.Add(sBethRegKey64 + gameName + '\Installed Path');
-  for i := 0 to Pred(appIDs.Count) do begin
-    keys.Add(sSteamRegKey + appIDs[i] + '\InstallLocation');
-    keys.Add(sSteamRegKey64 + appIDs[i] + '\InstallLocation');
+    // add keys to check
+    keys.Add(sBethRegKey + gameName + '\Installed Path');
+    keys.Add(sBethRegKey64 + gameName + '\Installed Path');
+    for i := 0 to Pred(appIDs.Count) do begin
+      keys.Add(sSteamRegKey + appIDs[i] + '\InstallLocation');
+      keys.Add(sSteamRegKey64 + appIDs[i] + '\InstallLocation');
+    end;
+
+    // try to find path from registry
+    Result := TryRegistryKeys(keys);
+  finally
+    // free memory
+    keys.Free;
+    appIDs.Free;
   end;
-
-  // try to find path from registry
-  Result := TryRegistryKeys(keys);
-
-  // free memory
-  keys.Free;
-  appIDs.Free;
 
   // set result
   if Result <> '' then
@@ -1312,65 +1305,6 @@ begin
       Result := CheckForErrors(Container.Elements[i], Result, errors);
 end;
 
-{ Creates a SEQ (sequence) file for the input plugin.  Important for quests that
-  are Start Game Enabled to execute properly. }
-procedure CreateSEQFile(patch: TPatch);
-var
-  _File: IwbFile;
-  Group: IwbGroupRecord;
-  n: Integer;
-  MainRecord: IwbMainRecord;
-  QustFlags: IwbElement;
-  FormIDs: array of Cardinal;
-  FileStream: TFileStream;
-  p, s: string;
-begin
-  _File := patch.plugin._File;
-
-  // don't create SEQ file if no QUST record group
-  if not _File.HasGroup('QUST') then
-    exit;
-  
-  // loop through child elements
-  Group := _File.GroupBySignature['QUST'];
-  for n := 0 to Pred(Group.ElementCount) do begin
-    if not Supports(Group.Elements[n], IwbMainRecord, MainRecord) then 
-      continue;
-    
-    // script quests that are not start game enabled
-    QustFlags := MainRecord.ElementByPath['DNAM - General\Flags'];
-    if not (Assigned(QustFlags) and (QustFlags.NativeValue and 1 > 0)) then 
-      continue;
-    
-    // skip quests that aren't overrides or newly flagged as start game enabled    
-    if not (IsOverride(MainRecord) or (MainRecord.Master.ElementNativeValues['DNAM\Flags'] and 1 = 0)) then
-      continue;    
-    
-    // add quest formID to formIDs array
-    SetLength(FormIDs, Succ(Length(FormIDs)));
-    FormIDs[High(FormIDs)] := MainRecord.FixedFormID;
-  end;
-  
-  // write formIDs to disk
-  if Length(FormIDs) <> 0 then try
-    p := patch.dataPath + 'seq\';
-    if not ForceDirectories(p) then
-      raise Exception.Create('Unable to create SEQ directory for patch.');
-    s := p + ChangeFileExt(_File.FileName, '.seq');
-    FileStream := TFileStream.Create(s, fmCreate);
-    FileStream.WriteBuffer(FormIDs[0], Length(FormIDs)*SizeOf(Cardinal));
-    Tracker.Write('Created SEQ file: ' + s);
-    patch.files.Add(s);
-  except
-    on x: Exception do begin
-      if Assigned(FileStream) then
-        FreeAndNil(FileStream);
-      Tracker.Write('Error: Can''t create SEQ file: ' + s + ', ' + x.Message);
-    end;
-  end;
-end;
-
-
 {******************************************************************************}
 { Load order functions
   Set of functions for building a working load order.
@@ -1836,65 +1770,61 @@ begin
   pSettings.gameMode := p.gameMode;
   pSettings.gamePath := p.gamePath;
   SaveSettings(pSettings, path);
+  pSettings.Free;
 end;
 
 procedure SaveRegistrationData(var s: TSettings);
 const
   sPatchPluginsRegKey = 'Software\\Patch Plugins\\';
   sPatchPluginsRegKey64 = 'Software\\Wow6432Node\\Patch Plugins\\';
-var
-  reg: TRegistry;
 begin
-  reg := TRegistry.Create(KEY_READ);
-  reg.RootKey := HKEY_LOCAL_MACHINE;
+  with TRegistry.Create do try
+    RootKey := HKEY_LOCAL_MACHINE;
+    try
+      Access := KEY_WRITE;
+      if not OpenKey(sPatchPluginsRegKey, true) then
+        if not OpenKey(sPatchPluginsRegKey64, true) then
+          exit;
 
-  try
-    reg.Access := KEY_WRITE;
-    if not reg.OpenKey(sPatchPluginsRegKey, true) then
-      if not reg.OpenKey(sPatchPluginsRegKey64, true) then
-        exit;
-
-    reg.WriteString('Username', s.username);
-    reg.WriteString('Key', s.key);
-    reg.WriteBool('Registered', s.registered);
-  except on Exception do
-    // nothing
+      WriteString('Username', s.username);
+      WriteString('Key', s.key);
+      WriteBool('Registered', s.registered);
+    except on Exception do
+      // nothing
+    end;
+  finally
+    Free;
   end;
-
-  reg.CloseKey();
-  reg.Free;
 end;
 
 procedure LoadRegistrationData(var s: TSettings);
 const
   sPatchPluginsRegKey = 'Software\\Patch Plugins\\';
   sPatchPluginsRegKey64 = 'Software\\Wow6432Node\\Patch Plugins\\';
-var
-  reg: TRegistry;
 begin
-  reg := TRegistry.Create(KEY_READ);
-  reg.RootKey := HKEY_LOCAL_MACHINE;
+  with TRegistry.Create do try
+    RootKey := HKEY_LOCAL_MACHINE;
 
-  try
-    if (not reg.KeyExists(sPatchPluginsRegKey))
-      xor (not reg.KeyExists(sPatchPluginsRegKey64)) then
-        exit;
+    try
+      if (not KeyExists(sPatchPluginsRegKey))
+        xor (not KeyExists(sPatchPluginsRegKey64)) then
+          exit;
 
-    if not reg.OpenKeyReadOnly(sPatchPluginsRegKey) then
-      if not reg.OpenKeyReadOnly(sPatchPluginsRegKey64) then
-        exit;
+      if not OpenKeyReadOnly(sPatchPluginsRegKey) then
+        if not OpenKeyReadOnly(sPatchPluginsRegKey64) then
+          exit;
 
-    if reg.ReadBool('Registered') then begin
-      s.username := reg.ReadString('Username');
-      s.key := reg.ReadString('Key');
-      s.registered := true;
+      if ReadBool('Registered') then begin
+        s.username := ReadString('Username');
+        s.key := ReadString('Key');
+        s.registered := true;
+      end;
+    except on Exception do
+      // nothing
     end;
-  except on Exception do
-    // nothing
+  finally
+    Free;
   end;
-
-  reg.CloseKey();
-  reg.Free;
 end;
 
 procedure SaveSettings;
@@ -1948,22 +1878,6 @@ begin
   statistics := TStatistics.Create;
   sessionStatistics := TStatistics.Create;
   TRttiIni.Load('statistics.ini', statistics);
-end;
-
-procedure LoadChangelog;
-begin
-  // load changelog
-  if not Assigned(changelog) then
-    changelog := TStringList.Create;
-
-  // don't attempt to load changelog if it doesn't exist
-  if not FileExists('changelog.txt') then begin
-    Logger.Write('GENERAL', 'Changelog', 'No changelog found');
-    exit;
-  end;
-
-  // load changelog
-  changelog.LoadFromFile('changelog.txt');
 end;
 
 procedure LoadDictionary;
@@ -2507,6 +2421,20 @@ end;
   - PatchPluginsCompare
 }
 {******************************************************************************}
+
+procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
+var
+  i: Integer;
+  plugin: TPlugin;
+begin
+  for i := 0 to Pred(PluginsList.Count) do begin
+    plugin := TPlugin(PluginsList[i]);
+    if plugin.setting = aSetting.name then begin
+      plugin.setting := 'Skip';
+      plugin.smashSetting := SettingByName('Skip');
+    end;
+  end;
+end;
 
 procedure DeleteTempPath;
 begin
@@ -3089,7 +3017,6 @@ begin
     // load changelog from response
     Logger.Write('CLIENT', 'Update', 'Changelog recieved.  (Size: '+FormatByteSize(stream.Size)+')');
     stream.Free;
-    LoadChangelog;
     Result := true;
   except
     on x : Exception do begin
@@ -3427,7 +3354,6 @@ begin
   description.Free;
   masters.Free;
   requiredBy.Free;
-  _File._Release;
   inherited;
 end;
 
@@ -3535,12 +3461,6 @@ begin
   plugins := TStringList.Create;
   hashes := TStringList.Create;
   masters := TStringList.Create;
-  map := TStringList.Create;
-  lmap := TStringList.Create;
-  files := TStringList.Create;
-  geckScripts := TStringList.Create;
-  navConflicts := TStringList.Create;
-  ignoredDependencies := TStringList.Create;
   fails := TStringList.Create;
 end;
 
@@ -3549,13 +3469,7 @@ begin
   plugins.Free;
   hashes.Free;
   masters.Free;
-  map.Free;
-  lmap.Free;
-  files.Free;
-  geckScripts.Free;
-  navConflicts.Free;
   fails.Free;
-  ignoredDependencies.Free;
   plugin.Free;
   inherited;
 end;
@@ -3572,7 +3486,6 @@ begin
   obj.S['name'] := name;
   obj.S['filename'] := filename;
   obj.S['dateBuilt'] := DateTimeToStr(dateBuilt);
-  obj.B['bIgnoreNonContiguous'] := bIgnoreNonContiguous;
 
   // plugins, pluginSizes, pluginDates, masters
   obj.O['plugins'] := SA([]);
@@ -3586,15 +3499,9 @@ begin
     obj.A['masters'].S[i] := masters[i];
 
   // files, log, ignored dependencies
-  obj.O['files'] := SA([]);
-  for i := 0 to Pred(files.Count) do
-    obj.A['files'].S[i] := files[i];
   obj.O['fails'] := SA([]);
   for i := 0 to Pred(fails.Count) do
     obj.A['fails'].S[i] := fails[i];
-  obj.O['ignoredDependencies'] := SA([]);
-  for i := 0 to Pred(ignoredDependencies.Count) do
-    obj.A['ignoredDependencies'].S[i] := ignoredDependencies[i];
 
   Result := obj;
 end;
@@ -3607,11 +3514,6 @@ begin
   // load object attributes
   name := obj.AsObject.S['name'];
   filename := obj.AsObject.S['filename'];
-  try
-    bIgnoreNonContiguous := obj.AsObject.B['bIgnoreNonContiguous'];
-  except on Exception do
-    // nothing
-  end;
 
   // try loading dateBuilt and parsing to DateTime
   try
@@ -3627,16 +3529,8 @@ begin
     hashes.Add(item.AsString);
   for item in obj['masters'] do
     masters.Add(item.AsString);
-  for item in obj['files'] do
-    files.Add(item.AsString);
   for item in obj['fails'] do
     fails.Add(item.AsString);
-  try
-    for item in obj['ignoredDependencies'] do
-      ignoredDependencies.Add(item.AsString);
-  except on Exception do
-    // nothing
-  end;
 end;
 
 function TPatch.GetTimeCost: integer;
@@ -3879,6 +3773,8 @@ var
   item: ISuperObject;
 begin
   Result := nil;
+  if not Assigned(tree) then
+    exit;
   // loop through record objects
   for item in tree['records'] do begin
     if item.S['n'] = sig then

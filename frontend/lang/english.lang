@@ -3,7 +3,8 @@
 msMain_NewButton_Hint=Create new merge|Make a new empty merge.
 msMain_BuildButton_Hint=Build merges|Build all merges that are ready to be built or rebuilt.
 msMain_SubmitButton_Hint=Submit recommendations|Submit smash settings and plugin recommendations.
-msMain_SettingsButton_Hint=View dictionary|Open the dictionary viewer to see all reports submitted by other users.
+msMain_SettingsButton_Hint=Manage Smash Settings|Click here to manage smash settings.
+msMain_DictionaryButton_Hint=View dictionary|Open the dictionary viewer to see all recommendations submitted by other users.
 msMain_OptionsButton_Hint=Options|Change the options that control how the plugin runs.
 msMain_UpdateButton_Hint=Update|No updates available!
 msMain_HelpButton_Hint=Help|Sorry, this isn't working yet.
@@ -113,7 +114,6 @@ msSet_lblDictionary_Caption=Settings information:
 msSet_lblNotes_Caption=Description:
  
 { TSettingsManager }
- 
 msSet_CloneSettingItem_Caption=Clone setting
 msSet_lblDescription_Caption=Description
 msSet_lblTree_Caption=Tree
@@ -130,3 +130,5 @@ msMain_SmashSettingItem_Caption=Smash setting
 { ## Patches Tab ## }
 msSet_Label1_Caption=Color
 msSet_PreserveDeletionsItem_Caption=Toggle preserve deletions
+msMain_DictionaryButton_Hint=View dictionary|Open the dictionary viewer to see all recommendations submitted by other users.
+msMain_ManageButton_Hint=Manage Smash Settings|Click here to manage smash settings.

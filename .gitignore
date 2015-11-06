@@ -65,3 +65,4 @@ loc/
 test/
 frontend/__history/
 frontend/logs/
+frontend/patches/

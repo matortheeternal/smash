@@ -11,6 +11,7 @@ object EditForm: TEditForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -24,10 +25,8 @@ object EditForm: TEditForm
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     TabWidth = 60
-    ExplicitHeight = 138
     object EditTabSheet: TTabSheet
       Caption = 'Edit'
-      ExplicitHeight = 68
       object lblName: TLabel
         Left = 12
         Top = 13
@@ -74,6 +73,5 @@ object EditForm: TEditForm
     Caption = 'OK'
     TabOrder = 1
     OnClick = btnOKClick
-    ExplicitTop = 153
   end
 end

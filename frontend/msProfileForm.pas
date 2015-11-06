@@ -180,6 +180,7 @@ begin
       p.SetGame(aSettings.gameMode);
       p.SetPath(aSettings.gamePath);
     end;
+    aSettings.Free;
   until FindNext(info) <> 0;
 end;
 

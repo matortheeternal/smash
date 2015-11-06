@@ -491,6 +491,7 @@ begin
   end;
 
   // set up browse buttons
+  btnBrowsePatchDirectory.Flat := true;
   btnBrowseMO.Flat := true;
   btnBrowseMOMods.Flat := true;
   IconList.GetBitmap(0, btnBrowsePatchDirectory.Glyph);
