@@ -218,7 +218,7 @@ var
   SmashForm: TSmashForm;
   LastHint: string;
   LastURLTime, LastMessageTime, FormDisplayTime: double;
-  bPatchsToBuild, bPatchsToCheck, bAutoScroll, bCreated, bClosing: boolean;
+  bPatchesToBuild, bPatchesToCheck, bAutoScroll, bCreated, bClosing: boolean;
   pForm: TProgressForm;
   TaskHandler: TTaskHandler;
 
@@ -669,7 +669,7 @@ begin
   ImageBlocked.Visible := not (bLoaderDone or bInitException);
   ImageConnected.Visible := TCPClient.Connected;
   ImageDisconnected.Visible := not TCPClient.Connected;
-  ImageBuild.Visible := bLoaderDone and bPatchsToBuild;
+  ImageBuild.Visible := bLoaderDone and bPatchesToBuild;
   ImageDictionaryUpdate.Visible := bDictionaryUpdate;
   ImageProgramUpdate.Visible := bProgramUpdate;
   StatusPanelLanguage.Caption := settings.language;
@@ -772,10 +772,10 @@ begin
   AddDetailsItem(GetString('msMain_Language'), settings.language);
   AddDetailsItem(' ', ' ');
   AddDetailsItem(GetString('msMain_TimesRun'), IntToStr(statistics.timesRun + sessionStatistics.timesRun));
-  AddDetailsItem(GetString('msMain_PatchsBuilt'), IntToStr(statistics.patchesBuilt + sessionStatistics.patchesBuilt));
-  AddDetailsItem(GetString('msMain_PluginsPatchd'), IntToStr(statistics.pluginsPatched + sessionStatistics.pluginsPatched));
-  AddDetailsItem(GetString('msMain_ReportsSubmitted'), IntToStr(statistics.settingsSubmitted + sessionStatistics.settingsSubmitted));
-  AddDetailsItem(GetString('msMain_ReportsSubmitted'), IntToStr(statistics.recsSubmitted + sessionStatistics.recsSubmitted));
+  AddDetailsItem(GetString('msMain_PatchesBuilt'), IntToStr(statistics.patchesBuilt + sessionStatistics.patchesBuilt));
+  AddDetailsItem(GetString('msMain_PluginsSmashed'), IntToStr(statistics.pluginsPatched + sessionStatistics.pluginsPatched));
+  AddDetailsItem(GetString('msMain_SettingsSubmitted'), IntToStr(statistics.settingsSubmitted + sessionStatistics.settingsSubmitted));
+  AddDetailsItem(GetString('msMain_RecsSubmitted'), IntToStr(statistics.recsSubmitted + sessionStatistics.recsSubmitted));
   AddDetailsItem(' ', ' ');
   AddDetailsItem(GetString('msMain_Website'), '-');
   AddDetailsItem(GetString('msMain_ApiCredits'), 'superobject, TurboPower Abbrevia, xEdit');
@@ -1128,7 +1128,7 @@ end;
 { Patch List View Events
   Events involving the PatchesListView control.  Events include:
   - UpdatePatchDetails
-  - UpdatePatchs
+  - UpdatePatches
   - PatchesListViewChange
   - PatchesListViewData
   - PatchesListViewDrawItem
@@ -1451,7 +1451,7 @@ end;
 {******************************************************************************}
 { PatchPopupMenu methods
   Methods for dealing with the popup menu for the PatchesListView.
-  - PatchsPopupMenuPopup
+  - PatchesPopupMenuPopup
   - EditPatchItemClick
   - CheckPluginsForErrorsItemClick
   - DeletePatchItemClick
@@ -1683,7 +1683,7 @@ begin
 
   // show multi-patch prompt if multiple patches selected
   if patchesToDelete.Count > 0 then
-    bApproved := MessageDlg(GetString('msMain_DeletePatchs') + patchNames, mtConfirmation,
+    bApproved := MessageDlg(GetString('msMain_DeletePatches') + patchNames, mtConfirmation,
       mbOKCancel, 0) = mrOk;
 
   // exit if user didn't approve deletion
@@ -1870,26 +1870,26 @@ begin
   end;
 
   // BUILD BUTTON
-  bPatchsToBuild := false;
-  bPatchsToCheck := false;
+  bPatchesToBuild := false;
+  bPatchesToCheck := false;
   for i := 0 to Pred(PatchesList.Count) do begin
     patch := TPatch(PatchesList[i]);
     if (patch.status in BuildStatuses) then
-      bPatchsToBuild := true;
+      bPatchesToBuild := true;
   end;
 
   // enable build button if there are patches to build
-  BuildButton.Enabled := bPatchsToBuild and bLoaderDone;
+  BuildButton.Enabled := bPatchesToBuild and bLoaderDone;
   // swap hints
   sTitle := GetString('msMain_BuildButton_Hint');
   if not bLoaderDone then
-    BuildButton.Hint := sTitle + GetString('msMain_BuildPatchs_Loader')
-  else if not bPatchsToBuild then
-    BuildButton.Hint := sTitle + GetString('msMain_NoPatchs')
-  else if bPatchsToCheck then
-    BuildButton.Hint := sTitle + GetString('msMain_CheckPatchs')
+    BuildButton.Hint := sTitle + GetString('msMain_BuildPatches_Loader')
+  else if not bPatchesToBuild then
+    BuildButton.Hint := sTitle + GetString('msMain_NoPatches')
+  else if bPatchesToCheck then
+    BuildButton.Hint := sTitle + GetString('msMain_CheckPatches')
   else
-    BuildButton.Hint := sTitle + GetString('msMain_BuildAllPatchs');
+    BuildButton.Hint := sTitle + GetString('msMain_BuildAllPatches');
 
   // UPDATE BUTTON
   UpdateButton.Enabled := bProgramUpdate or bDictionaryUpdate;

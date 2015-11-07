@@ -44,7 +44,7 @@ type
     btnSave: TButton;
     btnDiscard: TButton;
     CombineSettingsItem: TMenuItem;
-    Label1: TLabel;
+    lblColor: TLabel;
     cbColor: TColorBox;
     // TREE METHODS
     procedure TreeDone;

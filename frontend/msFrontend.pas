@@ -363,7 +363,7 @@ const
   ProgramTesters = ' ';
   ProgramTranslators = ' ';
   xEditVersion = '3.1.1';
-  bTranslationDump = true;
+  bTranslationDump = false;
 
   // MSG IDs
   MSG_UNKNOWN = 0;

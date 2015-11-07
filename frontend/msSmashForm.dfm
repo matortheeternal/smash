@@ -43,7 +43,6 @@ object SmashForm: TSmashForm
       Top = 2
       Width = 48
       Height = 40
-      Hint = 'Create new merge|Make a new empty merge.'
       CustomHint = bhNew
       NumGlyphs = 2
       ParentShowHint = False
@@ -55,9 +54,6 @@ object SmashForm: TSmashForm
       Top = 2
       Width = 48
       Height = 40
-      Hint = 
-        'Build merges|Build all merges that are ready to be built or rebu' +
-        'ilt.'
       CustomHint = bhBuild
       NumGlyphs = 2
       ParentShowHint = False
@@ -69,9 +65,6 @@ object SmashForm: TSmashForm
       Top = 2
       Width = 48
       Height = 40
-      Hint = 
-        'Submit recommendations|Submit smash settings and plugin recommen' +
-        'dations.'
       CustomHint = bhSubmit
       NumGlyphs = 2
       ParentShowHint = False
@@ -83,9 +76,6 @@ object SmashForm: TSmashForm
       Top = 2
       Width = 48
       Height = 40
-      Hint = 
-        'View dictionary|Open the dictionary viewer to see all recommenda' +
-        'tions submitted by other users.'
       CustomHint = bhDict
       NumGlyphs = 2
       ParentShowHint = False
@@ -97,7 +87,6 @@ object SmashForm: TSmashForm
       Top = 2
       Width = 48
       Height = 40
-      Hint = 'Options|Change the options that control how the plugin runs.'
       CustomHint = bhOptions
       NumGlyphs = 2
       ParentShowHint = False
@@ -109,7 +98,6 @@ object SmashForm: TSmashForm
       Top = 2
       Width = 48
       Height = 40
-      Hint = 'Update|No updates available!'
       CustomHint = bhUpdate
       Anchors = [akTop, akRight]
       NumGlyphs = 2
@@ -122,7 +110,6 @@ object SmashForm: TSmashForm
       Top = 2
       Width = 48
       Height = 40
-      Hint = 'Help|Sorry, this isn'#39't working yet.'
       CustomHint = bhHelp
       Anchors = [akTop, akRight]
       NumGlyphs = 2
@@ -135,7 +122,6 @@ object SmashForm: TSmashForm
       Top = 2
       Width = 48
       Height = 40
-      Hint = 'Manage Smash Settings|Click here to manage smash settings.'
       CustomHint = bhManage
       NumGlyphs = 2
       ParentShowHint = False
@@ -215,10 +201,6 @@ object SmashForm: TSmashForm
       object PatchesTabSheet: TTabSheet
         Caption = 'Patches'
         ImageIndex = 1
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object PatchesListView: TListView
           Left = 3
           Top = 3
@@ -268,10 +250,6 @@ object SmashForm: TSmashForm
       object LogTabSheet: TTabSheet
         Caption = 'Log'
         ImageIndex = 2
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object LogListView: TListView
           Left = 3
           Top = 3

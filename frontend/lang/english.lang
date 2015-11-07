@@ -1,13 +1,22 @@
 { TSmashForm }
 { ## QuickBar ## }
-msMain_NewButton_Hint=Create new merge|Make a new empty merge.
-msMain_BuildButton_Hint=Build merges|Build all merges that are ready to be built or rebuilt.
-msMain_SubmitButton_Hint=Submit recommendations|Submit smash settings and plugin recommendations.
-msMain_SettingsButton_Hint=Manage Smash Settings|Click here to manage smash settings.
-msMain_DictionaryButton_Hint=View dictionary|Open the dictionary viewer to see all recommendations submitted by other users.
-msMain_OptionsButton_Hint=Options|Change the options that control how the plugin runs.
-msMain_UpdateButton_Hint=Update|No updates available!
+msMain_NewButton_Hint=Create new smashed patch|Make a new empty smashed patch.
+msMain_BuildButton_Hint=Build patches|
+msMain_SubmitButton_Hint=Submit recommendations|Submit smash settings and plugin #13#10recommendations.#13#10
+msMain_ManageButton_Hint=Manage Smash Settings|Click here to manage smash settings.
+msMain_DictionaryButton_Hint=View dictionary|Open the dictionary viewer to see all #13#10recommendations submitted by other users.#13#10
+msMain_OptionsButton_Hint=Options|Change the options that control how the #13#10program runs.#13#10
+msMain_UpdateButton_Hint=Update|
 msMain_HelpButton_Hint=Help|Sorry, this isn't working yet.
+{ #### DYNAMIC #### }
+msMain_NoPatches=There aren't any patches to build or rebuild.
+msMain_BuildPatches_Loader=You can't build patches until the background #13#10loader is done.#13#10
+msMain_BuildAllPatches=Builds all patches that are ready to be built or #13#10rebuilt.#13#10
+msMain_UpdateBoth=Program and dictionary update available.
+msMain_UpdateProgram=Program update available.
+msMain_UpdateDictionary=Dictionary update available.
+msMain_NoUpdates=No updates available.
+msMain_NoDictionary=View dictionary|No dictionary file available.
 { ## Main Panel ## }
 { ## Details Panel ## }
 msMain_DetailsLabel_Caption=Details
@@ -18,15 +27,37 @@ msMain_PluginsListView_Column0=Index
 msMain_PluginsListView_Column1=Filename
 msMain_PluginsListView_Column2=Setting
 msMain_PluginsListView_Column3=Patch
+{ #### DYNAMIC #### }
+msMain_PluginDetails=Plugin Details
+msMain_Filename=Filename
+msMain_Hash=Hash
+msMain_FileSize=File Size
+msMain_DateModified=Date Modified
+msMain_NumRecords=Number of records
+msMain_NumOverrides=Number of overrides
+msMain_Author=Author
+msMain_Description=Description
+msMain_Masters=Masters
 { ## Plugins Popup Menu ## }
 msMain_OpenPluginLocationItem_Caption=Open plugin location
-{ ## Errors Submenu ## }
+msMain_AddToPatchItem_Caption=Add to patch
+msMain_SmashSettingItem_Caption=Smash setting
+{ ## Patches Tab ## }
 msMain_PatchesTabSheet_Caption=Patches
 msMain_PatchesListView_Column0=Index
 msMain_PatchesListView_Column1=Name
 msMain_PatchesListView_Column2=Filename
 msMain_PatchesListView_Column3=Size
 msMain_PatchesListView_Column4=Date built
+{ #### DYNAMIC #### }
+msMain_PatchDetails=Patch Details
+msMain_Status=Status
+msMain_PatchName=Patch name
+msMain_PluginCount=Plugin count
+msMain_DateBuilt=Date built
+msMain_Plugins=Plugins
+msMain_Fails=Fails
+msMain_TooManyFails=Too many fails to display.
 { ## Patches Popup Menu ## }
 msMain_ToggleRebuildItem_Caption=Toggle rebuild status
 msMain_OpenInExplorerItem_Caption=Open in explorer
@@ -38,6 +69,27 @@ msMain_ToTopItem_Caption=To top
 msMain_ToBottomItem_Caption=To bottom
 { ## Log Tab ## }
 msMain_LogTabSheet_Caption=Log
+{ #### DYNAMIC #### }
+msMain_AppDetails=Application Details
+msMain_Application=Application
+msMain_Author=Author
+msMain_Version=Version
+msMain_DateBuilt=Date built
+msMain_GameMode=Game mode
+msMain_Language=Language
+msMain_TimesRun=Times run
+msMain_PatchesBuilt=Patches built
+msMain_PluginsSmashed=Plugins smashed
+msMain_SettingsSubmitted=Smash settings submitted
+msMain_RecsSubmitted=Recommendations submitted
+msMain_Website=Website
+msMain_ApiCredits=API Credits
+msMain_xEditVersion=xEdit Version
+msMain_xEditCredits=xEdit Credits
+msMain_Testers=Testers
+msMain_Translators=Translators
+msMain_LoadException=Exception Loading Plugins
+msMain_PluginsNotLoaded=Due to an exception, not all of your plugins #13#10have been loaded.  You can still use the program. #13#10See the log tab for more info.#13#10
 { ## Log Popup Menu ## }
 msMain_FilterGroupItem_Caption=Filter group
 msMain_FilterLabelItem_Caption=Filter label
@@ -97,38 +149,27 @@ mpOpt_kbCopyGeneralAssets_Caption=Copy general asssets
 mpOpt_lblModOrganizerPath_Caption=Mod Organizer path
 mpOpt_lblModOrganizerModsPath_Caption=Mod Organizer mods path
  
-{ TDictionaryForm }
+{ TSettingsManager }
 { ## Settings ## }
 msSet_gbFiltering_Caption=Filtering options
-msSet_lblName_Caption=Name
-msSet_lblRecords_Caption=Records 
 msSet_lvSettings_Column0=Name
 msSet_lvSettings_Column1=Records
+msSet_btnSave_Caption=Save
+msSet_btnDiscard_Caption=Discard
 { ## Settings Popup Menu ## }
 msSet_NewSettingItem_Caption=New setting
+msSet_CloneSettingItem_Caption=Clone setting
+msSet_CombineSettingsItem_Caption=Combine settings
 msSet_EditSettingItem_Caption=Edit setting
 msSet_DeleteSettingItem_Caption=Delete setting
 { ## Details ## }
-msSet_lblDictionary_Caption=Settings information:
-{ ## Notes ## }
-msSet_lblNotes_Caption=Description:
- 
-{ TSettingsManager }
-msSet_CloneSettingItem_Caption=Clone setting
+msSet_lblName_Caption=Name
+msSet_lblColor_Caption=Color
 msSet_lblDescription_Caption=Description
 msSet_lblTree_Caption=Tree
-msSet_ChangePriorityItem_Caption=Change priority
+{ ## Tree Popup Menu ## }
 msSet_ToggleNodesItem_Caption=Toggle nodes
 msSet_IgnoreDeletionsItem_Caption=Toggle ignore deletions
 msSet_SingleEntityItem_Caption=Toggle treat as single entity
 msSet_PruneNodesItem_Caption=Prune nodes
-msSet_btnSave_Caption=Save
-msSet_btnDiscard_Caption=Discard
-msSet_CombineSettingsItem_Caption=Combine settings
-msMain_AddToPatchItem_Caption=Add to patch
-msMain_SmashSettingItem_Caption=Smash setting
-{ ## Patches Tab ## }
-msSet_Label1_Caption=Color
 msSet_PreserveDeletionsItem_Caption=Toggle preserve deletions
-msMain_DictionaryButton_Hint=View dictionary|Open the dictionary viewer to see all recommendations submitted by other users.
-msMain_ManageButton_Hint=Manage Smash Settings|Click here to manage smash settings.
