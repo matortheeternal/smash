@@ -30,8 +30,11 @@ type
     procedure FormCreate(Sender: TObject);
     procedure btnOKClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure tvRecordsMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
   private
     { Private declarations }
+    lastHint: string;
   public
     // slConflicts is a stringlist of record signatures
     // each signature has a TSmashSetting associated with it
@@ -79,6 +82,38 @@ begin
       DrawFlag(Sender.Canvas, x, y, 0);
     if e.singleEntity then
       DrawFlag(Sender.Canvas, x, y, 1);
+    if (e.linkTo <> '') or (e.linkFrom <> '') then
+      DrawFlag(Sender.Canvas, x, y, 2);
+  end;
+end;
+
+procedure TConflictForm.tvRecordsMouseMove(Sender: TObject; Shift: TShiftState;
+  X, Y: Integer);
+var
+  node: TTreeNode;
+  e: TElementData;
+  sHint: string;
+begin
+  // draw hint if on a node with the link parameter
+  node := tvRecords.GetNodeAt(X, Y);
+  if not Assigned(node) then
+    exit;
+  e := TElementData(node.Data);
+  if not Assigned(e) then
+    exit;
+  sHint := '';
+  if e.linkTo <> '' then
+    sHint := 'Linked to: '+e.linkTo;
+  if e.linkFrom <> '' then begin
+    if sHint <> '' then
+      sHint := sHint + #13#10'Linked from: '+e.linkFrom
+    else
+      sHint := 'Linked from: '+e.linkFrom;
+  end;
+  if sHint <> lastHint then begin
+    tvRecords.Hint := sHint;
+    Application.ActivateHint(Mouse.CursorPos);
+    lastHint := sHint;
   end;
 end;
 

@@ -129,6 +129,8 @@ var
   rec: IwbMainRecord;
   recObj: ISuperObject;
 begin
+  Tracker.Write(' ');
+  Tracker.Write('Processing files');
   for i := 0 to Pred(lst.Count) do begin
     plugin := TPlugin(lst[i]);
     // skip plugins that have the skip setting
@@ -182,6 +184,8 @@ var
   recObj: ISuperObject;
   e, eCopy: IwbElement;
 begin
+  Tracker.Write(' ');
+  Tracker.Write('Smashing records');
   patchFile := patch.plugin._File;
   // loop through records to smash
   for i := 0 to Pred(records.Count) do begin
@@ -322,8 +326,8 @@ begin
     time := (Now - time) * 86400;
     patch.dateBuilt := Now;
     patch.status := psUpToDate;
-    Tracker.Write(Format('Done smashing %s (%ss)', 
-      [patch.name, FormatFloat('0.###', time)]));
+    Tracker.Write(Format('Done smashing %s (%.3f)',
+      [patch.name, time]));
   except
     on x: Exception do begin
       patch.status := psFailed;

@@ -66,13 +66,16 @@ type
     appIDs: string;
     bsaOptMode: string;
   end;
-  TElementData = Record
+  TElementData = class(TObject)
     priority: byte;
     process: boolean;
     preserveDeletions: boolean;
     singleEntity: boolean;
+    linkTo: string;
+    linkFrom: string;
     constructor Create(priority: byte; process: boolean;
-      preserveDeletions: boolean; singleEntity: boolean); overload;
+      preserveDeletions: boolean; singleEntity: boolean;
+      linkTo, linkFrom: string); overload;
   end;
   TSmashSetting = class(TObject)
   public
@@ -206,6 +209,8 @@ type
     debugTraversal: boolean;
     debugTypes: boolean;
     debugChanges: boolean;
+    debugSingle: boolean;
+    debugLinks: boolean;
     [IniSection('Integrations')]
     usingMO: boolean;
     MOPath: string;
@@ -257,7 +262,7 @@ type
   procedure AddRequiredBy(filename: string; var masters: TStringList);
   procedure GetMasters(aFile: IwbFile; var sl: TStringList);
   procedure AddMasters(aFile: IwbFile; var sl: TStringList);
-  function BSAExists(filename: string): boolean;
+  function LoadBSA(filename: string): boolean;
   function INIExists(filename: string): boolean;
   function TranslationExists(filename: string): boolean;
   function FaceDataExists(filename: string): boolean;
@@ -431,7 +436,6 @@ var
   CurrentProfile: TProfile;
   statistics, sessionStatistics: TStatistics;
   status, RemoteStatus: TmsStatus;
-  handler: IwbContainerHandler;
   excludedGroups: array of string;
   bInitException, bLoadException, bChangeProfile, bForceTerminate,
   bLoaderDone, bAuthorized, bProgramUpdate, bDictionaryUpdate, bInstallUpdate,
@@ -849,8 +853,9 @@ begin
   end;
 end;
 
-{ Checks if a BSA exists associated with the given filename }
-function BSAExists(filename: string): boolean;
+{ Checks if a BSA exists associated with the given filename and loads it into
+  wbContainerHandler if found. }
+function LoadBSA(filename: string): boolean;
 var
   bsaFilename, ContainerName: string;
 begin
@@ -858,8 +863,8 @@ begin
   bsaFilename := ChangeFileExt(filename, '.bsa');
   if FileExists(wbDataPath + bsaFilename) then begin
     ContainerName := wbDataPath + bsaFilename;
-    if not handler.ContainerExists(ContainerName) then
-      handler.AddBSA(ContainerName);
+    if not wbContainerHandler.ContainerExists(ContainerName) then
+      wbContainerHandler.AddBSA(ContainerName);
     Result := true;
   end;
 end;
@@ -902,11 +907,11 @@ begin
   if Result then exit;
 
   // check in BSA
-  if BSAExists(filename) then begin
+  if LoadBSA(filename) then begin
     bsaFilename := ChangeFileExt(filename, '.bsa');
     ContainerName := wbDataPath + bsaFilename;
     ResourceList := TStringList.Create;
-    handler.ContainerResourceList(ContainerName, ResourceList, 'Interface\translations');
+    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, 'Interface\translations');
     Result := ResourceList.Count > 0;
   end;
 end;
@@ -926,12 +931,12 @@ begin
   if Result then exit;
 
   // check in BSA
-  if BSAExists(filename) then begin
+  if LoadBSA(filename) then begin
     bsaFilename := ChangeFileExt(filename, '.bsa');
     ContainerName := wbDataPath + bsaFilename;
     ResourceList := TStringList.Create;
-    handler.ContainerResourceList(ContainerName, ResourceList, facetintDir);
-    handler.ContainerResourceList(ContainerName, ResourceList, facegeomDir);
+    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, facetintDir);
+    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, facegeomDir);
     Result := ResourceList.Count > 0;
   end;
 end;
@@ -947,11 +952,11 @@ begin
   if Result then exit;
 
   // check in BSA
-  if BSAExists(filename) then begin
+  if LoadBSA(filename) then begin
     bsaFilename := ChangeFileExt(filename, '.bsa');
     ContainerName := wbDataPath + bsaFilename;
     ResourceList := TStringList.Create;
-    handler.ContainerResourceList(ContainerName, ResourceList, voiceDir);
+    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, voiceDir);
     Result := ResourceList.Count > 0;
   end;
 end;
@@ -1101,14 +1106,14 @@ var
   ResourceList: TStringList;
   i: Integer;
 begin
-  if not handler.ContainerExists(ContainerName) then begin
+  if not wbContainerHandler.ContainerExists(ContainerName) then begin
     Tracker.Write('    '+ContainerName+' not loaded.');
     exit;
   end;
   ResourceList := TStringList.Create;
-  handler.ContainerResourceList(ContainerName, ResourceList, folder);
+  wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, folder);
   for i := 0 to Pred(ResourceList.Count) do
-    handler.ResourceCopy(ContainerName, ResourceList[i], destination);
+    wbContainerHandler.ResourceCopy(ContainerName, ResourceList[i], destination);
 end;
 
 { Extracts assets from the BSA @filename to @destination, ignoring assets
@@ -1119,12 +1124,12 @@ var
   i, j: Integer;
   skip: boolean;
 begin
-  if not handler.ContainerExists(ContainerName) then begin
+  if not wbContainerHandler.ContainerExists(ContainerName) then begin
     Tracker.Write('    '+ContainerName+' not loaded.');
     exit;
   end;
   ResourceList := TStringList.Create;
-  handler.ContainerResourceList(ContainerName, ResourceList, '');
+  wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, '');
   for i := 0 to Pred(ResourceList.Count) do begin
     skip := false;
     for j := 0 to Pred(ignore.Count) do begin
@@ -1133,7 +1138,7 @@ begin
     end;
 
     if skip then continue;
-    handler.ResourceCopy(ContainerName, ResourceList[i], destination);
+    wbContainerHandler.ResourceCopy(ContainerName, ResourceList[i], destination);
   end;
 end;
 
@@ -2232,8 +2237,8 @@ end;
 }
 procedure SetChildren(node: TTreeNode; state: Integer);
 var
-  e: TElementData;
   tmp: TTreeNode;
+  e: TElementData;
 begin
   // exit if we don't have a node to work with
   if not Assigned(node) then exit;
@@ -2245,7 +2250,6 @@ begin
     tmp.StateIndex := state;
     e := TElementData(tmp.Data);
     e.process := state <> cUnChecked;
-    tmp.Data := Pointer(e);
     if tmp.HasChildren then
       SetChildren(tmp, state);
     tmp := tmp.getNextSibling;
@@ -2296,7 +2300,6 @@ begin
   e := TElementData(node.Data);
   e.process := state <> cUnChecked;
   e.singleEntity := false;
-  node.Data := Pointer(e);
   tmp := node.Parent;
   UpdateParent(tmp);
 end;
@@ -2322,7 +2325,6 @@ begin
     e := TElementData(node.Data);
     e.process := true;
     e.singleEntity := false;
-    node.Data := Pointer(e);
     UpdateParent(node.Parent);
     SetChildren(node, cChecked);
   end
@@ -2331,7 +2333,6 @@ begin
   else if node.StateIndex = cChecked then begin
     node.StateIndex := cUnChecked;
     e := TElementData(node.Data);
-    node.Data := Pointer(e);
     e.process := false;
     e.singleEntity := false;
     UpdateParent(node.Parent);
@@ -2346,23 +2347,27 @@ var
   child: TTreeNode;
   bProcess, bPreserveDeletions, bIsSingle: boolean;
   priority: Integer;
+  sLinkTo, sLinkFrom: string;
+  e: TElementData;
 begin
   if not Assigned(obj) then
     exit;
-  child := tv.Items.AddChild(node, obj.S['n']);
   priority := obj.I['r'];
   bProcess := obj.I['p'] = 1;
   bPreserveDeletions := obj.I['d'] = 1;
   bIsSingle := obj.I['s'] = 1;
   bWithinSingle := bWithinSingle or bIsSingle;
+  sLinkTo := obj.S['lt'];
+  sLinkFrom := obj.S['lf'];
+  e := TElementData.Create(priority, bProcess, bPreserveDeletions, bIsSingle,
+    sLinkTo, sLinkFrom);
+  child := tv.Items.AddChildObject(node, obj.S['n'], e);
   if bIsSingle then
     child.StateIndex := cPartiallyChecked
   else if bProcess then
     child.StateIndex := cChecked
   else
     child.StateIndex := cUnChecked;
-  child.Data := Pointer(TElementData.Create( priority, bProcess,
-      bPreserveDeletions, bIsSingle ));
   if Assigned(obj.O['c']) then try
     for item in obj['c'] do
       LoadElement(tv, child, item, bWithinSingle);
@@ -2378,8 +2383,10 @@ procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
 var
   obj, item: ISuperObject;
   rootNode: TTreeNode;
+  e: TElementData;
 begin
-  rootNode := tv.Items.Add(nil, 'Records');
+  e := TElementData.Create(0, false, false, false, '', '');
+  rootNode := tv.Items.AddObject(nil, 'Records', e);
   obj := aSetting.tree;
   if not Assigned(obj) then
     exit;
@@ -3703,12 +3710,14 @@ begin
 end;
 
 constructor TElementData.Create(priority: Byte; process: Boolean;
-  preserveDeletions: Boolean; singleEntity: Boolean);
+  preserveDeletions: Boolean; singleEntity: Boolean; linkTo, linkFrom: string);
 begin
   self.priority := priority;
   self.process := process;
   self.preserveDeletions := preserveDeletions;
   self.singleEntity := singleEntity;
+  self.linkTo := linkTo;
+  self.linkFrom := linkFrom;
 end;
 
 { TSmashSetting }

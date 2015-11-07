@@ -107,7 +107,12 @@ begin
       Result := true;
       if bSingle then 
         exit;
-      wbCopyElementToRecord(element, dstRec, false, true);
+      try
+        wbCopyElementToRecord(element, dstRec, false, true);
+      except
+        on x: Exception do
+          Tracker.Write('        HandleElementLife: Failed to copy '+element.Path+', '+x.Message);
+      end;
     end;
   end;
 
@@ -318,6 +323,14 @@ end;
 }
 procedure CopyElementValue(se, me, de: IwbElement);
 begin
+  if not de.IsEditable then begin
+    if settings.debugChanges then begin
+      Tracker.Write('      Unable to copy element value on '+se.path);
+      Tracker.Write('      Element is not editable');
+    end;
+    exit;
+  end;
+
   if Assigned(me) and settings.debugChanges then begin
     if (not settings.debugTraversal) then
       Tracker.Write('      '+se.Path);
@@ -341,7 +354,7 @@ function HandleElement(se, me, de: IwbElement; dstRec: IwbMainRecord;
   obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 var
   et: TwbElementType;
-  dt: TwbDefType;
+  srcType, dstType: TwbDefType;
   container: IwbContainer;
   subDef: IwbSubRecordDef;
 begin
@@ -349,20 +362,33 @@ begin
 
   // deftype and elementtype
   et := se.ElementType;
-  dt := se.Def.DefType;
+  srcType := se.Def.DefType;
+  dstType := de.Def.DefType;
 
   // get the deftype of value held by subrecorddefs
   if Supports(se.Def, IwbSubRecordDef, subDef) then
-    dt := subDef.Value.DefType;
+    srcType := subDef.Value.DefType;
+  if Supports(de.Def, IwbSubRecordDef, subDef) then
+    dstType := subDef.Value.DefType;
+
+  // exit if srcType <> dstType
+  if srcType <> dstType then begin
+    if settings.debugSkips then begin
+      Tracker.Write('      Source and destination types don''t match');
+      Tracker.Write('      '+dtToString(srcType)+' != '+dtToString(dstType));
+      Tracker.Write('      Skipping '+se.Path);
+    end;
+    exit;
+  end;
 
   // debug messages
   if settings.debugTraversal then
     Tracker.Write('      '+se.Path);
   if settings.debugTypes then
-    Tracker.Write('      ets: '+etToString(et)+'  dts: '+dtToString(dt));
+    Tracker.Write('      ets: '+etToString(et)+'  dts: '+dtToString(srcType));
 
   // merge array
-  if (et = etSubRecordArray) or ((dt = dtArray) and IsSorted(se)) then begin
+  if (et = etSubRecordArray) or ((srcType = dtArray) and IsSorted(se)) then begin
     if settings.debugTraversal then
       Tracker.Write('         Merging array');
     try
@@ -372,7 +398,7 @@ begin
     end;
   end
   // else recurse deeper
-  else if (dt <> dtInteger) and Supports(se, IwbContainer, container)
+  else if (srcType <> dtInteger) and Supports(se, IwbContainer, container)
   and (container.ElementCount > 0) then begin
     if settings.debugTraversal then
       Tracker.Write('        Recursing deeper');
@@ -383,7 +409,7 @@ begin
     end;
   end
   // else copy element value
-  else if (dt in ValueElements) and (se.EditValue <> me.EditValue) then begin
+  else if (srcType in ValueElements) and (se.EditValue <> me.EditValue) then begin
     if not bSingle then
       CopyElementValue(se, me, de);
     Result := true;
@@ -410,9 +436,10 @@ function rcore(src, mst, dst: IwbElement; dstRec: IwbMainRecord;
 var
   i: integer;
   srcCont, dstCont, mstCont: IwbContainerElementRef;
-  se, me, de: IwbElement;
+  se, me, de, le: IwbElement;
   process, eSingle, eDeletions: boolean;
   eObj: ISuperObject;
+  eLink: string;
 begin
   Result := false;
 
@@ -437,6 +464,24 @@ begin
     de := dstCont.ElementByName[se.Name];
     me := mstCont.ElementByName[se.Name];
 
+    // skip if master element not assigned
+    if not Assigned(me) then begin
+      if settings.debugSkips then begin
+        Tracker.Write('      Master element not found!');
+        Tracker.Write('      Skipping '+se.Path);
+      end;
+      continue;
+    end;
+
+    // skip if destination element not assigned
+    if not Assigned(de) then begin
+      if settings.debugSkips then begin
+        Tracker.Write('      Destination element not found!');
+        Tracker.Write('      Skipping '+se.Path);
+      end;
+      continue;
+    end;
+
     // skip according to setting
     eObj := GetChildObj(obj, se.Name);
     process := Assigned(eObj) and (eObj.I['p'] = 1);
@@ -452,7 +497,6 @@ begin
 
     // handle element
     Result := HandleElement(se, me, de, dstRec, eObj, eSingle, eDeletions);
-    eObj := nil;
 
     // if we're in a single entity and an element is changed, break
     // we don't need to handle anything anymore
@@ -461,8 +505,33 @@ begin
 
     // if the element we're processing has the single entity flag set
     // and we're not currently in a single entity, copy entire element
-    if eSingle and (not bSingle) and Result then
+    if eSingle and (not bSingle) and Result then try
+      if settings.debugSingle then
+        Tracker.Write('      Copying single entity '+se.path);
       wbCopyElementToRecord(se, dstRec, false, true);
+    except
+      on x: Exception do
+        Tracker.Write('        rcore: Failed to copy '+se.Path+', '+x.Message);
+    end;
+
+    // if another element is linked to the element being processed
+    // and the element being processed has been modified, copy the linked
+    // element
+    eLink := eObj.S['lf'];
+    if Result and (eLink <> '') then try
+      le := srcCont.ElementByName[eLink];
+      de := dstCont.ElementByName[eLink];
+      if Assigned(le) then begin
+        if settings.debugLinks then
+          Tracker.Write('      Copying linked element '+le.Path);
+        if Assigned(de) and de.IsRemoveable then
+          de.Remove;
+        wbCopyElementToRecord(le, dstRec, false, true);
+      end;
+    except
+      on x: Exception do
+        Tracker.Write('        rcore: Failed to copy '+se.Path+', '+x.Message);
+    end;
   end;
 end;
 

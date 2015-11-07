@@ -46,6 +46,8 @@ type
     CombineSettingsItem: TMenuItem;
     lblColor: TLabel;
     cbColor: TColorBox;
+    LinkNodeToItem: TMenuItem;
+    UnlinkNodeItem: TMenuItem;
     // TREE METHODS
     procedure TreeDone;
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
@@ -55,6 +57,7 @@ type
       Shift: TShiftState);
     procedure tvRecordsMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure LinkNode(Sender: TObject);
     procedure TreePopupMenuPopup(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
     procedure PreserveDeletionsItemClick(Sender: TObject);
@@ -89,8 +92,12 @@ type
     procedure tvRecordsCollapsing(Sender: TObject; Node: TTreeNode;
       var AllowCollapse: Boolean);
     procedure tvRecordsKeyPress(Sender: TObject; var Key: Char);
+    procedure tvRecordsMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure UnlinkNodeItemClick(Sender: TObject);
   private
     { Private declarations }
+    lastHint: string;
   public
     { Public declarations }
     FilterFilename: string;
@@ -169,6 +176,8 @@ begin
       DrawFlag(Sender.Canvas, x, y, 0);
     if e.singleEntity then
       DrawFlag(Sender.Canvas, x, y, 1);
+    if (e.linkTo <> '') or (e.linkFrom <> '') then
+      DrawFlag(Sender.Canvas, x, y, 2);
   end;
 end;
 
@@ -192,7 +201,17 @@ procedure TSettingsManager.tvRecordsMouseDown(Sender: TObject; Button: TMouseBut
   Shift: TShiftState; X, Y: Integer);
 var
   HT: THitTests;
+  node: TTreeNode;
 begin
+  // this allows right clicking to be used to select nodes
+  if Button = mbRight then begin
+    node := tvRecords.GetNodeAt(X, Y);
+    if not node.Selected then begin
+      tvRecords.ClearSelection(false);
+      tvRecords.Select(node);
+    end;
+  end;
+
   // this prevents a bug that happens when collapsing a node
   // would cause the control to scroll up, putting the user's mouse
   // above a checkbox
@@ -209,19 +228,155 @@ begin
   tvRecords.Repaint;
 end;
 
+procedure TSettingsManager.tvRecordsMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+var
+  node: TTreeNode;
+  e: TElementData;
+  sHint: string;
+begin
+  // draw hint if on a node with the link parameter
+  node := tvRecords.GetNodeAt(X, Y);
+  if not Assigned(node) then
+    exit;
+  e := TElementData(node.Data);
+  if not Assigned(e) then
+    exit;
+  sHint := '';
+  if e.linkTo <> '' then
+    sHint := 'Linked to: '+e.linkTo;
+  if e.linkFrom <> '' then begin
+    if sHint <> '' then
+      sHint := sHint + #13#10'Linked from: '+e.linkFrom
+    else
+      sHint := 'Linked from: '+e.linkFrom;
+  end;
+  if sHint <> lastHint then begin
+    tvRecords.Hint := sHint;
+    Application.ActivateHint(Mouse.CursorPos);
+    lastHint := sHint;
+  end;
+end;
+
+function GetSiblingNode(node: TTreeNode; text: string): TTreeNode;
+var
+  aNode: TTreeNode;
+begin
+  Result := nil;
+  aNode := node.Parent.getFirstChild;
+  while Assigned(aNode) do begin
+    if aNode.Text = text then begin
+      Result := aNode;
+      exit;
+    end;
+    aNode := aNode.getNextSibling;
+  end;
+end;
+
+procedure UnlinkNode(node: TTreeNode);
+var
+  linkedNode: TTreeNode;
+  e, le: TElementData;
+begin
+  e := TElementData(node.Data);
+  if e.linkTo <> '' then begin
+    linkedNode := GetSiblingNode(node, e.linkTo);
+    le := TElementData(linkedNode.Data);
+    le.linkFrom := '';
+    e.linkTo := '';
+  end;
+  if e.linkFrom <> '' then begin
+    linkedNode := GetSiblingNode(node, e.linkFrom);
+    le := TElementData(linkedNode.Data);
+    le.linkTo := '';
+    e.linkFrom := '';
+  end;
+end;
+
+procedure TSettingsManager.UnlinkNodeItemClick(Sender: TObject);
+var
+  i: Integer;
+  node: TTreeNode;
+begin
+  // unset link element data attribute for each selected node
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
+    node := tvRecords.Selections[i];
+    UnlinkNode(node);
+  end;
+
+  // update gui
+  tvRecords.Repaint;
+end;
+
+procedure TSettingsManager.LinkNode(Sender: TObject);
+var
+  item: TMenuItem;
+  targetNodeText: string;
+  node, targetNode: TTreeNode;
+  e: TElementData;
+begin
+  // get the target node to link to from the menu item clicked
+  node := tvRecords.Selections[0];
+  item := TMenuItem(Sender);
+  targetNodeText := StringReplace(item.Caption, '&', '', [rfReplaceAll]);
+  targetNode := GetSiblingNode(node, targetNodeText);
+  if not Assigned(targetNode) then
+    exit;
+
+  // unlink source and target node
+  UnlinkNode(node);
+  UnlinkNode(targetNode);
+
+  // set element data if target node found
+  e := TElementData(node.Data);
+  e.linkTo := targetNodeText;
+  e := TElementData(targetNode.Data);
+  e.linkFrom := node.Text;
+
+  // update gui
+  tvRecords.Repaint;
+end;
+
 procedure TSettingsManager.TreePopupMenuPopup(Sender: TObject);
 var
-  bHasSelection, bHasChildren: boolean;
+  bHasSelection, bSubrecordSelected, bHasChildren: boolean;
   i: Integer;
+  node: TTreeNode;
+  MenuItem: TMenuItem;
 begin
+  // clear link node submenu
+  LinkNodeToItem.Clear;
+
+  // get selection booleans
   bHasSelection := tvRecords.SelectionCount > 0;
+  bSubrecordSelected := (tvRecords.SelectionCount = 1)
+    and (tvRecords.Selections[0].Level > 1);
   bHasChildren := false;
   for i := 0 to Pred(tvRecords.SelectionCount) do
     bHasChildren := bHasChildren or tvRecords.Selections[i].HasChildren;
+
+  // enable/disable menu items
   ToggleNodesItem.Enabled := bHasSelection;
   PreserveDeletionsItem.Enabled := bHasSelection and bHasChildren;
   SingleEntityItem.Enabled := bHasSelection and bHasChildren;
   PruneNodesItem.Enabled := bHasSelection;
+  LinkNodeToItem.Enabled := bSubrecordSelected;
+
+  // build LinkNodeToItem submenu
+  if bSubrecordSelected then begin
+    node := tvRecords.Selected.Parent.getFirstChild;
+    while Assigned(node) do begin
+      if node = tvRecords.Selections[0] then begin
+        node := node.getNextSibling;
+        continue;
+      end;
+      MenuItem := TMenuItem.Create(LinkNodeToItem);
+      MenuItem.Caption := node.Text;
+      MenuItem.OnClick := LinkNode;
+      LinkNodeToItem.Add(MenuItem);
+      node := node.getNextSibling;
+    end;
+  end;
 end;
 
 procedure TSettingsManager.ToggleNodesItemClick(Sender: TObject);
@@ -244,7 +399,7 @@ begin
       continue;
     e := TElementData(node.Data);
     e.preserveDeletions := not e.preserveDeletions;
-    tvRecords.Selections[i].Data := Pointer(e);
+    tvRecords.Selections[i].Data := e;
   end;
   tvRecords.Repaint;
 end;
@@ -270,7 +425,7 @@ begin
       node.StateIndex := cChecked;
     end;
     UpdateParent(node.Parent);
-    tvRecords.Selections[i].Data := Pointer(e);
+    tvRecords.Selections[i].Data := e;
   end;
   tvRecords.Repaint;
 end;
@@ -390,6 +545,8 @@ begin
     obj.I['p'] := 1;
   if (e.preserveDeletions) then obj.I['d'] := 1;
   if (e.singleEntity) then obj.I['s'] := 1;
+  if (e.linkTo <> '') then obj.S['lt'] := e.linkTo;
+  if (e.linkFrom <> '') then obj.S['lf'] := e.linkFrom;
 
   // exit if no children to dump
   if node.hasChildren then begin
@@ -698,10 +855,18 @@ end;
 procedure TSettingsManager.CloneSettingItemClick(Sender: TObject);
 var
   setting, clonedSetting: TSmashSetting;
+  name: string;
+  i: Integer;
 begin
   clonedSetting := TSmashSetting.Create;
   setting := TSmashSetting(SmashSettings[lvSettings.Selected.Index]);
   clonedSetting.Clone(setting);
+  name := setting.name;
+  i := 1;
+  while Assigned(SettingByName(setting.name)) do begin
+    Inc(i);
+    setting.name := name + IntToStr(i);
+  end;
   SmashSettings.Add(clonedSetting);
   lvSettings.Items.Count := lvSettings.Items.Count + 1;
 end;

@@ -79,7 +79,6 @@ var
   wbPluginsFileName: string;
   sl: TStringList;
   i: integer;
-  bsaFileName: string;
   plugin: TPlugin;
   aFile: IwbFile;
 begin
@@ -121,9 +120,9 @@ begin
     wbRequireLoadOrder := True;
     wbLanguage := settings.language;
     wbEditAllowed := True;
-    handler := wbCreateContainerHandler;
+    wbContainerHandler := wbCreateContainerHandler;
     LoadExcludedGroups;
-    handler.AddFolder(wbDataPath);
+    wbContainerHandler.AddFolder(wbDataPath);
 
     // IF AUTOMATIC UPDATING IS ENABLED, CHECK FOR UPDATE
     InitializeClient;
@@ -197,11 +196,7 @@ begin
         plugin._File._AddRef;
         plugin.GetData;
         PluginsList.Add(Pointer(plugin));
-
-        // load bsa if it exists
-        bsaFileName := ChangeFileExt(sl[i], '.bsa');
-        if FileExists(wbDataPath + bsaFileName) then
-          handler.AddBSA(wbDataPath + bsaFileName);
+        LoadBSA(sl[i]);
       except
         on x: Exception do begin
           Logger.Write('ERROR', 'Load', 'Exception loading '+sl[i]);
@@ -266,11 +261,11 @@ var
 begin
   FreeOnTerminate := true;
   StatusCallback(Format('%s (%d/%d)',
-    [GetString('mpMain_LoaderInProgress'), 1, PluginsList.Count]));
+    [GetString('msMain_LoaderInProgress'), 1, PluginsList.Count]));
   try
     for i := 0 to Pred(PluginsList.Count) do begin
       StatusCallback(Format('%s (%d/%d)',
-        [GetString('mpMain_LoaderInProgress'), i + 1, PluginsList.Count]));
+        [GetString('msMain_LoaderInProgress'), i + 1, PluginsList.Count]));
       plugin := TPlugin(PluginsList[i]);
       f := plugin._File;
       if SameText(plugin.filename, wbGameName + '.esm') then
@@ -291,7 +286,7 @@ begin
   end;
   bLoaderDone := true;
   LoaderProgress('finished');
-  StatusCallback(GetString('mpMain_LoaderFinished'));
+  StatusCallback(GetString('msMain_LoaderFinished'));
   if Assigned(LoaderCallback) then
     Synchronize(nil, LoaderCallback);
 end;
@@ -308,7 +303,7 @@ begin
     if Tracker.Cancel then break;
     patch := TPatch(patchesToBuild[i]);
     StatusCallback(Format('%s "%s" (%d/%d)',
-      [GetString('mpProg_Smashing'), patch.name, i + 1, patchesToBuild.Count]));
+      [GetString('msProg_Smashing'), patch.name, i + 1, patchesToBuild.Count]));
     try
       if (patch.status in RebuildStatuses) then
         RebuildPatch(patch)
@@ -330,7 +325,7 @@ begin
     Tracker.Write('All done!');
 
   // clean up, fire callback
-  StatusCallback(GetString('mpProg_DoneBuilding'));
+  StatusCallback(GetString('msProg_DoneBuilding'));
   Tracker.Cancel := false;
   if Assigned(PatchCallback) then
     Synchronize(nil, PatchCallback);
@@ -444,7 +439,7 @@ begin
     if Tracker.Cancel then break;
     child := TreeView.Items.AddChild(node, sl[i]);
     child.StateIndex := cUnChecked;
-    child.Data := Pointer(TElementData.Create(0, false, false, false));
+    child.Data := TElementData.Create(0, false, false, false, '', '');
     isl := TStringList(sl.Objects[i]);
     if Assigned(isl) then
       StringsToNodes(child, isl);

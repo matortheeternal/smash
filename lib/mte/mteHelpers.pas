@@ -11,6 +11,7 @@ uses
   function TitleCase(sText: String): String;
   function SentenceCase(sText: string): string;
   function csvText(s: string): string;
+  function CopyFromTo(str: string; first, last: Integer): string;
   function GetTextIn(str: string; open, close: char): string;
   function FormatByteSize(const bytes: Int64): string;
   function DateBuiltString(date: TDateTime): string;
@@ -74,6 +75,8 @@ implementation
   - TitleCase
   - SentenceCase
   - csvText
+  - CopyFromTo
+  - GetTextIn
   - FormatByteSize
   - DateBuiltString
   - DateTimeToSQL
@@ -152,6 +155,12 @@ begin
   result := StringReplace(Trim(s), #13, ', ', [rfReplaceAll]);
 end;
 
+{ Copies a substring in a string between two indexes }
+function CopyFromTo(str: string; first, last: Integer): string;
+begin
+  Result := Copy(str, first, (last - first) + 1);
+end;
+
 { Returns a substring of @str between characters @open and @close }
 function GetTextIn(str: string; open, close: char): string;
 var
@@ -167,7 +176,7 @@ begin
       bOpen := true;
     end;
     if bOpen and (str[i] = close) then begin
-      Result := Copy(str, openIndex + 2, (i - 1) - (openIndex + 2));
+      Result := CopyFromTo(str, openIndex + 1, i - 1);
       break;
     end;
   end;

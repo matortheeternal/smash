@@ -39,6 +39,7 @@ msMain_Author=Author
 msMain_Description=Description
 msMain_Masters=Masters
 { ## Plugins Popup Menu ## }
+msMain_NewPatchItem_Caption=<New Patch>
 msMain_OpenPluginLocationItem_Caption=Open plugin location
 msMain_AddToPatchItem_Caption=Add to patch
 msMain_SmashSettingItem_Caption=Smash setting
@@ -97,6 +98,9 @@ msMain_CopyToClipboardItem_Caption=Copy to clipboard
 msMain_SaveAndClearItem_Caption=Save and clear
 msMain_ToggleAutoScrollItem_Caption=Disable auto scroll
 { ## Status Bar ## }
+msMain_LoaderLimitations=You won't be able to check for errors #13#10or build merges until the loader is done.#13#10
+msMain_LoaderInProgress=Background loader in progress
+msMain_LoaderFinished=Background loader finished
  
 { TOptionsForm }
 mpOpt_btnCancel_Caption=Cancel
@@ -173,3 +177,9 @@ msSet_IgnoreDeletionsItem_Caption=Toggle ignore deletions
 msSet_SingleEntityItem_Caption=Toggle treat as single entity
 msSet_PruneNodesItem_Caption=Prune nodes
 msSet_PreserveDeletionsItem_Caption=Toggle preserve deletions
+
+{ TProgressForm }
+{ #### DYNAMIC #### }
+msProg_Closing=Closing
+msProg_Patching=Smashing Patches
+msProg_DoneBuilding=Done smashing patches

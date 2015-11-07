@@ -511,7 +511,7 @@ begin
     pForm := TProgressForm.Create(Self);
     pForm.LogPath := LogPath;
     pForm.PopupParent := Self;
-    pForm.Caption := GetString('mpProg_Closing');
+    pForm.Caption := GetString('msProg_Closing');
     pForm.MaxProgress(PluginsList.Count + PatchesList.Count + 2);
     pForm.Show;
 
@@ -923,6 +923,8 @@ begin
     if not ListItem.Selected then
       continue;
     plugin := TPlugin(PluginsList[i]);
+    if plugin.patch <> ' ' then
+      continue;
     // add plugin to patch
     Logger.Write('PLUGIN', 'Patch', 'Added '+plugin.filename+' to patch '+patch.name);
     if not plugin.hasData then
@@ -1955,8 +1957,9 @@ begin
   xEditLogGroup := 'MERGE';
   pForm := TProgressForm.Create(Self);
   pForm.LogPath := LogPath;
+  pForm.bDetailsVisible := false;
   pForm.PopupParent := Self;
-  pForm.Caption := GetString('mpProg_Merging');
+  pForm.Caption := GetString('msProg_Smashing');
   pForm.MaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
   pForm.Show;
 

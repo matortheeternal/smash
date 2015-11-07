@@ -101,6 +101,10 @@ procedure TProgressForm.FormShow(Sender: TObject);
 begin
   if (fsModal in FormState) then
     CancelButton.Caption := 'Close';
+  if not bDetailsVisible then begin
+    bDetailsVisible := false;
+    ToggleDetails(nil);
+  end;
 end;
 
 procedure TProgressForm.MaxProgress(const i: Integer);
