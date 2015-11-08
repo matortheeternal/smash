@@ -24,30 +24,32 @@ type
           SettingsPopupMenu: TPopupMenu;
           NewSettingItem: TMenuItem;
           DeleteSettingItem: TMenuItem;
+          CloneSettingItem: TMenuItem;
+          CombineSettingsItem: TMenuItem;
       [FormSection('Details')]
         pnlDetails: TPanel;
-      [FormSection('Notes')]
-    CloneSettingItem: TMenuItem;
-    tvRecords: TTreeView;
-    edName: TEdit;
-    lblName: TLabel;
-    lblDescription: TLabel;
-    meDescription: TMemo;
-    lblTree: TLabel;
-    TreePopupMenu: TPopupMenu;
-    ToggleNodesItem: TMenuItem;
-    PreserveDeletionsItem: TMenuItem;
-    SingleEntityItem: TMenuItem;
-    PruneNodesItem: TMenuItem;
-    StateImages: TImageList;
-    FlagIcons: TImageList;
-    btnSave: TButton;
-    btnDiscard: TButton;
-    CombineSettingsItem: TMenuItem;
-    lblColor: TLabel;
-    cbColor: TColorBox;
-    LinkNodeToItem: TMenuItem;
-    UnlinkNodeItem: TMenuItem;
+        lblName: TLabel;
+        edName: TEdit;
+        lblColor: TLabel;
+        cbColor: TColorBox;
+        lblDescription: TLabel;
+        meDescription: TMemo;
+        btnSave: TButton;
+        btnDiscard: TButton;
+        [FormSection('Tree')]
+          lblTree: TLabel;
+          tvRecords: TTreeView;
+          TreePopupMenu: TPopupMenu;
+          ToggleNodesItem: TMenuItem;
+          PreserveDeletionsItem: TMenuItem;
+          SingleEntityItem: TMenuItem;
+          PruneNodesItem: TMenuItem;
+          LinkNodeToItem: TMenuItem;
+          UnlinkNodeItem: TMenuItem;
+          ChainNodesItem: TMenuItem;
+          StateImages: TImageList;
+          FlagIcons: TImageList;
+
     // TREE METHODS
     procedure TreeDone;
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
@@ -57,12 +59,20 @@ type
       Shift: TShiftState);
     procedure tvRecordsMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure LinkNode(Sender: TObject);
+    procedure tvRecordsCollapsing(Sender: TObject; Node: TTreeNode;
+      var AllowCollapse: Boolean);
+    procedure tvRecordsKeyPress(Sender: TObject; var Key: Char);
+    procedure tvRecordsMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure LinkNodeItemClick(Sender: TObject);
     procedure TreePopupMenuPopup(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
     procedure PreserveDeletionsItemClick(Sender: TObject);
     procedure SingleEntityItemClick(Sender: TObject);
     procedure PruneNodesItemClick(Sender: TObject);
+    procedure UnlinkNodeItemClick(Sender: TObject);
+    procedure LinkNodes(node1, node2: TTreeNode);
+    procedure ChainNodesItemClick(Sender: TObject);
     procedure BuildTreeFromPlugins(var sl: TStringList);
     procedure BuildTree;
     function DumpElement(node: TTreeNode): ISuperObject;
@@ -89,12 +99,6 @@ type
     procedure edNameChange(Sender: TObject);
     procedure CombineSettings(var sl: TStringList);
     procedure CombineSettingsItemClick(Sender: TObject);
-    procedure tvRecordsCollapsing(Sender: TObject; Node: TTreeNode;
-      var AllowCollapse: Boolean);
-    procedure tvRecordsKeyPress(Sender: TObject; var Key: Char);
-    procedure tvRecordsMouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
-    procedure UnlinkNodeItemClick(Sender: TObject);
   private
     { Private declarations }
     lastHint: string;
@@ -104,9 +108,6 @@ type
   end;
 
 const
-  red = TColor($0000FF);
-  yellow = TColor($00A8E5);
-  green = TColor($009000);
   collapseHitTestDelay = 0.1 * seconds;
 
 var
@@ -308,12 +309,41 @@ begin
   tvRecords.Repaint;
 end;
 
-procedure TSettingsManager.LinkNode(Sender: TObject);
+procedure TSettingsManager.LinkNodes(node1, node2: TTreeNode);
+var
+  e: TElementData;
+begin
+  // unlink nodes as necessary
+  UnlinkNode(node1, true, false);
+  UnlinkNode(node2, false, true);
+
+  // link nodes
+  e := TElementData(node1.Data);
+  e.linkTo := node2.Text;
+  e := TElementData(node2.Data);
+  e.linkFrom := node1.Text;
+end;
+
+procedure TSettingsManager.ChainNodesItemClick(Sender: TObject);
+var
+  i: Integer;
+  prevNode, node: TTreeNode;
+begin
+  node := tvRecords.Selections[0];
+  for i := 1 to Pred(tvRecords.SelectionCount) do begin
+    prevNode := node;
+    node := tvRecords.Selections[i];
+    LinkNodes(prevNode, node);
+  end;
+  // link last node to first node
+  LinkNodes(node, tvRecords.Selections[0]);
+end;
+
+procedure TSettingsManager.LinkNodeItemClick(Sender: TObject);
 var
   item: TMenuItem;
   targetNodeText: string;
   node, targetNode: TTreeNode;
-  e: TElementData;
 begin
   // get the target node to link to from the menu item clicked
   node := tvRecords.Selections[0];
@@ -323,15 +353,8 @@ begin
   if not Assigned(targetNode) then
     exit;
 
-  // unlink source and target node
-  UnlinkNode(node, true, false);
-  UnlinkNode(targetNode, false, true);
-
-  // set element data if target node found
-  e := TElementData(node.Data);
-  e.linkTo := targetNodeText;
-  e := TElementData(targetNode.Data);
-  e.linkFrom := node.Text;
+  // link the nodes
+  LinkNodes(node, targetNode);
 
   // update gui
   tvRecords.Repaint;
@@ -339,7 +362,7 @@ end;
 
 procedure TSettingsManager.TreePopupMenuPopup(Sender: TObject);
 var
-  bHasSelection, bSubrecordSelected, bHasChildren: boolean;
+  bHasSelection, bHasMultiSelection, bSubrecordSelected, bHasChildren: boolean;
   i: Integer;
   node: TTreeNode;
   MenuItem: TMenuItem;
@@ -349,6 +372,7 @@ begin
 
   // get selection booleans
   bHasSelection := tvRecords.SelectionCount > 0;
+  bHasMultiSelection := tvRecords.SelectionCount > 1;
   bSubrecordSelected := (tvRecords.SelectionCount = 1)
     and (tvRecords.Selections[0].Level > 1);
   bHasChildren := false;
@@ -360,6 +384,8 @@ begin
   PreserveDeletionsItem.Enabled := bHasSelection and bHasChildren;
   SingleEntityItem.Enabled := bHasSelection and bHasChildren;
   PruneNodesItem.Enabled := bHasSelection;
+  UnlinkNodeItem.Enabled := bHasSelection;
+  ChainNodesItem.Enabled := bHasMultiSelection;
   LinkNodeToItem.Enabled := bSubrecordSelected;
 
   // build LinkNodeToItem submenu
@@ -372,7 +398,7 @@ begin
       end;
       MenuItem := TMenuItem.Create(LinkNodeToItem);
       MenuItem.Caption := node.Text;
-      MenuItem.OnClick := LinkNode;
+      MenuItem.OnClick := LinkNodeItemClick;
       LinkNodeToItem.Add(MenuItem);
       node := node.getNextSibling;
     end;
@@ -406,13 +432,18 @@ end;
 
 procedure TSettingsManager.SingleEntityItemClick(Sender: TObject);
 var
-  i: Integer;
+  i, expectedLevel: Integer;
   node: TTreeNode;
   e: TElementData;
 begin
+  expectedLevel := 0;
   for i := 0 to Pred(tvRecords.SelectionCount) do begin
     node := tvRecords.Selections[i];
+    if expectedLevel = 0 then
+      expectedLevel := node.Level;
     if not node.hasChildren then
+      continue;
+    if expectedLevel <> node.Level then
       continue;
     e := TElementData(node.Data);
     e.singleEntity := not e.singleEntity;
@@ -479,7 +510,7 @@ begin
   pForm := TProgressForm.Create(Self);
   pForm.LogPath := LogPath;
   pForm.PopupParent := Self;
-  pForm.Caption := GetString('mpProg_BuildingTree');
+  pForm.Caption := GetString('msProg_BuildingTree');
   pForm.MaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
   pForm.Show;
 
@@ -509,6 +540,8 @@ begin
   selectionForm.selectionList := slSelection;
   mr := selectionForm.ShowModal;
   bOverridesOnly := selectionForm.overridesOnly;
+  bTarget := selectionForm.targetRecords;
+  sRecords := selectionForm.records;
   if mr = mrOK then
     BuildTreeFromPlugins(slSelection);
 
@@ -667,6 +700,7 @@ begin
     node := node.getNextSibling;
   end;
 end;
+
 
 {******************************************************************************}
 { Settings Manager Events }
@@ -855,18 +889,10 @@ end;
 procedure TSettingsManager.CloneSettingItemClick(Sender: TObject);
 var
   setting, clonedSetting: TSmashSetting;
-  name: string;
-  i: Integer;
 begin
   clonedSetting := TSmashSetting.Create;
   setting := TSmashSetting(SmashSettings[lvSettings.Selected.Index]);
   clonedSetting.Clone(setting);
-  name := setting.name;
-  i := 1;
-  while Assigned(SettingByName(setting.name)) do begin
-    Inc(i);
-    setting.name := name + IntToStr(i);
-  end;
   SmashSettings.Add(clonedSetting);
   lvSettings.Items.Count := lvSettings.Items.Count + 1;
 end;

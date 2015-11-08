@@ -442,10 +442,10 @@ var
   excludedGroups: array of string;
   bInitException, bLoadException, bChangeProfile, bForceTerminate,
   bLoaderDone, bAuthorized, bProgramUpdate, bDictionaryUpdate, bInstallUpdate,
-  bConnecting, bUpdatePatchStatus, bAllowClose, bOverridesOnly: boolean;
+  bConnecting, bUpdatePatchStatus, bAllowClose, bOverridesOnly, bTarget: boolean;
   TempPath, LogPath, ProgramPath, dictionaryFilename, ActiveModProfile,
   ProgramVersion, xEditLogLabel, xEditLogGroup, DataPath, GamePath,
-  ProfilePath: string;
+  ProfilePath, sRecords: string;
   ConnectionAttempts: Integer;
   TCPClient: TidTCPClient;
   AppStartTime, LastStatusTime: TDateTime;
@@ -1694,21 +1694,10 @@ end;
 
 procedure LoadExcludedGroups;
 begin
-  SetLength(excludedGroups, 9);
-  {excludedGroups[0] := 'Race';
-  excludedGroups[1] := 'Dialog Topic';
-  excludedGroups[2] := 'Cell';
-  excludedGroups[3] := 'Worldspace';
-  excludedGroups[4] := 'Location';}
+  SetLength(excludedGroups, 3);
   excludedGroups[0] := 'RACE';
-  excludedGroups[1] := 'DIAL';
-  excludedGroups[2] := 'CELL';
-  excludedGroups[3] := 'WRLD';
-  excludedGroups[4] := 'LCTN';
-  excludedGroups[5] := 'NAVI';
-  excludedGroups[6] := 'NAVM';
-  excludedGroups[7] := 'REFR';
-  excludedGroups[8] := 'ACHR';
+  excludedGroups[1] := 'NAVI';
+  excludedGroups[2] := 'NAVM';
 end;
 
 procedure LoadLanguage;
@@ -2253,6 +2242,7 @@ begin
     tmp.StateIndex := state;
     e := TElementData(tmp.Data);
     e.process := state <> cUnChecked;
+    e.singleEntity := false;
     if tmp.HasChildren then
       SetChildren(tmp, state);
     tmp := tmp.getNextSibling;
@@ -3753,21 +3743,21 @@ begin
 end;
 
 { TSmashSetting }
-function GetUniqueSettingName: string;
+function GetUniqueSettingName(base: string): string;
 var
   i: Integer;
 begin
-  Result := 'NewSetting';
+  Result := base;
   i := 1;
   while Assigned(SettingByName(Result)) do begin
     Inc(i);
-    Result := 'NewSetting' + IntToStr(i);
+    Result := base + IntToStr(i);
   end;
 end;
 
 constructor TSmashSetting.Create;
 begin
-  name := GetUniqueSettingName;
+  name := GetUniqueSettingName('NewSetting');
   hash := '$00000000';
   color := clBlack;
   description := '';
@@ -3788,7 +3778,7 @@ end;
 
 constructor TSmashSetting.Clone(s: TSmashSetting);
 begin
-  name := s.name+' clone';
+  name := GetUniqueSettingName(s.name + '-Clone');
   hash := '$00000000';
   color := s.color;
   records := s.records;

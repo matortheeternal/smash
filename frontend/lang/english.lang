@@ -188,3 +188,4 @@ msSet_PreserveDeletionsItem_Caption=Toggle preserve deletions
 msProg_Closing=Closing
 msProg_Smashing=Smashing Patches
 msProg_DoneBuilding=Done smashing patches
+msProg_BuildingTree=Building tree

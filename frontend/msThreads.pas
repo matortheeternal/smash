@@ -402,29 +402,39 @@ var
   i, index: Integer;
   container: IwbContainerElementRef;
   rec: IwbMainRecord;
-  isl: TStringList;
+  isl, slSignatures: TStringList;
+  bHasSignature: boolean;
 begin
-  // loop through file's records
-  for i := 0 to Pred(f.RecordCount) do begin
-    rec := f.Records[i];
-    Tracker.UpdateProgress(1);
-    if i mod 10 = 0 then
-      Tracker.StatusMessage(Format('Building tree for %s (%d/%d)',
-        [f.filename, i + 1, f.RecordCount]));
-    // skip excluded signatures
-    if MatchStr(rec.Signature, excludedGroups) then
-      continue;
-    // skip non-override records
-    if bOverridesOnly and not IsOverride(rec) then
-      continue;
-    index := sl.IndexOf(rec.Signature);
-    // add new record signature item if missing
-    if index = -1 then
-      index := sl.AddObject(rec.Signature, TStringList.Create);
-    if Supports(rec, IwbContainerElementRef, container) then begin
-      isl := TStringList(sl.Objects[index]);
-      LoadElementData(isl, container);
+  slSignatures := TStringList.Create;
+  try
+    slSignatures.CommaText := sRecords;
+
+    // loop through file's records
+    for i := 0 to Pred(f.RecordCount) do begin
+      if Tracker.Cancel then break;
+      rec := f.Records[i];
+      Tracker.UpdateProgress(1);
+      if i mod 11 = 0 then
+        Tracker.StatusMessage(Format('Building tree for %s (%d/%d)',
+          [f.filename, i + 1, f.RecordCount]));
+      // skip excluded signatures
+      bHasSignature := slSignatures.IndexOf(rec.Signature) > -1;
+      if (bTarget xor bHasSignature) then
+        continue;
+      // skip non-override records
+      if bOverridesOnly and not IsOverride(rec) then
+        continue;
+      index := sl.IndexOf(rec.Signature);
+      // add new record signature item if missing
+      if index = -1 then
+        index := sl.AddObject(rec.Signature, TStringList.Create);
+      if Supports(rec, IwbContainerElementRef, container) then begin
+        isl := TStringList(sl.Objects[index]);
+        LoadElementData(isl, container);
+      end;
     end;
+  finally
+    slSignatures.Free;
   end;
 end;
 
@@ -436,9 +446,9 @@ var
 begin
   for i := 0 to Pred(sl.Count) do begin
     if Tracker.Cancel then break;
-    child := TreeView.Items.AddChild(node, sl[i]);
+    child := TreeView.Items.AddChildObject(node, sl[i],
+      TElementData.Create(0, false, false, false, '', ''));
     child.StateIndex := cUnChecked;
-    child.Data := TElementData.Create(0, false, false, false, '', '');
     isl := TStringList(sl.Objects[i]);
     if Assigned(isl) then
       StringsToNodes(child, isl);
@@ -480,7 +490,8 @@ begin
     end;
 
     // build node tree from stringtree
-    rootNode := TreeView.Items.Add(nil, 'Records');
+    rootNode := TreeView.Items.AddObject(nil, 'Records',
+      TElementData.Create(0, false, false, false, '', ''));
     rootNode.StateIndex := cUnChecked;
     Tracker.Write(' ');
     Tracker.Write('Preparing tree for display...');

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, CheckLst;
+  Dialogs, StdCtrls, CheckLst, Menus, ComCtrls;
 
 type
   TPluginSelectionForm = class(TForm)
@@ -12,12 +12,26 @@ type
     btnOK: TButton;
     lblPrompt: TLabel;
     btnCancel: TButton;
+    CheckListPopupMenu: TPopupMenu;
+    SelectAllItem: TMenuItem;
+    SelectNoneItem: TMenuItem;
+    InvertSelectionItem: TMenuItem;
+    gbOptions: TGroupBox;
     kbOverridesOnly: TCheckBox;
+    rbTarget: TRadioButton;
+    rbSkip: TRadioButton;
+    lblRecords: TLabel;
+    edRecords: TEdit;
     procedure FormShow(Sender: TObject);
     procedure CheckListBoxClick(Sender: TObject);
     procedure btnOKClick(Sender: TObject);
     procedure CheckListBoxKeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure SelectAllItemClick(Sender: TObject);
+    procedure SelectNoneItemClick(Sender: TObject);
+    procedure InvertSelectionItemClick(Sender: TObject);
+    procedure rbTargetClick(Sender: TObject);
+    procedure rbSkipClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -25,6 +39,8 @@ type
     pluginsList: TStringList;
     selectionList: TStringList;
     overridesOnly: boolean;
+    targetRecords: boolean;
+    records: string;
   end;
 
 var
@@ -44,6 +60,8 @@ begin
       selectionList.Add(CheckListBox.Items[i]);
   end;
   overridesOnly := kbOverridesOnly.Checked;
+  targetRecords := rbTarget.Checked;
+  records := edRecords.Text;
   if selectionList.Count > 0 then
     ModalResult := mrOK;
 end;
@@ -77,6 +95,34 @@ begin
     if index > -1 then
       CheckListBox.Checked[index] := true;
   end;
+end;
+
+procedure TPluginSelectionForm.InvertSelectionItemClick(Sender: TObject);
+var
+  i: Integer;
+begin
+  for i := 0 to Pred(CheckListBox.GetCount) do
+    CheckListBox.Checked[i] := not CheckListBox.Checked[i];
+end;
+
+procedure TPluginSelectionForm.rbTargetClick(Sender: TObject);
+begin
+  rbSkip.Checked := not rbTarget.Checked;
+end;
+
+procedure TPluginSelectionForm.rbSkipClick(Sender: TObject);
+begin
+  rbTarget.Checked := not rbSkip.Checked;
+end;
+
+procedure TPluginSelectionForm.SelectAllItemClick(Sender: TObject);
+begin
+  CheckListBox.CheckAll(cbChecked);
+end;
+
+procedure TPluginSelectionForm.SelectNoneItemClick(Sender: TObject);
+begin
+  CheckListBox.CheckAll(cbUnChecked);
 end;
 
 end.

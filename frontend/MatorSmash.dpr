@@ -20,6 +20,7 @@ uses
   Controls,
   SysUtils,
   mteHelpers,
+  RttiIni,
   msProfileForm in 'msProfileForm.pas' {ProfileForm},
   msProfilePanel in 'msProfilePanel.pas',
   msSmashForm in 'msSmashForm.pas' {SmashForm},
@@ -46,7 +47,9 @@ const
 
 var
   bProfileProvided: boolean;
-  ProgramPath: string;
+  sParam, sProfile, sPath: string;
+  i: Integer;
+  aSettings: TSettings;
 begin
   // set important vars
   SysUtils.FormatSettings.DecimalSeparator := '.';
@@ -54,8 +57,22 @@ begin
   //ReportMemoryLeaksOnShutdown := true;
   ProgramPath := ExtractFilePath(ParamStr(0));
 
-  // get command line arguments
-  bProfileProvided := FindCmdLineSwitch('profile');
+  // get current profile if profile switch provided
+  for i := 1 to ParamCount do begin
+    sParam := ParamStr(i);
+    if sParam = '-profile' then
+      sProfile := ParamStr(i + 1);
+  end;
+  bProfileProvided := sProfile <> '';
+  sPath := Format('%sprofiles\%s\settings.ini', [ProgramPath, sProfile]);
+  if bProfileProvided and FileExists(sPath) then begin
+    aSettings := TSettings.Create;
+    TRttiIni.Load(sPath, aSettings);
+    CurrentProfile := TProfile.Create(aSettings.profile);
+    CurrentProfile.gameMode := aSettings.gameMode;
+    CurrentProfile.gamePath := aSettings.gamePath;
+    aSettings.Free;
+  end;
 
   // initialize application, load settings
   Application.Initialize;

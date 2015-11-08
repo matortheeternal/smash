@@ -28,6 +28,9 @@ const
 
 implementation
 
+var
+  firstLink: string;
+
 { 
   ElementByKey: 
   Gets an element from a container, @e, matching a specified @key.
@@ -346,6 +349,44 @@ begin
 end;
 
 {
+  CopyLinkedElement:
+  Copies the linked element named eLink, and then copies any elements it is
+  linked to.
+}
+procedure CopyLinkedElement(srcCont, dstCont: IwbContainerElementRef;
+  eLink: string; obj: ISuperObject; dstRec: IwbMainRecord);
+var
+  cObj: ISuperObject;
+  le, de: IwbElement;
+  cLink: string;
+begin
+  // exit if we reached the first link in a chain
+  if eLink = firstLink then
+    exit;
+
+  // else try to copy the linked element
+  try
+    cObj := GetChildObj(obj, eLink);
+    le := srcCont.ElementByName[eLink];
+    de := dstCont.ElementByName[eLink];
+    if Assigned(le) then begin
+      if settings.debugLinks then
+        Tracker.Write('      Copying linked element '+le.Path);
+      if Assigned(de) and de.IsRemoveable then
+        de.Remove;
+      wbCopyElementToRecord(le, dstRec, false, true);
+      // follow chain
+      cLink := cObj.S['lf'];
+      if cLink <> '' then
+        CopyLinkedElement(srcCont, dstCont, cLink, obj, dstRec);
+    end;
+  except
+    on x: Exception do
+      Tracker.Write('        CopyLinkedElement: Failed to copy '+eLink+', '+x.Message);
+  end;
+end;
+
+{
   HandleElement:
   Wrapper function around the logic for recursing into child 
   elements (rcore), handling an array, or copying element values.
@@ -436,7 +477,7 @@ function rcore(src, mst, dst: IwbElement; dstRec: IwbMainRecord;
 var
   i: integer;
   srcCont, dstCont, mstCont: IwbContainerElementRef;
-  se, me, de, le: IwbElement;
+  se, me, de: IwbElement;
   process, eSingle, eDeletions: boolean;
   eObj: ISuperObject;
   eLink: string;
@@ -518,20 +559,9 @@ begin
     // and the element being processed has been modified, copy the linked
     // element
     eLink := eObj.S['lf'];
-    if Result and (eLink <> '') then try
-      le := srcCont.ElementByName[eLink];
-      de := dstCont.ElementByName[eLink];
-      if Assigned(le) then begin
-        if settings.debugLinks then
-          Tracker.Write('      Copying linked element '+le.Path);
-        if Assigned(de) and de.IsRemoveable then
-          de.Remove;
-        wbCopyElementToRecord(le, dstRec, false, true);
-      end;
-    except
-      on x: Exception do
-        Tracker.Write('        rcore: Failed to copy '+se.Path+', '+x.Message);
-    end;
+    firstLink := eLink;
+    if Result and (eLink <> '') then
+      CopyLinkedElement(srcCont, dstCont, eLink, obj, dstRec);
   end;
 end;
 
