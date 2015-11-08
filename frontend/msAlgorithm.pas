@@ -87,7 +87,7 @@ end;
 
 {
   HandleElementLife:
-  Called by rcore.  Handles the creation/deletion of elemnents in the
+  Called by rcore.  Handles the creation/deletion of elements in the
   destination patch record @dstRec.
 }
 function HandleElementLife(srcCont, dstCont, mstCont: IwbContainerElementRef;
