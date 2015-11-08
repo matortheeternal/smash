@@ -60,6 +60,7 @@ type
           [FormSection('Plugins Popup Menu')]
             PluginsPopupMenu: TPopupMenu;
             AddToPatchItem: TMenuItem;
+            RemoveFromPatchItem: TMenuItem;
             OpenPluginLocationItem: TMenuItem;
             SmashSettingItem: TMenuItem;
         [FormSection('Patches Tab')]
@@ -69,7 +70,9 @@ type
             PatchesPopupMenu: TPopupMenu;
             ToggleRebuildItem: TMenuItem;
             OpenInExplorerItem: TMenuItem;
-            [FormSection('Plugins Submenu')]
+            BuildPatchItem: TMenuItem;
+            EditPatchItem: TMenuItem;
+            DeletePatchItem: TMenuItem;
             [FormSection('Move Submenu')]
               MoveItem: TMenuItem;
               UpItem: TMenuItem;
@@ -457,14 +460,16 @@ begin
     // START BACKGROUND LOADER
     LoaderCallback := LoaderDone;
     SetTaskbarProgressState(tbpsIndeterminate);
-    TLoaderThread.Create;
+    if settings.buildRefs then
+      TLoaderThread.Create;
 
     // CORRECT LIST VIEW WIDTHS
     CorrectListViewWidth(PatchesListView);
     CorrectListViewWidth(PluginsListView);
 
     // LOAD AND DISPLAY HINTS
-    StatusPanelMessage.Caption := GetString('msMain_LoaderInProgress');
+    if settings.buildRefs then
+      StatusPanelMessage.Caption := GetString('msMain_LoaderInProgress');
     bhLoader.Title := GetString('msMain_LoaderInProgress');
     bhLoader.Description := GetString('msMain_LoaderLimitations');
     bhLoadException.Title := GetString('msMain_LoadException');
@@ -472,18 +477,20 @@ begin
     DisplayHints;
 
     // initialize task handler
-    {TaskHandler := TTaskHandler.Create;
+    TaskHandler := TTaskHandler.Create;
     bLogTasks := false;
     TaskHandler.AddTask(TTask.Create('Disable Hints', 12.0 * seconds, DisableHints));
-    TaskHandler.AddTask(TTask.Create('Reconnect', 15.0 * seconds, Reconnect));
-    TaskHandler.AddTask(TTask.Create('Heartbeat', 0.9 * seconds, Heartbeat));
+    {TaskHandler.AddTask(TTask.Create('Reconnect', 15.0 * seconds, Reconnect));
+    TaskHandler.AddTask(TTask.Create('Heartbeat', 0.9 * seconds, Heartbeat));}
     TaskHandler.AddTask(TTask.Create('Refresh GUI', 3.0 * seconds, RefreshGUI));
-    TaskTimer.Enabled := true;}
+    TaskTimer.Enabled := true;
   end;
 
   // ACTIVATE WINDOW
   FormDisplayTime := Now;
   ForceForeground(Handle);
+  if not settings.buildRefs then
+    LoaderDone;
 end;
 
 procedure TSmashForm.LoaderStatus(s: string);
@@ -493,6 +500,7 @@ end;
 
 procedure TSmashForm.LoaderDone;
 begin
+  bLoaderDone := true;
   SetTaskbarProgressState(tbpsNone);
   xEditLogGroup := 'GENERAL';
   xEditLogLabel := 'xEdit';
@@ -614,7 +622,7 @@ begin
     bhLoadException.ShowHint(pt);
   end;
 
-  if ShouldDisplay(bhLoader) then begin
+  if settings.buildRefs and ShouldDisplay(bhLoader) then begin
     pt.X := 8;
     pt.Y := 4;
     pt := ImageBlocked.ClientToScreen(pt);
@@ -1004,8 +1012,34 @@ end;
 {******************************************************************************}
 
 procedure TSmashForm.PluginsPopupMenuPopup(Sender: TObject);
+var
+  i: integer;
+  bPluginInPatch, bHasSelection, bAllPluginsInPatch: boolean;
+  ListItem: TListItem;
+  plugin: TPlugin;
 begin
-  // ?
+  // initialize selection booleans
+  bHasSelection := false;
+  bPluginInPatch := false;
+  bAllPluginsInPatch := true;
+
+  // loop through selection
+  for i := 0 to Pred(PluginsListView.Items.Count) do begin
+    ListItem := PluginsListView.Items[i];
+    if not ListItem.Selected then
+      continue;
+
+    plugin := PluginsList[i];
+    bHasSelection := true;
+    bPluginInPatch := bPluginInPatch or plugin.IsInPatch;
+    bAllPluginsInPatch := bAllPluginsInPatch and plugin.IsInPatch;
+  end;
+
+  // disable/enable menu items
+  AddToPatchItem.Enabled := bHasSelection and not bPluginInPatch;
+  SmashSettingItem.Enabled := bHasSelection;
+  OpenPluginLocationItem.Enabled := bHasSelection;
+  RemoveFromPatchItem.Enabled := bHasSelection and bAllPluginsInPatch;
 end;
 
 procedure TSmashForm.UpdatePluginsPopupMenu;
@@ -1468,8 +1502,67 @@ end;
 {******************************************************************************}
 
 procedure TSmashForm.PatchesPopupMenuPopup(Sender: TObject);
+var
+  bNeverBuilt, bHasBuildStatus, bHasUpToDateStatus, bHasSelection,
+  bIsNotTop, bIsNotBottom: boolean;
+  patch: TPatch;
+  i, mergesSelected: Integer;
+  sBuild, sRebuild: string;
 begin
-  // ?
+  bNeverBuilt := false;
+  bHasBuildStatus := false;
+  bHasUpToDateStatus := false;
+  bIsNotTop := true;
+  bIsNotBottom := true;
+  mergesSelected := 0;
+
+  // loop through list view to find selection
+  for i := 0 to Pred(PatchesListView.Items.Count) do begin
+    if not PatchesListView.Items[i].Selected then
+      continue;
+    patch := TPatch(PatchesList[i]);
+    Inc(mergesSelected);
+    // update booleans
+    if i = 0 then bIsNotTop := false;
+    if i = Pred(PatchesList.Count) then bIsNotBottom := false;
+    bNeverBuilt := bNeverBuilt or (patch.dateBuilt = 0);
+    bHasBuildStatus := bHasBuildStatus or (patch.status in BuildStatuses);
+    bHasUpToDateStatus := bHasUpToDateStatus or (patch.status in UpToDateStatuses);
+  end;
+
+  bHasSelection := (mergesSelected > 0);
+  // change enabled state of MergesPopupMenu items based on booleans
+  EditPatchItem.Enabled := bHasSelection;
+  DeletePatchItem.Enabled := bHasSelection;
+  BuildPatchItem.Enabled := bHasSelection and bHasBuildStatus and bLoaderDone;
+  ToggleRebuildItem.Enabled := bHasSelection and not bNeverBuilt and
+    (bHasUpToDateStatus or bHasBuildStatus);
+  OpenInExplorerItem.Enabled := bHasSelection;
+  // move submenu
+  MoveItem.Enabled := bHasSelection;
+  UpItem.Enabled := bHasSelection and bIsNotTop;
+  DownItem.Enabled := bHasSelection and bIsNotBottom;
+  ToTopItem.Enabled := bHasSelection and bIsNotTop;
+  ToBottomItem.Enabled := bHasSelection and bIsNotBottom;
+
+  // one or multiple merges?
+  if (mergesSelected = 1) then begin
+    sBuild := 'msMain_BuildPatch';
+    sRebuild := 'msMain_RebuildPatch';
+  end
+  else begin
+    sBuild := 'msMain_BuildPatches';
+    sRebuild := 'msMain_RebuildPatches';
+  end;
+  // handle build merges menu item
+  if bNeverBuilt then
+    BuildPatchItem.Caption := GetString(sBuild)
+  else if bHasBuildStatus then
+    BuildPatchItem.Caption := GetString(sRebuild)
+  else begin
+    BuildPatchItem.Enabled := false;
+    BuildPatchItem.Caption := GetString(sRebuild);
+  end;
 end;
 
 procedure TSmashForm.EditPatchItemClick(Sender: TObject);

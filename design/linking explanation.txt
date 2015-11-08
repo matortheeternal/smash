@@ -1,0 +1,20 @@
+1. we have a set of plugins
+2. each plugin has a smash setting
+3. each smash setting has a definition for certain records
+4. each record definition has a node for each element
+5. we can link a node in a record definition to another node
+
+--
+
+If a element's value changes in a record in a file, and another element is linked to that element, the element that's linked will be copied from the record we're processing to the patch (if it exists).
+
+
+MASTER:   R2:       R3:       R4:         SMASHED RECORD:
+A: 1      A: 2      A: 1      A: 1        A: 1
+B: 2      B: 2      B: 2      B: 2        B: 2
+C: 3      C: 4      C: 5      C: 3        C: 5
+
+                    LINK A to C
+                    Whenever C changes, copy A
+                    
+                    

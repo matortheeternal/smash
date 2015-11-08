@@ -24,17 +24,13 @@ object OptionsForm: TOptionsForm
     Top = 8
     Width = 568
     Height = 401
-    ActivePage = IntegrationsTabSheet
+    ActivePage = GeneralTabSheet
     Align = alCustom
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     TabWidth = 80
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbStyle: TGroupBox
         Left = 6
         Top = 163
@@ -291,10 +287,6 @@ object OptionsForm: TOptionsForm
     object PatchingTabSheet: TTabSheet
       Caption = 'Patching'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbGeneral: TGroupBox
         Left = 3
         Top = 3
@@ -328,14 +320,108 @@ object OptionsForm: TOptionsForm
           TabOrder = 0
         end
       end
+      object gbDebug: TGroupBox
+        Left = 3
+        Top = 63
+        Width = 554
+        Height = 146
+        Caption = 'Debug'
+        TabOrder = 1
+        object kbDebugPatchStatus: TCheckBox
+          Left = 12
+          Top = 24
+          Width = 200
+          Height = 17
+          Align = alCustom
+          Caption = 'Debug patch status'
+          TabOrder = 0
+        end
+        object kbDebugMasters: TCheckBox
+          Left = 12
+          Top = 47
+          Width = 200
+          Height = 17
+          Align = alCustom
+          Caption = 'Debug masters'
+          TabOrder = 1
+        end
+        object kbDebugArrays: TCheckBox
+          Left = 12
+          Top = 70
+          Width = 200
+          Height = 17
+          Align = alCustom
+          Caption = 'Debug arrays'
+          TabOrder = 2
+        end
+        object kbDebugSkips: TCheckBox
+          Left = 12
+          Top = 93
+          Width = 200
+          Height = 17
+          Align = alCustom
+          Caption = 'Debug skips'
+          TabOrder = 3
+        end
+        object kbDebugTraversal: TCheckBox
+          Left = 12
+          Top = 116
+          Width = 200
+          Height = 17
+          Align = alCustom
+          Caption = 'Debug traversal'
+          TabOrder = 4
+        end
+        object kbDebugTypes: TCheckBox
+          Left = 273
+          Top = 24
+          Width = 200
+          Height = 17
+          Align = alCustom
+          Caption = 'Debug types'
+          TabOrder = 5
+        end
+        object kbDebugChanges: TCheckBox
+          Left = 272
+          Top = 47
+          Width = 200
+          Height = 17
+          Align = alCustom
+          Caption = 'Debug changes'
+          TabOrder = 6
+        end
+        object kbDebugSingle: TCheckBox
+          Left = 272
+          Top = 72
+          Width = 200
+          Height = 17
+          Align = alCustom
+          Caption = 'Debug treat as single'
+          TabOrder = 7
+        end
+        object kbDebugLinks: TCheckBox
+          Left = 272
+          Top = 95
+          Width = 200
+          Height = 17
+          Align = alCustom
+          Caption = 'Debug links'
+          TabOrder = 8
+        end
+        object kbBuildRefs: TCheckBox
+          Left = 272
+          Top = 118
+          Width = 201
+          Height = 17
+          Align = alCustom
+          Caption = 'Build references'
+          TabOrder = 9
+        end
+      end
     end
     object AdvancedTabSheet: TTabSheet
       Caption = 'Advanced'
       ImageIndex = 2
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbBackend: TGroupBox
         Left = 6
         Top = 72
@@ -728,7 +814,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C010101000800380110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C0101010008003C0110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

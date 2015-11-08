@@ -40,8 +40,23 @@ type
         btnUpdateProgram: TButton;
         [FormSection('DontTranslate')]
           cbLanguage: TComboBox;
-      [FormSection('Merging Tab')]
-    PatchingTabSheet: TTabSheet;
+      [FormSection('Patching Tab')]
+        PatchingTabSheet: TTabSheet;
+        gbGeneral: TGroupBox;
+        edPatchDirectory: TEdit;
+        lblDestinationDirectory: TLabel;
+        btnBrowsePatchDirectory: TSpeedButton;
+        gbDebug: TGroupBox;
+        kbDebugPatchStatus: TCheckBox;
+        kbDebugMasters: TCheckBox;
+        kbDebugArrays: TCheckBox;
+        kbDebugSkips: TCheckBox;
+        kbDebugTraversal: TCheckBox;
+        kbDebugTypes: TCheckBox;
+        kbDebugChanges: TCheckBox;
+        kbDebugSingle: TCheckBox;
+        kbDebugLinks: TCheckBox;
+        kbBuildRefs: TCheckBox;
       [FormSection('Advanced Tab')]
         AdvancedTabSheet: TTabSheet;
         lblCurrentProfile: TLabel;
@@ -80,10 +95,6 @@ type
         [FormSection('DontTranslate')]
           btnBrowseMO: TSpeedButton;
           btnBrowseMOMods: TSpeedButton;
-    gbGeneral: TGroupBox;
-    edPatchDirectory: TEdit;
-    lblDestinationDirectory: TLabel;
-    btnBrowsePatchDirectory: TSpeedButton;
 
     procedure FormCreate(Sender: TObject);
     procedure LoadLanguageOptions;
@@ -221,6 +232,17 @@ begin
 
   // Patching > General
   settings.patchDirectory := edPatchDirectory.Text;
+  // Patching > Debug
+  settings.debugPatchStatus := kbDebugPatchStatus.Checked;
+  settings.debugMasters := kbDebugMasters.Checked;
+  settings.debugArrays := kbDebugArrays.Checked;
+  settings.debugSkips := kbDebugSkips.Checked;
+  settings.debugTraversal := kbDebugTraversal.Checked;
+  settings.debugTypes := kbDebugTypes.Checked;
+  settings.debugChanges := kbDebugChanges.Checked;
+  settings.debugSingle := kbDebugSingle.Checked;
+  settings.debugLinks := kbDebugLinks.Checked;
+  settings.buildRefs := kbBuildRefs.Checked;
 
   // Advanced > Backend
   settings.serverHost := edHost.Text;
@@ -426,8 +448,19 @@ begin
   kbUpdateDictionary.Checked := settings.updateDictionary;
   kbUpdateProgram.Checked := settings.updateProgram;
 
-  // Merging > Asset handling
+  // Patching > General
   edPatchDirectory.Text := settings.patchDirectory;
+  // Patching > Debug
+  kbDebugPatchStatus.Checked := settings.debugPatchStatus;
+  kbDebugMasters.Checked := settings.debugMasters;
+  kbDebugArrays.Checked := settings.debugArrays;
+  kbDebugSkips.Checked := settings.debugSkips;
+  kbDebugTraversal.Checked := settings.debugTraversal;
+  kbDebugTypes.Checked := settings.debugTypes;
+  kbDebugChanges.Checked := settings.debugChanges;
+  kbDebugSingle.Checked := settings.debugSingle;
+  kbDebugLinks.Checked := settings.debugLinks;
+  kbBuildRefs.Checked := settings.buildRefs;
 
   // Advanced > Backend
   edHost.Text := settings.serverHost;

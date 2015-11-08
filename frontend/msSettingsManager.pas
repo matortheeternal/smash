@@ -273,19 +273,19 @@ begin
   end;
 end;
 
-procedure UnlinkNode(node: TTreeNode);
+procedure UnlinkNode(node: TTreeNode; bTo, bFrom: boolean);
 var
   linkedNode: TTreeNode;
   e, le: TElementData;
 begin
   e := TElementData(node.Data);
-  if e.linkTo <> '' then begin
+  if bTo and (e.linkTo <> '') then begin
     linkedNode := GetSiblingNode(node, e.linkTo);
     le := TElementData(linkedNode.Data);
     le.linkFrom := '';
     e.linkTo := '';
   end;
-  if e.linkFrom <> '' then begin
+  if bFrom and (e.linkFrom <> '') then begin
     linkedNode := GetSiblingNode(node, e.linkFrom);
     le := TElementData(linkedNode.Data);
     le.linkTo := '';
@@ -301,7 +301,7 @@ begin
   // unset link element data attribute for each selected node
   for i := 0 to Pred(tvRecords.SelectionCount) do begin
     node := tvRecords.Selections[i];
-    UnlinkNode(node);
+    UnlinkNode(node, true, true);
   end;
 
   // update gui
@@ -324,8 +324,8 @@ begin
     exit;
 
   // unlink source and target node
-  UnlinkNode(node);
-  UnlinkNode(targetNode);
+  UnlinkNode(node, true, false);
+  UnlinkNode(targetNode, false, true);
 
   // set element data if target node found
   e := TElementData(node.Data);

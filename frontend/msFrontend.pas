@@ -211,6 +211,7 @@ type
     debugChanges: boolean;
     debugSingle: boolean;
     debugLinks: boolean;
+    buildRefs: boolean;
     [IniSection('Integrations')]
     usingMO: boolean;
     MOPath: string;

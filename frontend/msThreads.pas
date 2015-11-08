@@ -284,7 +284,6 @@ begin
       bInitException := true;
     end;
   end;
-  bLoaderDone := true;
   LoaderProgress('finished');
   StatusCallback(GetString('msMain_LoaderFinished'));
   if Assigned(LoaderCallback) then

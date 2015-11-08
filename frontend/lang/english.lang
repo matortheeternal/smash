@@ -68,6 +68,11 @@ msMain_UpItem_Caption=Up
 msMain_DownItem_Caption=Down
 msMain_ToTopItem_Caption=To top
 msMain_ToBottomItem_Caption=To bottom
+{ #### DYNAMIC #### }
+msMain_BuildPatch=Build patch
+msMain_RebuildPatch=Rebuild patch
+msMain_BuildPatches=Build patches
+msMain_RebuildPatches=Rebuilds patches
 { ## Log Tab ## }
 msMain_LogTabSheet_Caption=Log
 { #### DYNAMIC #### }
