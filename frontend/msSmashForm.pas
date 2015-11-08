@@ -326,7 +326,13 @@ begin
 end;
 
 procedure TSmashForm.FormDestroy(Sender: TObject);
+var
+  patchesToRename: TStringList;
 begin
+  // build list of patches to rename
+  patchesToRename := TStringList.Create;
+  GetPatchesToRename(patchesToRename);
+
   // free all lists
   FreeList(SmashSettings);
   FreeList(GroupFilters);
@@ -348,6 +354,10 @@ begin
   TryToFree(status);
   TryToFree(remoteStatus);
   TryToFree(TCPClient);
+
+  // rename patches
+  RenamePatches(patchesToRename);
+  patchesToRename.Free;
 end;
 
 procedure TSmashForm.WMSize(var AMessage: TMessage);

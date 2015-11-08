@@ -329,6 +329,8 @@ type
     bWithinSingle: boolean);
   procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
   { Helper methods }
+  procedure RenamePatches(var sl: TStringList);
+  procedure GetPatchesToRename(var sl: TStringList);
   procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
   procedure DeleteTempPath;
   procedure ShowProgressForm(parent: TForm; var pf: TProgressForm; s: string);
@@ -2417,6 +2419,35 @@ end;
   - PatchPluginsCompare
 }
 {******************************************************************************}
+
+procedure RenamePatches(var sl: TStringList);
+var
+  i: Integer;
+  oldPath, newPath: string;
+begin
+  for i := 0 to Pred(sl.Count) do begin
+    oldPath := sl[i];
+    newPath := RemoveFromEnd(oldPath, '.smash');
+    if FileExists(newPath + '.bak') then
+      DeleteFile(newPath + '.bak');
+    RenameFile(newPath, newPath + '.bak');
+    RenameFile(oldPath, newPath);
+  end;
+end;
+
+procedure GetPatchesToRename(var sl: TStringList);
+var
+  i: Integer;
+  patch: TPatch;
+  path: string;
+begin
+  for i := 0 to Pred(PatchesList.Count) do begin
+    patch := TPatch(PatchesList[i]);
+    path := patch.dataPath + patch.filename + '.smash';
+    if FileExists(path) then
+      sl.Add(path);
+  end;
+end;
 
 procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
 var

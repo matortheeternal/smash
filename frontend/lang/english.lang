@@ -186,5 +186,5 @@ msSet_PreserveDeletionsItem_Caption=Toggle preserve deletions
 { TProgressForm }
 { #### DYNAMIC #### }
 msProg_Closing=Closing
-msProg_Patching=Smashing Patches
+msProg_Smashing=Smashing Patches
 msProg_DoneBuilding=Done smashing patches

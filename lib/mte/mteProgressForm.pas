@@ -99,11 +99,17 @@ end;
 
 procedure TProgressForm.FormShow(Sender: TObject);
 begin
-  if (fsModal in FormState) then
+  if (fsModal in FormState) then begin
     CancelButton.Caption := 'Close';
-  if not bDetailsVisible then begin
+    if not bDetailsVisible then
+      ToggleDetails(nil);
+  end
+  else if not bDetailsVisible then begin
     bDetailsVisible := false;
-    ToggleDetails(nil);
+    DetailsMemo.Visible := false;
+    DetailsButton.Caption := 'Show details';
+    lastHeight := self.Height;
+    self.Height := 129;
   end;
 end;
 

@@ -48,6 +48,7 @@ function GetPatchFile(var patch: TPatch; var lst: TList): IwbFile;
 var
   plugin: TPlugin;
   bUsedExistingFile: boolean;
+  patchFile: IwbFile;
   i: Integer;
 begin
   // get plugin if it exists
@@ -68,14 +69,21 @@ begin
     raise Exception.Create('Couldn''t assign patch file');
 
   // don't patch if patchFile is at an invalid load order position relative
-  // to the plugins being patchd
-  if bUsedExistingFile then
+  // to the plugins being patched
+  if bUsedExistingFile then begin
     for i := 0 to Pred(lst.Count) do begin
       plugin := TPlugin(lst[i]);
       if PluginsList.IndexOf(plugin) > PluginsList.IndexOf(patch.plugin) then
-        raise Exception.Create(Format('%s is at a lower load order position than %s', 
+        raise Exception.Create(Format('%s is at a lower load order position than %s',
           [plugin.filename, patch.filename]));
     end;
+
+    // clean up the patch file
+    patchFile := patch.plugin._File;
+    for i := Pred(patchFile.RecordCount) downto 0 do
+      patchFile.Records[i].Remove;
+    patchFile.CleanMasters;
+  end;
 
   // set result
   Result := patch.plugin._File;
@@ -114,7 +122,7 @@ begin
   finally
     slMasters.Free;
     if Tracker.Cancel then
-      raise Exception.Create('User cancelled merge.');
+      raise Exception.Create('User cancelled smashing.');
     Tracker.Write('Done adding masters');
   end;
 end;
@@ -262,14 +270,20 @@ begin
 
   // save patch plugin
   path := patch.dataPath + patch.filename;
-  FileStream := TFileStream.Create(path, fmCreate);
+  Tracker.Write(' ');
+  Tracker.Write('Saving: ' + path);
   try
-    Tracker.Write(' ');
-    Tracker.Write('Saving: ' + path);
+    FileStream := TFileStream.Create(path, fmCreate);
     patchFile.WriteToStream(FileStream, False);
-  finally
-    FileStream.Free;
+  except
+    on x: Exception do begin
+      path := path + '.smash';
+      FileStream := TFileStream.Create(path, fmCreate);
+      Tracker.Write('Failed to save, saving to: '+path);
+      patchFile.WriteToStream(FileStream, False);
+    end;
   end;
+  TryToFree(FileStream);
 
   // save files, fails, plugins
   patch.fails.SaveToFile(patchFilePrefix+'_fails.txt');
@@ -327,7 +341,7 @@ begin
     patch.dateBuilt := Now;
     patch.status := psUpToDate;
     Tracker.Write(Format('Done smashing %s (%.3f)',
-      [patch.name, time]));
+      [patch.name, Real(time)]));
   except
     on x: Exception do begin
       patch.status := psFailed;
@@ -342,7 +356,6 @@ end;
 
 procedure RebuildPatch(var patch: TPatch);
 begin
-  // TODO: Clear records?
   BuildPatch(patch);
 end;
 
