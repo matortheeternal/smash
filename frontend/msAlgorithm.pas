@@ -468,7 +468,7 @@ end;
   and @bDeletions to determine when it's ok to delete removed elements 
   from the destination patch record.
   
-  - Uses HandleElementExistence to resolve element creation/deletion.
+  - Uses HandleElementLife to resolve element creation/deletion.
   - Uses HandleElement to handle arrays, recurse deeper, or copy element
     values
 }
