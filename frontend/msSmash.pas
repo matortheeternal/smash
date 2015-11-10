@@ -9,7 +9,7 @@ uses
   // mte units
   mteHelpers, mteLogger, mteTracker,
   // ms units
-  msFrontend, msAlgorithm,
+  msFrontend, msConflict, msAlgorithm,
   // xEdit units
   wbInterface, wbImplementation;
 
@@ -171,6 +171,7 @@ begin
         Inc(skips);
         continue;
       end;
+      // TODO: skip records that are ITM or ITPO
       // add record to overrides list
       if records.IndexOf(rec) = -1 then
         records.Add(rec);
@@ -216,8 +217,8 @@ begin
       if plugin.setting = 'Skip' then
         continue;
       // skip ctIdenticalToMaster overrides
-      {if (ConflictThisForMainRecord(ovr) = ctIdenticalToMaster) then
-        continue;}
+      if (ConflictThisForMainRecord(ovr) = ctIdenticalToMaster) then
+        continue;
 
       // skip overrides according to smash setting
       aSetting := plugin.smashSetting;
@@ -248,13 +249,56 @@ begin
   end;
 end;
 
+procedure RemoveITPOs(aFile: IwbFile);
+var
+  i, j, CountITPO: Integer;
+  e, m, prevovr, ovr: IwbMainRecord;
+begin
+  Tracker.Write(#13#10'Removing ITPO records from patch');
+  CountITPO := 0;
+
+  // loop through file's records
+  for i := 0 to Pred(aFile.RecordCount) do begin
+    e := aFile.Records[i];
+
+    // skip master records
+    if e.IsMaster then
+      Exit;
+
+    // skip records that have elements in child group (WRLD, CELL, DIAL)
+    if e.ChildGroup.ElementCount <> 0 then
+      Exit;
+
+    m := e.MasterOrSelf;
+
+    // find previous override record in a list of overrides for master record
+    prevovr := m;
+    for j := 0 to Pred(m.OverrideCount) do begin
+      ovr := m.Overrides[j];
+      if ovr.Equals(e) then
+        Break;
+      prevovr := ovr;
+    end;
+
+    // remove record if no conflicts
+    if ConflictAllForElements(prevovr, e, False, False) <= caNoConflict then begin
+      Tracker.Write('    Removing ITPO: ' + e.Name);
+      e.Remove;
+      Inc(CountITPO);
+    end;
+  end;
+
+  // finalization message
+  Tracker.Write(Format('Removed %d ITPO records', [CountITPO]));
+end;
+
 procedure CleanPatch(var patch: TPatch);
 var
   patchFile: IwbFile;
 begin
   patchFile := patch.plugin._File;
   patchFile.CleanMasters;
-  // TODO: Handle ITPOs
+  RemoveITPOs(patchFile);
 end;
 
 procedure SavePatchFiles(var patch: TPatch);

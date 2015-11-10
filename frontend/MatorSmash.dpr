@@ -34,7 +34,8 @@ uses
   msConflictForm in 'msConflictForm.pas' {ConflictForm},
   msChoicePanel in 'msChoicePanel.pas',
   msSmash in 'msSmash.pas',
-  msAlgorithm in 'msAlgorithm.pas';
+  msAlgorithm in 'msAlgorithm.pas',
+  msConflict in 'msConflict.pas';
 
 {$R *.res}
 {$MAXSTACKSIZE 2097152}
