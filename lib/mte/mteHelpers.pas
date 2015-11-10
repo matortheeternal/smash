@@ -35,7 +35,7 @@ uses
   { Windows API functions }
   procedure ForceForeground(hWnd: THandle);
   function FileNameValid(filename: string): boolean;
-  procedure RecycleDirectory(const path: string);
+  function DeleteToRecycleBin(const path: string; Confirm: Boolean): Boolean;
   procedure ExecNewProcess(ProgramName: string; synchronous: Boolean);
   procedure BrowseForFile(var ed: TEdit; filter, initDir: string);
   procedure BrowseForFolder(var ed: TEdit; initDir: string);
@@ -845,16 +845,21 @@ begin
   end;
 end;
 
-{ Sends the directory at @path and all files it contains to the recycle bin }
-procedure RecycleDirectory(const path: string);
+{ Sends the file/directory at @path to the recycle bin }
+function DeleteToRecycleBin(const path: string; Confirm: Boolean): Boolean;
 var
-  FileOp: TSHFileOpStruct;
+  sh: TSHFileOpStruct;
 begin
-  FillChar(FileOp, SizeOf(FileOp), 0);
-  FileOp.wFunc := FO_DELETE;
-  FileOp.pFrom := PChar(path); //deletes to recycle bin
-  FileOp.fFlags := FOF_SILENT or FOF_NOERRORUI or FOF_NOCONFIRMATION;
-  SHFileOperation(FileOp);
+  FillChar(sh, SizeOf(sh), 0);
+  with sh do begin
+    Wnd := 0;
+    wFunc := FO_DELETE;
+    pFrom := PChar(path + #0);
+    fFlags := FOF_SILENT or FOF_ALLOWUNDO;
+    if not Confirm then
+      fFlags := fFlags or FOF_NOCONFIRMATION;
+  end;
+  Result := SHFileOperation(sh) = 0;
 end;
 
 { Deletes the directory at @path and all files it contains }

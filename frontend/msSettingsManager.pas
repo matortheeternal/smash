@@ -880,6 +880,7 @@ begin
     index := NewSettings.IndexOf(setting);
     if index > -1 then
       NewSettings.Delete(index);
+    setting.Delete;
     setting.Free;
   end;
   lvSettingsChange(nil, nil, TItemChange(nil));

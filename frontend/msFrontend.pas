@@ -92,6 +92,7 @@ type
     procedure LoadDump(dump: ISuperObject);
     function Dump: ISuperObject;
     procedure Save;
+    procedure Delete;
     procedure Rename(newName: string);
   end;
   TReport = class(TObject)
@@ -3837,6 +3838,15 @@ begin
   Dump.SaveTo(path);
 end;
 
+procedure TSmashSetting.Delete;
+var
+  path: string;
+begin
+  path := Format('%s\settings\%s.json', [ProgramPath, name]);
+  if FileExists(path) then
+    DeleteToRecycleBin(path, false);
+end;
+
 procedure TSmashSetting.Rename(newName: string);
 var
   oldPath, newPath: string;
@@ -3915,7 +3925,7 @@ var
 begin
   path := ProgramPath + 'profiles\' + name;
   if DirectoryExists(path) then
-    RecycleDirectory(path);
+    DeleteToRecycleBin(path, false);
 end;
 
 procedure TProfile.Rename(name: string);
