@@ -94,7 +94,7 @@ begin
     ForceDirectories(ProfilePath);
     PatchesList := TList.Create;
     PluginsList := TList.Create;
-    bLoaderDone := false;
+    wbLoaderDone := false;
     LastStatusTime := 0;
     Status := TmsStatus.Create;
 
@@ -347,10 +347,8 @@ begin
     Tracker.Write(' ');
     // save patches
     SavePatches;
-    // save smash settings
-    SaveSmashSettings;
     // rename saved plugins
-    if bLoaderDone then RenameSavedPlugins;
+    RenameSavedPlugins;
   end;
 
   // save statistics and settings
@@ -360,6 +358,10 @@ begin
   // delete temppath
   if not settings.preserveTempPath then
     DeleteTempPath;
+
+  // print final messages
+  Tracker.Write(' ');
+  Tracker.Write('All done');
 
   // unbind events
   Logger.OnLogEvent := nil;

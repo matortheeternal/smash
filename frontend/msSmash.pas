@@ -200,7 +200,7 @@ begin
   for i := 0 to Pred(records.Count) do begin
     if not Supports(records[i], IwbMainRecord, rec) then
       exit;
-    Tracker.StatusMessage(Format('Smashing record (%d/%d)',
+    Tracker.StatusMessage(Format('Smashing records (%d/%d)',
       [i + 1, records.Count]));
     Tracker.UpdateProgress(1);
     // loop through record's overrides
@@ -229,7 +229,7 @@ begin
       // copy record to smashed patch if it hasn't been copied yet
       if not Assigned(patchRec) then try
         e := ovr.WinningOverride as IwbElement;
-        Tracker.Write('    Copying record '+e.Name);
+        Tracker.Write('  Copying record '+e.Name);
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'');
         patchRec := eCopy as IwbMainRecord;
       except on x: Exception do
@@ -254,20 +254,21 @@ var
   i, j, CountITPO: Integer;
   e, m, prevovr, ovr: IwbMainRecord;
 begin
-  Tracker.Write(#13#10'Removing ITPO records from patch');
+  Tracker.Write(' ');
+  Tracker.Write('Removing ITPO records from patch');
   CountITPO := 0;
 
   // loop through file's records
-  for i := 0 to Pred(aFile.RecordCount) do begin
+  for i := Pred(aFile.RecordCount) downto 0 do begin
     e := aFile.Records[i];
 
     // skip master records
     if e.IsMaster then
-      Exit;
+      continue;
 
     // skip records that have elements in child group (WRLD, CELL, DIAL)
-    if e.ChildGroup.ElementCount <> 0 then
-      Exit;
+    if Assigned(e.ChildGroup) and (e.ChildGroup.ElementCount <> 0) then
+      continue;
 
     m := e.MasterOrSelf;
 
@@ -289,7 +290,7 @@ begin
   end;
 
   // finalization message
-  Tracker.Write(Format('Removed %d ITPO records', [CountITPO]));
+  Tracker.Write(Format('    Removed %d ITPO records', [CountITPO]));
 end;
 
 procedure CleanPatch(var patch: TPatch);

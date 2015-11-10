@@ -440,9 +440,9 @@ var
   statistics, sessionStatistics: TStatistics;
   status, RemoteStatus: TmsStatus;
   excludedGroups: array of string;
-  bInitException, bLoadException, bChangeProfile, bForceTerminate,
-  bLoaderDone, bAuthorized, bProgramUpdate, bDictionaryUpdate, bInstallUpdate,
-  bConnecting, bUpdatePatchStatus, bAllowClose, bOverridesOnly, bTarget: boolean;
+  bInitException, bLoadException, bChangeProfile, bForceTerminate, bAuthorized,
+  bProgramUpdate, bDictionaryUpdate, bInstallUpdate, bConnecting,
+  bUpdatePatchStatus, bAllowClose, bOverridesOnly, bTarget: boolean;
   TempPath, LogPath, ProgramPath, dictionaryFilename, ActiveModProfile,
   ProgramVersion, xEditLogLabel, xEditLogGroup, DataPath, GamePath,
   ProfilePath, sRecords: string;

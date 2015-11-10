@@ -510,7 +510,7 @@ end;
 
 procedure TSmashForm.LoaderDone;
 begin
-  bLoaderDone := true;
+  wbLoaderDone := true;
   SetTaskbarProgressState(tbpsNone);
   xEditLogGroup := 'GENERAL';
   xEditLogLabel := 'xEdit';
@@ -684,10 +684,10 @@ end;
 
 procedure TSmashForm.UpdateStatusBar;
 begin
-  ImageBlocked.Visible := not (bLoaderDone or bInitException);
+  ImageBlocked.Visible := not (wbLoaderDone or bInitException);
   ImageConnected.Visible := TCPClient.Connected;
   ImageDisconnected.Visible := not TCPClient.Connected;
-  ImageBuild.Visible := bLoaderDone and bPatchesToBuild;
+  ImageBuild.Visible := wbLoaderDone and bPatchesToBuild;
   ImageDictionaryUpdate.Visible := bDictionaryUpdate;
   ImageProgramUpdate.Visible := bProgramUpdate;
   StatusPanelLanguage.Caption := settings.language;
@@ -1544,7 +1544,7 @@ begin
   // change enabled state of MergesPopupMenu items based on booleans
   EditPatchItem.Enabled := bHasSelection;
   DeletePatchItem.Enabled := bHasSelection;
-  BuildPatchItem.Enabled := bHasSelection and bHasBuildStatus and bLoaderDone;
+  BuildPatchItem.Enabled := bHasSelection and bHasBuildStatus and wbLoaderDone;
   ToggleRebuildItem.Enabled := bHasSelection and not bNeverBuilt and
     (bHasUpToDateStatus or bHasBuildStatus);
   OpenInExplorerItem.Enabled := bHasSelection;
@@ -1984,10 +1984,10 @@ begin
   end;
 
   // enable build button if there are patches to build
-  BuildButton.Enabled := bPatchesToBuild and bLoaderDone;
+  BuildButton.Enabled := bPatchesToBuild and wbLoaderDone;
   // swap hints
   sTitle := GetString('msMain_BuildButton_Hint');
-  if not bLoaderDone then
+  if not wbLoaderDone then
     BuildButton.Hint := sTitle + GetString('msMain_BuildPatches_Loader')
   else if not bPatchesToBuild then
     BuildButton.Hint := sTitle + GetString('msMain_NoPatches')
@@ -2023,7 +2023,7 @@ var
   patch: TPatch;
 begin
   // exit if the loader isn't done
-  if not bLoaderDone then begin
+  if not wbLoaderDone then begin
     Logger.Write('ERROR', 'Patch', 'Loader not done, can''t patch yet!');
     exit;
   end;
