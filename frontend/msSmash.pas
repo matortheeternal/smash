@@ -140,6 +140,7 @@ begin
   Tracker.Write(' ');
   Tracker.Write('Processing files');
   for i := 0 to Pred(lst.Count) do begin
+    if Tracker.Cancel then break;
     plugin := TPlugin(lst[i]);
     // skip plugins that have the skip setting
     if plugin.setting = 'Skip' then
@@ -153,6 +154,7 @@ begin
     Tracker.Write('Processing '+plugin.filename);
     skips := 0;
     for j := 0 to Pred(aFile.RecordCount) do begin
+      if Tracker.Cancel then break;
       rec := aFile.Records[j];
       // skip non-override records
       if rec.IsMaster then begin
@@ -198,6 +200,7 @@ begin
   patchFile := patch.plugin._File;
   // loop through records to smash
   for i := 0 to Pred(records.Count) do begin
+    if Tracker.Cancel then break;
     if not Supports(records[i], IwbMainRecord, rec) then
       exit;
     Tracker.StatusMessage(Format('Smashing records (%d/%d)',
@@ -206,6 +209,7 @@ begin
     // loop through record's overrides
     patchRec := nil;
     for j := 0 to Pred(rec.OverrideCount) do begin
+      if Tracker.Cancel then break;
       ovr := rec.Overrides[j];
       f := ovr._File;
       plugin := PluginByFileName(f.FileName);
@@ -260,6 +264,7 @@ begin
 
   // loop through file's records
   for i := Pred(aFile.RecordCount) downto 0 do begin
+    if Tracker.Cancel then break;
     e := aFile.Records[i];
 
     // skip master records
@@ -341,12 +346,14 @@ var
   pluginsToPatch: TList;
   recordsList: TInterfaceList;
   time: TDateTime;
+  msg: string;
 begin
   // initialize
   Tracker.Write('Building patch: '+patch.name);
   time := Now;
   patch.fails.Clear;
   pluginsToPatch := TList.Create;
+  msg := 'User cancelled smashing patches.';
   
   // set up directories
   patch.DataPath := settings.patchDirectory + patch.name + '\';
@@ -355,6 +362,7 @@ begin
   try
     // build list of plugins to patch
     BuildPluginsList(patch, pluginsToPatch);
+    HandleCanceled(msg);
     
     // identify or create patch file
     patchFile := GetPatchFile(patch, pluginsToPatch);
@@ -362,13 +370,16 @@ begin
 
     // add masters to patch file
     AddRequiredMasters(patch, pluginsToPatch);
+    HandleCanceled(msg);
 
     // build list of overrides
     recordsList := TInterfaceList.Create;
     BuildOverridesList(patch, pluginsToPatch, recordsList);
+    HandleCanceled(msg);
 
     // smash records
     SmashRecords(patch, recordsList);
+    HandleCanceled(msg);
 
     // clean patch (Masters, ITPOs)
     CleanPatch(patch);

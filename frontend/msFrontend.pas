@@ -330,6 +330,7 @@ type
     bWithinSingle: boolean);
   procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
   { Helper methods }
+  procedure HandleCanceled(msg: string);
   procedure RenamePatches(var sl: TStringList);
   procedure GetPatchesToRename(var sl: TStringList);
   procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
@@ -2410,6 +2411,12 @@ end;
   - PatchPluginsCompare
 }
 {******************************************************************************}
+
+procedure HandleCanceled(msg: string);
+begin
+  if Tracker.Cancel then
+    raise Exception.Create(msg);
+end;
 
 procedure RenamePatches(var sl: TStringList);
 var
