@@ -407,10 +407,11 @@ const
   // STATUS TYPES
   ErrorStatuses = [psUnknown, psNoPlugins, psDirInvalid, psUnloaded, psErrors];
   UpToDateStatuses = [psUpToDate, psUpToDateForced];
-  BuildStatuses = [psBuildReady, psRebuildReady, psRebuildReadyForced];
-  RebuildStatuses = [psRebuildReady, psRebuildReadyForced];
+  BuildStatuses = [psBuildReady, psRebuildReady, psRebuildReadyForced, psFailed];
+  RebuildStatuses = [psRebuildReady, psRebuildReadyForced, psFailed];
   ForcedStatuses = [psUpToDateForced, psRebuildReadyForced];
   ResolveStatuses = [psNoPlugins, psDirInvalid, psUnloaded, psErrors];
+  FailedStatuses = [psFailed];
 
   // DELAYS
   StatusDelay = 2.0 / (60.0 * 24.0); // 2 minutes

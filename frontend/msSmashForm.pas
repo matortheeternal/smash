@@ -1224,7 +1224,8 @@ begin
     // sort plugins in patch
     patch.SortPlugins;
     // get status of each patch
-    if not (patch.status in ForcedStatuses) then
+    if not ((patch.status in ForcedStatuses)
+    or (patch.status in FailedStatuses)) then
       patch.GetStatus;
   end;
 end;
@@ -1495,7 +1496,7 @@ end;
 
 
 {******************************************************************************}
-{ PatchPopupMenu methods
+{ PatchesPopupMenu methods
   Methods for dealing with the popup menu for the PatchesListView.
   - PatchesPopupMenuPopup
   - EditPatchItemClick
@@ -1860,7 +1861,7 @@ begin
   pForm := TProgressForm.Create(Self);
   pForm.LogPath := LogPath;
   pForm.PopupParent := Self;
-  pForm.Caption := GetString('mpProg_Smashing');
+  pForm.Caption := GetString('msProg_Smashing');
   pForm.MaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
   pForm.Show;
 

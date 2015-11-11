@@ -316,7 +316,7 @@ begin
     end;
     Tracker.Write(' '#13#10);
     Tracker.SetProgress(IntegerListSum(timeCosts, i));
-    if Tracker.Cancel then Tracker.Write('Merging canceled.');
+    if Tracker.Cancel then Tracker.Write('Smashing canceled.');
   end;
 
   // say thread is done if it wasn't cancelled
