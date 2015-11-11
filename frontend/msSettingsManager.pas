@@ -43,6 +43,7 @@ type
           ToggleNodesItem: TMenuItem;
           PreserveDeletionsItem: TMenuItem;
           SingleEntityItem: TMenuItem;
+          AutoPruneItem: TMenuItem;
           PruneNodesItem: TMenuItem;
           LinkNodeToItem: TMenuItem;
           UnlinkNodeItem: TMenuItem;
@@ -99,6 +100,7 @@ type
     procedure edNameChange(Sender: TObject);
     procedure CombineSettings(var sl: TStringList);
     procedure CombineSettingsItemClick(Sender: TObject);
+    procedure AutoPruneItemClick(Sender: TObject);
   private
     { Private declarations }
     lastHint: string;
@@ -362,7 +364,8 @@ end;
 
 procedure TSettingsManager.TreePopupMenuPopup(Sender: TObject);
 var
-  bHasSelection, bHasMultiSelection, bSubrecordSelected, bHasChildren: boolean;
+  bHasSelection, bHasMultiSelection, bSubrecordSelected, bHasChildren,
+  bRecordsSelected, bSomeUnChecked: boolean;
   i: Integer;
   node: TTreeNode;
   MenuItem: TMenuItem;
@@ -371,19 +374,25 @@ begin
   LinkNodeToItem.Clear;
 
   // get selection booleans
+  bRecordsSelected := true;
   bHasSelection := tvRecords.SelectionCount > 0;
+  bSomeUnChecked := false;
   bHasMultiSelection := tvRecords.SelectionCount > 1;
   bSubrecordSelected := (tvRecords.SelectionCount = 1)
     and (tvRecords.Selections[0].Level > 1);
   bHasChildren := false;
-  for i := 0 to Pred(tvRecords.SelectionCount) do
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
     bHasChildren := bHasChildren or tvRecords.Selections[i].HasChildren;
+    bRecordsSelected := bRecordsSelected and (tvRecords.Selections[i].Level = 1);
+    bSomeUnChecked := bSomeUnChecked or (tvRecords.Selections[i].StateIndex = cUnChecked);
+  end;
 
   // enable/disable menu items
   ToggleNodesItem.Enabled := bHasSelection;
   PreserveDeletionsItem.Enabled := bHasSelection and bHasChildren;
   SingleEntityItem.Enabled := bHasSelection and bHasChildren;
-  PruneNodesItem.Enabled := bHasSelection;
+  AutoPruneItem.Enabled := CanPruneRecords;
+  PruneNodesItem.Enabled := bHasSelection and bRecordsSelected and bSomeUnChecked;
   UnlinkNodeItem.Enabled := bHasSelection;
   ChainNodesItem.Enabled := bHasMultiSelection;
   LinkNodeToItem.Enabled := bSubrecordSelected;
@@ -459,6 +468,11 @@ begin
     tvRecords.Selections[i].Data := e;
   end;
   tvRecords.Repaint;
+end;
+
+procedure TSettingsManager.AutoPruneItemClick(Sender: TObject);
+begin
+  AutoPrune;
 end;
 
 procedure TSettingsManager.PruneNodesItemClick(Sender: TObject);
