@@ -396,8 +396,9 @@ function HandleElement(se, me, de: IwbElement; dstRec: IwbMainRecord;
 var
   et: TwbElementType;
   srcType, dstType: TwbDefType;
-  container: IwbContainer;
+  container: IwbContainerElementRef;
   subDef: IwbSubRecordDef;
+  bCanAdd, bIsContainer: boolean;
 begin
   Result := false;
 
@@ -405,6 +406,12 @@ begin
   et := se.ElementType;
   srcType := se.Def.DefType;
   dstType := de.Def.DefType;
+
+  // other type information
+  bIsContainer := Supports(se, IwbContainerElementRef, container)
+    and (container.ElementCount > 0);
+  bCanAdd := se.CanAssign(High(Integer), nil, True)
+    and not (esNotSuitableToAddTo in se.ElementStates);
 
   // get the deftype of value held by subrecorddefs
   if Supports(se.Def, IwbSubRecordDef, subDef) then
@@ -425,11 +432,13 @@ begin
   // debug messages
   if settings.debugTraversal then
     Tracker.Write('      '+se.Path);
-  if settings.debugTypes then
+  if settings.debugTypes then begin
+    Tracker.Write('      bCanAdd: '+BoolToStr(bCanAdd, true));
     Tracker.Write('      ets: '+etToString(et)+'  dts: '+dtToString(srcType));
+  end;
 
   // merge array
-  if (et = etSubRecordArray) or ((srcType = dtArray) and IsSorted(se)) then begin
+  if bCanAdd and (srcType = dtArray) then begin
     if settings.debugTraversal then
       Tracker.Write('         Merging array');
     try
@@ -439,8 +448,7 @@ begin
     end;
   end
   // else recurse deeper
-  else if (srcType <> dtInteger) and Supports(se, IwbContainer, container)
-  and (container.ElementCount > 0) then begin
+  else if (srcType <> dtInteger) and bIsContainer then begin
     if settings.debugTraversal then
       Tracker.Write('        Recursing deeper');
     try
