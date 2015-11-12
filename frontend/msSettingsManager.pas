@@ -284,14 +284,18 @@ begin
   e := TElementData(node.Data);
   if bTo and (e.linkTo <> '') then begin
     linkedNode := GetSiblingNode(node, e.linkTo);
-    le := TElementData(linkedNode.Data);
-    le.linkFrom := '';
+    if Assigned(linkedNode) then begin
+      le := TElementData(linkedNode.Data);
+      le.linkFrom := '';
+    end;
     e.linkTo := '';
   end;
   if bFrom and (e.linkFrom <> '') then begin
     linkedNode := GetSiblingNode(node, e.linkFrom);
-    le := TElementData(linkedNode.Data);
-    le.linkTo := '';
+    if Assigned(linkedNode) then begin
+      le := TElementData(linkedNode.Data);
+      le.linkTo := '';
+    end;
     e.linkFrom := '';
   end;
 end;
@@ -315,6 +319,10 @@ procedure TSettingsManager.LinkNodes(node1, node2: TTreeNode);
 var
   e: TElementData;
 begin
+  // exit if nodes have different level
+  if node1.Level <> node2.Level then
+    exit;
+
   // unlink nodes as necessary
   UnlinkNode(node1, true, false);
   UnlinkNode(node2, false, true);
@@ -338,7 +346,12 @@ begin
     LinkNodes(prevNode, node);
   end;
   // link last node to first node
-  LinkNodes(node, tvRecords.Selections[0]);
+  prevNode := node;
+  node := tvRecords.Selections[0];
+  LinkNodes(prevNode, node);
+
+  // repaint
+  tvRecords.Repaint;
 end;
 
 procedure TSettingsManager.LinkNodeItemClick(Sender: TObject);
@@ -434,7 +447,6 @@ begin
       continue;
     e := TElementData(node.Data);
     e.preserveDeletions := not e.preserveDeletions;
-    tvRecords.Selections[i].Data := e;
   end;
   tvRecords.Repaint;
 end;
@@ -456,16 +468,13 @@ begin
       continue;
     e := TElementData(node.Data);
     e.singleEntity := not e.singleEntity;
-    if e.singleEntity then begin
-      SetChildren(node, cUnChecked);
-      node.StateIndex := cPartiallyChecked;
-    end
+    if e.singleEntity then
+      node.StateIndex := cPartiallyChecked
     else begin
       SetChildren(node, cChecked);
       node.StateIndex := cChecked;
     end;
     UpdateParent(node.Parent);
-    tvRecords.Selections[i].Data := e;
   end;
   tvRecords.Repaint;
 end;

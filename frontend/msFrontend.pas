@@ -2265,7 +2265,10 @@ var
   e: TElementData;
 begin
   // exit if we don't have a node to work with
+  // or if not is set to be treated as a single entity
   if not Assigned(node) then exit;
+  e := TElementData(node.Data);
+  if e.singleEntity then exit;
 
   // parent state is checked if all siblings are checked
   state := cChecked;
@@ -2293,9 +2296,7 @@ begin
 
   // set state, recurse to next parent
   node.StateIndex := state;
-  e := TElementData(node.Data);
   e.process := state <> cUnChecked;
-  e.singleEntity := false;
   tmp := node.Parent;
   UpdateParent(tmp);
 end;
