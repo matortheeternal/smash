@@ -3,8 +3,8 @@ unit msConflictForm;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls,
+  Windows, Types, Messages, SysUtils, Variants, Classes, Graphics, Controls,
+  Forms, Dialogs, StdCtrls, ComCtrls,
   // superobject
   superobject,
   // mte units
@@ -94,6 +94,12 @@ var
   e: TElementData;
   sHint: string;
 begin
+  // hide hint and exit if shift is down
+  if (ssShift in Shift) then begin
+    Application.HideHint;
+    exit;
+  end;
+
   // draw hint if on a node with the link parameter
   node := tvRecords.GetNodeAt(X, Y);
   if not Assigned(node) then
@@ -101,15 +107,15 @@ begin
   e := TElementData(node.Data);
   if not Assigned(e) then
     exit;
-  sHint := '';
+
+  // get hint
+  sHint := node.Text + #13#10'Type: '+GetSmashTypeName(e.smashType);
   if e.linkTo <> '' then
-    sHint := 'Linked to: '+e.linkTo;
-  if e.linkFrom <> '' then begin
-    if sHint <> '' then
-      sHint := sHint + #13#10'Linked from: '+e.linkFrom
-    else
-      sHint := 'Linked from: '+e.linkFrom;
-  end;
+    sHint := sHint + #13#10'Linked to: '+e.linkTo;
+  if e.linkFrom <> '' then
+    sHint := sHint + #13#10'Linked from: '+e.linkFrom;
+
+  // display hint if it isn't the last hint we displayed
   if sHint <> lastHint then begin
     tvRecords.Hint := sHint;
     Application.ActivateHint(Mouse.CursorPos);

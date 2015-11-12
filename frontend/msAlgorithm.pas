@@ -16,16 +16,6 @@ uses
   function rcore(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
     obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 
-const
-  valueElements: set of TwbDefType =
-    [dtInteger,
-     dtFloat,
-     dtUnion,
-     dtByteArray,
-     dtString,
-     dtLString,
-     dtLenString];
-
 implementation
 
 var
@@ -58,29 +48,6 @@ begin
     if eKey = key then begin
       Result := element;
       break;
-    end;
-  end;
-end;
-
-{ 
-  GetChildObj: 
-  Gets the child json object from a node in a TSmashSetting tree
-  @obj matching @name.  Returns nil if a matching child is not 
-  found.
-}
-function GetChildObj(obj: ISuperObject; name: string): ISuperObject;
-var
-  item: ISuperObject;
-begin
-  Result := nil;
-  if not Assigned(obj) then
-    exit;
-  if not Assigned(obj['c']) then
-    exit;
-  for item in obj['c'] do begin
-    if item.S['n'] = name then begin
-      Result := item;
-      exit;
     end;
   end;
 end;
@@ -303,7 +270,7 @@ begin
         // traverse element
         try
           Result := rcore(se, GetMasterElement(src, se, dstrec), dstCont.Elements[d_ndx],
-            dstrec, GetChildObj(obj, se.Name), bSingle, bDeletions);
+            dstrec, GetElementObj(obj, se.Name), bSingle, bDeletions);
           if Result and bSingle then
             exit;
         except on x : Exception do begin
@@ -366,7 +333,7 @@ begin
 
   // else try to copy the linked element
   try
-    cObj := GetChildObj(obj, eLink);
+    cObj := GetElementObj(obj, eLink);
     le := srcCont.ElementByName[eLink];
     de := dstCont.ElementByName[eLink];
     if Assigned(le) then begin
@@ -394,7 +361,6 @@ end;
 function HandleElement(se, me, de: IwbElement; dstRec: IwbMainRecord;
   obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 var
-  et: TwbElementType;
   srcType, dstType: TwbDefType;
   container: IwbContainerElementRef;
   subDef: IwbSubRecordDef;
@@ -403,7 +369,6 @@ begin
   Result := false;
 
   // deftype and elementtype
-  et := se.ElementType;
   srcType := se.Def.DefType;
   dstType := de.Def.DefType;
 
@@ -434,7 +399,7 @@ begin
     Tracker.Write('      '+se.Path);
   if settings.debugTypes then begin
     Tracker.Write('      bCanAdd: '+BoolToStr(bCanAdd, true));
-    Tracker.Write('      ets: '+etToString(et)+'  dts: '+dtToString(srcType));
+    Tracker.Write('      DefType: '+dtToString(srcType));
   end;
 
   // merge array
@@ -458,7 +423,7 @@ begin
     end;
   end
   // else copy element value
-  else if (srcType in ValueElements) and (se.EditValue <> me.EditValue) then begin
+  else if (not (srcType in dtNonValues)) and (se.EditValue <> me.EditValue) then begin
     if not bSingle then
       CopyElementValue(se, me, de);
     Result := true;
@@ -532,7 +497,7 @@ begin
     end;
 
     // skip according to setting
-    eObj := GetChildObj(obj, se.Name);
+    eObj := GetElementObj(obj, se.Name);
     process := Assigned(eObj) and (eObj.I['p'] = 1);
     if not process then begin
       if settings.debugSkips then

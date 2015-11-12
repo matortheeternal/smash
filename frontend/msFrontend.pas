@@ -57,6 +57,9 @@ type
     constructor Create; Overload;
   end;
   // GENERAL
+  TSmashType = ( stUnknown, stRecord, stString, stInteger, stFlag, stFloat,
+    stStruct, stUnsortedArray, stUnsortedStructArray, stSortedArray,
+    stSortedStructArray, stByteArray, stUnion );
   TGameMode = Record
     longName: string;
     gameName: string;
@@ -71,11 +74,12 @@ type
     process: boolean;
     preserveDeletions: boolean;
     singleEntity: boolean;
+    smashType: TSmashType;
     linkTo: string;
     linkFrom: string;
     constructor Create(priority: byte; process: boolean;
       preserveDeletions: boolean; singleEntity: boolean;
-      linkTo, linkFrom: string); overload;
+      smashType: TSmashType; linkTo, linkFrom: string); overload;
   end;
   TSmashSetting = class(TObject)
   public
@@ -110,7 +114,7 @@ type
     function GetNotes: string;
     procedure Save(const filename: string);
   end;
-  // PLUGINS AND MERGES
+  // PLUGINS AND PATCHES
   TPatchStatusID = ( psUnknown, psNoPlugins, psDirInvalid, psUnloaded,
     psErrors, psFailed, psUpToDate, psUpToDateForced, psBuildReady,
     psRebuildReady, psRebuildReadyForced );
@@ -258,7 +262,8 @@ type
   function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;
   function IndexedPath(e: IwbElement): string;
   function GetAllValues(e: IwbElement): string;
-  function IsSorted(se: IwbElement): boolean;
+  function IsSorted(e: IwbElement): boolean;
+  function HasStructChildren(e: IwbElement): boolean;
   function OverrideCountInFiles(rec: IwbMainRecord; var files: TStringList): Integer;
   function CountOverrides(aFile: IwbFile): integer;
   procedure AddRequiredBy(filename: string; var masters: TStringList);
@@ -330,6 +335,12 @@ type
     bWithinSingle: boolean);
   procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
   { Helper methods }
+  function CreateElementObj(var obj: ISuperObject; element: IwbElement): ISuperObject;
+  function GetElementObj(var obj: ISuperObject; name: string): ISuperObject;
+  function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord): ISuperObject;
+  function GetRecordObj(var tree: ISuperObject; sig: string): ISuperObject;
+  function GetSmashTypeName(st: TSmashType): string;
+  function GetSmashType(element: IwbElement): TSmashType;
   procedure HandleCanceled(msg: string);
   procedure RenamePatches(var sl: TStringList);
   procedure GetPatchesToRename(var sl: TStringList);
@@ -774,14 +785,25 @@ begin
   end;
 end;
 
-{ Returns true if @se is a sorted container }
-function IsSorted(se: IwbElement): boolean;
+{ Returns true if @e is a sorted container }
+function IsSorted(e: IwbElement): boolean;
 var
   Container: IwbSortableContainer;
 begin
   Result := false;
-  if Supports(se, IwbSortableContainer, Container) then
+  if Supports(e, IwbSortableContainer, Container) then
     Result := Container.Sorted;
+end;
+
+{ Returns true if @e is a container with struct children }
+function HasStructChildren(e: IwbElement): boolean;
+var
+  Container: IwbContainerElementRef;
+begin
+  Result := false;
+  if Supports(e, IwbContainerElementRef, Container)
+  and (Container.ElementCount > 0) then
+    Result := GetSmashType(Container.Elements[0]) = stStruct;
 end;
 
 { Returns the number of override records in a file }
@@ -2344,6 +2366,7 @@ var
   child: TTreeNode;
   bProcess, bPreserveDeletions, bIsSingle: boolean;
   priority: Integer;
+  oSmashType: TSmashType;
   sLinkTo, sLinkFrom: string;
   e: TElementData;
 begin
@@ -2354,10 +2377,11 @@ begin
   bPreserveDeletions := obj.I['d'] = 1;
   bIsSingle := obj.I['s'] = 1;
   bWithinSingle := bWithinSingle or bIsSingle;
+  oSmashType := TSmashType(obj.I['t']);
   sLinkTo := obj.S['lt'];
   sLinkFrom := obj.S['lf'];
   e := TElementData.Create(priority, bProcess, bPreserveDeletions, bIsSingle,
-    sLinkTo, sLinkFrom);
+    oSmashType, sLinkTo, sLinkFrom);
   child := tv.Items.AddChildObject(node, obj.S['n'], e);
   if bIsSingle then
     child.StateIndex := cPartiallyChecked
@@ -2382,7 +2406,7 @@ var
   rootNode: TTreeNode;
   e: TElementData;
 begin
-  e := TElementData.Create(0, false, false, false, '', '');
+  e := TElementData.Create(0, false, false, false, TSmashType(0), '', '');
   rootNode := tv.Items.AddObject(nil, 'Records', e);
   obj := aSetting.tree;
   if not Assigned(obj) then
@@ -2413,6 +2437,135 @@ end;
   - PatchPluginsCompare
 }
 {******************************************************************************}
+
+function CreateElementObj(var obj: ISuperObject; element: IwbElement): ISuperObject;
+var
+  item: ISuperObject;
+begin
+  Result := nil;
+  if not Assigned(obj) then
+    exit;
+  if not Assigned(obj['c']) then
+    obj.O['c'] := SA([]);
+  item := SO;
+  item.S['n'] := element.Name;
+  item.I['t'] := Ord(GetSmashType(element));
+  obj.A['c'].Add(item);
+  Result := item;
+end;
+
+{
+  GetChildObj:
+  Gets the child json object from a node in a TSmashSetting tree
+  @obj matching @name.  Returns nil if a matching child is not
+  found.
+}
+function GetElementObj(var obj: ISuperObject; name: string): ISuperObject;
+var
+  item: ISuperObject;
+begin
+  Result := nil;
+  if not Assigned(obj) then
+    exit;
+  if not Assigned(obj['c']) then
+    exit;
+  for item in obj['c'] do begin
+    if item.S['n'] = name then begin
+      Result := item;
+      exit;
+    end;
+  end;
+end;
+
+function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord): ISuperObject;
+var
+  item: ISuperObject;
+begin
+  item := SO;
+  item.S['n'] := rec.Signature;
+  item.I['t'] := Ord(stRecord);
+  tree.A['records'].Add(item);
+  Result := item;
+end;
+
+function GetRecordObj(var tree: ISuperObject; sig: string): ISuperObject;
+var
+  item: ISuperObject;
+begin
+  Result := nil;
+  for item in tree['records'] do begin
+    if item.S['n'] = sig then
+      Result := item;
+  end;
+end;
+
+function GetSmashTypeName(st: TSmashType): string;
+begin
+  case Ord(st) of
+    Ord(stUnknown): Result := 'Unknown';
+    Ord(stRecord): Result := 'Record';
+    Ord(stString): Result := 'String';
+    Ord(stInteger): Result := 'Integer';
+    Ord(stFlag): Result := 'Flag';
+    Ord(stFloat): Result := 'Float';
+    Ord(stStruct): Result := 'Struct';
+    Ord(stUnsortedArray): Result := 'Unsorted Array';
+    Ord(stUnsortedStructArray): Result := 'Unsorted Struct Array';
+    Ord(stSortedArray): Result := 'Sorted Array';
+    Ord(stSortedStructArray): Result := 'Sorted Struct Array';
+    Ord(stByteArray): Result := 'Byte Array';
+    Ord(stUnion): Result := 'Union';
+    else Result := 'Unknown';
+  end;
+end;
+
+function GetSmashType(element: IwbElement): TSmashType;
+var
+  subDef: IwbSubRecordDef;
+  dt: TwbDefType;
+  bIsSorted, bHasStructChildren: boolean;
+begin
+  dt := element.Def.DefType;
+  if Supports(element.Def, IwbSubRecordDef, subDef) then
+    dt := subDef.Value.DefType;
+
+  case Ord(dt) of
+    Ord(dtRecord): Result := stRecord;
+    Ord(dtSubRecord): Result := stUnknown;
+    Ord(dtSubRecordStruct): Result := stStruct;
+    Ord(dtSubRecordUnion): Result := stUnion;
+    Ord(dtString): Result := stString;
+    Ord(dtLString): Result := stString;
+    Ord(dtLenString): Result := stString;
+    Ord(dtByteArray): Result := stByteArray;
+    Ord(dtInteger): Result := stInteger;
+    Ord(dtIntegerFormater): Result := stInteger;
+    Ord(dtIntegerFormaterUnion): Result := stInteger;
+    Ord(dtFlag): Result := stFlag;
+    Ord(dtFloat): Result := stFloat;
+    Ord(dtSubRecordArray), Ord(dtArray): begin
+      bIsSorted := IsSorted(element);
+      bHasStructChildren := HasStructChildren(element);
+      if bIsSorted then begin
+        if bHasStructChildren then
+          Result := stSortedStructArray
+        else
+          Result := stSortedArray;
+      end
+      else begin
+        if bHasStructChildren then
+          Result := stUnsortedStructArray
+        else
+          Result := stUnsortedArray;
+      end;
+    end;
+    Ord(dtStruct): Result := stStruct;
+    Ord(dtUnion): Result := stUnion;
+    Ord(dtEmpty): Result := stUnknown;
+    Ord(dtStructChapter): Result := stStruct;
+    else Result := stUnknown;
+  end;
+end;
 
 procedure HandleCanceled(msg: string);
 begin
@@ -3742,12 +3895,14 @@ begin
 end;
 
 constructor TElementData.Create(priority: Byte; process: Boolean;
-  preserveDeletions: Boolean; singleEntity: Boolean; linkTo, linkFrom: string);
+  preserveDeletions: Boolean; singleEntity: Boolean; smashType: TSmashType;
+  linkTo, linkFrom: string);
 begin
   self.priority := priority;
   self.process := process;
   self.preserveDeletions := preserveDeletions;
   self.singleEntity := singleEntity;
+  self.smashType := smashType;
   self.linkTo := linkTo;
   self.linkFrom := linkFrom;
 end;
@@ -3797,17 +3952,11 @@ begin
 end;
 
 function TSmashSetting.GetRecordDef(sig: string): ISuperObject;
-var
-  item: ISuperObject;
 begin
   Result := nil;
   if not Assigned(tree) then
     exit;
-  // loop through record objects
-  for item in tree['records'] do begin
-    if item.S['n'] = sig then
-      Result := item;
-  end;
+  Result := GetRecordObj(tree, sig);
 end;
 
 procedure TSmashSetting.LoadDump(dump: ISuperObject);

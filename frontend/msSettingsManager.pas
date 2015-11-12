@@ -3,8 +3,8 @@ unit msSettingsManager;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, ComCtrls, Grids, ValEdit, CommCtrl, Menus,
+  Windows, Types, Messages, SysUtils, Variants, Classes, Graphics, Controls,
+  Forms, Dialogs, StdCtrls, ExtCtrls, ComCtrls, Grids, ValEdit, CommCtrl, Menus,
   ImgList,
   // superobject
   superobject,
@@ -136,6 +136,9 @@ begin
   ShowWindow(Handle, SW_RESTORE);
   SetForegroundWindow(Handle);
 
+  // display tree
+  LoadTree(tvRecords, currentSetting);
+
   // save setting if it's a new setting
   if NewSettings.IndexOf(currentSetting) > -1 then
     DumpTree;
@@ -186,9 +189,12 @@ end;
 
 procedure TSettingsManager.tvRecordsKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
+var
+  i: Integer;
 begin
-  if (Key = VK_SPACE) and Assigned(tvRecords.Selected) then begin
-    CheckBoxManager(tvRecords.Selected);
+  if (Key = VK_SPACE) then begin
+    for i := 0 to Pred(tvRecords.SelectionCount) do
+      CheckboxManager(tvRecords.Selections[i]);
     // repaint tree view in case a single entity flag was unset
     tvRecords.Repaint;
   end;
@@ -238,6 +244,12 @@ var
   e: TElementData;
   sHint: string;
 begin
+  // hide hint and exit if shift is down
+  if (ssShift in Shift) then begin
+    Application.HideHint;
+    exit;
+  end;
+
   // draw hint if on a node with the link parameter
   node := tvRecords.GetNodeAt(X, Y);
   if not Assigned(node) then
@@ -245,15 +257,15 @@ begin
   e := TElementData(node.Data);
   if not Assigned(e) then
     exit;
-  sHint := '';
+
+  // get hint
+  sHint := node.Text + #13#10'Type: '+GetSmashTypeName(e.smashType);
   if e.linkTo <> '' then
-    sHint := 'Linked to: '+e.linkTo;
-  if e.linkFrom <> '' then begin
-    if sHint <> '' then
-      sHint := sHint + #13#10'Linked from: '+e.linkFrom
-    else
-      sHint := 'Linked from: '+e.linkFrom;
-  end;
+    sHint := sHint + #13#10'Linked to: '+e.linkTo;
+  if e.linkFrom <> '' then
+    sHint := sHint + #13#10'Linked from: '+e.linkFrom;
+
+  // display hint if it isn't the last hint we displayed
   if sHint <> lastHint then begin
     tvRecords.Hint := sHint;
     Application.ActivateHint(Mouse.CursorPos);
@@ -538,6 +550,7 @@ begin
   pForm.Show;
 
   // start save thread
+  TargetSetting := currentSetting;
   TreeCallback := TreeDone;
   TTreeThread.Create;
 end;
@@ -596,13 +609,20 @@ begin
   obj.S['n'] := node.Text;
   // get data properties
   e := TElementData(node.Data);
-  if (e.priority > 0) then obj.I['r'] := e.priority;
+  if (e.priority > 0) then
+    obj.I['r'] := e.priority;
   if (node.StateIndex <> cUnChecked) then
     obj.I['p'] := 1;
-  if (e.preserveDeletions) then obj.I['d'] := 1;
-  if (e.singleEntity) then obj.I['s'] := 1;
-  if (e.linkTo <> '') then obj.S['lt'] := e.linkTo;
-  if (e.linkFrom <> '') then obj.S['lf'] := e.linkFrom;
+  if (e.preserveDeletions) then
+    obj.I['d'] := 1;
+  if (e.singleEntity) then
+    obj.I['s'] := 1;
+  if (e.smashType <> stUnknown) then
+    obj.I['t'] := Ord(e.smashType);
+  if (e.linkTo <> '') then
+    obj.S['lt'] := e.linkTo;
+  if (e.linkFrom <> '') then
+    obj.S['lf'] := e.linkFrom;
 
   // exit if no children to dump
   if node.hasChildren then begin
@@ -789,9 +809,8 @@ begin
   meDescription.Lines.Text := currentSetting.description;
   if Assigned(currentSetting.tree) then
     LoadTree(tvRecords, currentSetting)
-  else begin
+  else
     BuildTree;
-  end;
 end;
 
 procedure TSettingsManager.btnDiscardClick(Sender: TObject);
@@ -906,8 +925,8 @@ begin
     setting.Delete;
     setting.Free;
   end;
-  lvSettingsChange(nil, nil, TItemChange(nil));
   lvSettings.Repaint;
+  lvSettingsChange(nil, nil, TItemChange(nil));
 end;
 
 procedure TSettingsManager.CloneSettingItemClick(Sender: TObject);
