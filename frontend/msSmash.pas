@@ -173,6 +173,11 @@ begin
         Inc(skips);
         continue;
       end;
+      if (recObj.I['p'] <> 1) then begin
+        Inc(skips);
+        continue;
+      end;
+
       // TODO: skip records that are ITM or ITPO
       // add record to overrides list
       if records.IndexOf(rec) = -1 then
@@ -228,6 +233,8 @@ begin
       aSetting := plugin.smashSetting;
       recObj := aSetting.GetRecordDef(ovr.Signature);
       if not Assigned(recObj) then
+        continue;
+      if (recObj.I['p'] <> 1) then
         continue;
 
       // copy record to smashed patch if it hasn't been copied yet
