@@ -20,6 +20,7 @@ implementation
 
 var
   firstLink: string;
+  bLinkProcessed: boolean;
 
 { 
   ElementByKey: 
@@ -328,8 +329,11 @@ var
   cLink: string;
 begin
   // exit if we reached the first link in a chain
-  if eLink = firstLink then
-    exit;
+  if (eLink = firstLink) then begin
+    if bLinkProcessed then
+      exit;
+    bLinkProcessed := true;
+  end;
 
   // else try to copy the linked element
   try
@@ -539,6 +543,7 @@ begin
     // element
     eLink := eObj.S['lf'];
     firstLink := eLink;
+    bLinkProcessed := false;
     if Result and (eLink <> '') then
       CopyLinkedElement(srcCont, dstCont, eLink, obj, dstRec);
   end;
