@@ -339,9 +339,7 @@ begin
     if Assigned(le) then begin
       if settings.debugLinks then
         Tracker.Write('      Copying linked element '+le.Path);
-      if Assigned(de) and de.IsRemoveable then
-        de.Remove;
-      wbCopyElementToRecord(le, dstRec, false, true);
+      de.Assign(Low(Integer), le, false);
       // follow chain
       cLink := cObj.S['lf'];
       if cLink <> '' then
@@ -521,8 +519,8 @@ begin
     // and we're not currently in a single entity, copy entire element
     if eSingle and (not bSingle) and Result then try
       if settings.debugSingle then
-        Tracker.Write('      Copying single entity '+se.path);
-      wbCopyElementToRecord(se, dstRec, false, true);
+        Tracker.Write(Format('      Copying single entity %s', [se.path]));
+      de.Assign(Low(Integer), se, false);
     except
       on x: Exception do
         Tracker.Write('        rcore: Failed to copy '+se.Path+', '+x.Message);
