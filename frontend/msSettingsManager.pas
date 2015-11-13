@@ -40,6 +40,7 @@ type
           lblTree: TLabel;
           tvRecords: TTreeView;
           TreePopupMenu: TPopupMenu;
+          AddItem: TMenuItem;
           ToggleNodesItem: TMenuItem;
           PreserveDeletionsItem: TMenuItem;
           SingleEntityItem: TMenuItem;
@@ -67,6 +68,7 @@ type
       Y: Integer);
     procedure LinkNodeItemClick(Sender: TObject);
     procedure TreePopupMenuPopup(Sender: TObject);
+    procedure AddItemClick(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
     procedure PreserveDeletionsItemClick(Sender: TObject);
     procedure SingleEntityItemClick(Sender: TObject);
@@ -259,7 +261,7 @@ begin
     exit;
 
   // get hint
-  sHint := node.Text + #13#10'Type: '+GetSmashTypeName(e.smashType);
+  sHint := node.Text + #13#10'Type: '+stToString(e.smashType);
   if e.linkTo <> '' then
     sHint := sHint + #13#10'Linked to: '+e.linkTo;
   if e.linkFrom <> '' then
@@ -389,8 +391,8 @@ end;
 
 procedure TSettingsManager.TreePopupMenuPopup(Sender: TObject);
 var
-  bHasSelection, bHasMultiSelection, bSubrecordSelected, bHasChildren,
-  bRecordsSelected, bSomeUnChecked: boolean;
+  bHasSelection, bTreeSelected, bHasMultiSelection, bSubrecordSelected,
+  bHasChildren, bRecordsSelected, bSomeUnChecked: boolean;
   i: Integer;
   node: TTreeNode;
   MenuItem: TMenuItem;
@@ -399,13 +401,17 @@ begin
   LinkNodeToItem.Clear;
 
   // get selection booleans
-  bRecordsSelected := true;
   bHasSelection := tvRecords.SelectionCount > 0;
-  bSomeUnChecked := false;
+  bTreeSelected := (tvRecords.SelectionCount = 1)
+    and (tvRecords.Selections[0].Level = 0);
   bHasMultiSelection := tvRecords.SelectionCount > 1;
   bSubrecordSelected := (tvRecords.SelectionCount = 1)
     and (tvRecords.Selections[0].Level > 1);
+
+  // get multiselection booleans
   bHasChildren := false;
+  bRecordsSelected := true;
+  bSomeUnChecked := false;
   for i := 0 to Pred(tvRecords.SelectionCount) do begin
     bHasChildren := bHasChildren or tvRecords.Selections[i].HasChildren;
     bRecordsSelected := bRecordsSelected and (tvRecords.Selections[i].Level = 1);
@@ -413,6 +419,7 @@ begin
   end;
 
   // enable/disable menu items
+  AddItem.Visible := bTreeSelected;
   ToggleNodesItem.Enabled := bHasSelection;
   PreserveDeletionsItem.Enabled := bHasSelection and bHasChildren;
   SingleEntityItem.Enabled := bHasSelection and bHasChildren;
@@ -437,6 +444,27 @@ begin
       node := node.getNextSibling;
     end;
   end;
+end;
+
+procedure TSettingsManager.AddItemClick(Sender: TObject);
+var
+  item: TMenuItem;
+  groupName: string;
+  recObj: ISuperObject;
+begin
+  item := (Sender as TMenuItem);
+  groupName := StringReplace(item.Caption, '&', '', [rfReplaceAll]);
+  recObj := GetRecordObj(currentSetting.tree, groupName);
+
+  // build record def if it isn't already present
+  if not Assigned(recObj) then begin
+    recObj := BuildRecordDef(groupName);
+    currentSetting.tree.A['records'].Add(recObj);
+    LoadElement(tvRecords, tvRecords.Items[0], recObj, false);
+  end;
+
+  // update gui
+  tvRecords.Repaint;
 end;
 
 procedure TSettingsManager.ToggleNodesItemClick(Sender: TObject);
@@ -771,6 +799,9 @@ begin
   // disable tool tips on tree view
   SetWindowLong(tvRecords.Handle, GWL_STYLE,
     GetWindowLong(tvRecords.Handle, GWL_STYLE) or TVS_NOTOOLTIPS);
+
+  // build AddItem submenu
+  PopulateAddList(AddItem, AddItemClick);
 
   // force lvSettings to autosize columns
   lvSettings.Width := lvSettings.Width - 1;

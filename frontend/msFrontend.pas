@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, SysUtils, Classes, IniFiles, Dialogs, Registry, Graphics, ShlObj,
-  Forms, ShellAPI, ComCtrls,
+  Menus, Forms, ShellAPI, ComCtrls,
   // indy components
   IdTCPClient, IdStack, IdGlobal,
   // superobject json library
@@ -252,6 +252,9 @@ type
   function GetGamePath(mode: TGameMode): string;
   procedure LoadDefinitions;
   { Bethesda Plugin Functions }
+  function BuildRecordDef(sName: string): ISuperObject;
+  function GetEditableFileContainer: IwbContainerElementRef;
+  procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
   function IsOverride(aRecord: IwbMainRecord): boolean;
   function ExtractFormID(filename: string): string;
   function RemoveFileIndex(formID: string): string;
@@ -622,6 +625,207 @@ end;
   - CreatSEQFile
 }
 {*****************************************************************************}
+
+function GetRecordDef(sig: TwbSignature): TwbRecordDefEntry;
+var
+  i: Integer;
+  def: TwbRecordDefEntry;
+begin
+  for i := Low(wbRecordDefs) to High(wbRecordDefs) do begin
+    def := wbRecordDefs[i];
+    if def.rdeSignature = sig then begin
+      Result := def;
+      exit;
+    end;
+  end;
+end;
+
+procedure AddAll(container: IwbContainerElementRef);
+var
+  AddList: TDynStrings;
+  i: Integer;
+begin
+  AddList := container.GetAddList;
+  for i := Low(AddList) to High(AddList) do
+    container.Assign(i, nil, false);
+end;
+
+function BuildElementDef(element: IwbElement): ISuperObject;
+var
+  obj: ISuperObject;
+  container: IwbContainerElementRef;
+  i: Integer;
+  childElement: IwbElement;
+  {def: IwbNamedDef;
+  strDef: IwbStructDef;
+  uniDef: IwbUnionDef;}
+begin
+  Result := nil;
+  // release object if something goes wrong
+  obj := SO;
+  try
+    obj.S['n'] := element.Name;
+    obj.I['t'] := Ord(GetSmashType(element));
+
+    // populate element children, if it supports them
+    if not Supports(element, IwbContainerElementRef, container) then
+      exit;
+    {if Supports(element.Def, IwbStructDef, strDef) then
+      for i := 0 to strDef.MemberCount do
+        container.Assign(i, nil, false);
+    if Supports(element.Def, IwbUnionDef, uniDef) then
+      for i := 0 to uniDef.MemberCount do
+        container.Assign(i, nil, false);}
+
+    // traverse children
+    obj.O['c'] := SA([]);
+    for i := 0 to Pred(container.ElementCount) do begin
+      childElement := container.Elements[i];
+      obj.A['c'].Add(BuildElementDef(childElement));
+    end;
+  except
+    on x: Exception do begin
+      obj._Release;
+      raise x;
+    end;
+  end;
+
+  // if everything completed, result is object we made
+  Result := obj;
+end;
+
+function BuildRecordDef(sName: string): ISuperObject;
+var
+  sig: TwbSignature;
+  def: TwbRecordDefEntry;
+  mrDef: IwbRecordDef;
+  Container: IwbContainerElementRef;
+  group, rec, element: IwbElement;
+  aFile: IwbFile;
+  i: Integer;
+  obj: ISuperObject;
+  bAssignedGroup: boolean;
+begin
+  Result := nil;
+  bAssignedGroup := false;
+  sig := StrToSignature(sName);
+
+  // get def
+  def := GetRecordDef(sig);
+  mrDef := def.rdeDef;
+
+  // get file container
+  Container := GetEditableFileContainer;
+  aFile := (Container as IwbFile);
+
+  // create group in file if missing
+  group := aFile.GroupBySignature[sig];
+  if not Assigned(group) then begin
+    bAssignedGroup := true;
+    group := Container.Add(sName);
+  end;
+
+  // get to the def if we can
+  try
+    if not Supports(group, IwbContainerElementRef, container) then
+      exit;
+    rec := container.Add(sName);
+    try
+      if not Supports(rec, IwbContainerElementRef, container) then
+        exit;
+      // add all
+      for i := 0 to Pred(mrDef.MemberCount) do
+        rec.Assign(i, nil, False);
+
+      // construct json
+      obj := SO;
+      try
+        obj.S['n'] := sName;
+        obj.I['t'] := Ord(stRecord);
+        obj.O['c'] := SA([]);
+        for i := 0 to Pred(container.ElementCount) do begin
+          element := container.Elements[i];
+          obj.A['c'].Add(BuildElementDef(element));
+        end;
+      except
+        on x: Exception do begin
+          obj._Release;
+          raise x;
+        end;
+      end;
+    finally
+      rec.Remove;
+    end;
+  finally
+    if bAssignedGroup then
+      group.Remove;
+  end;
+
+  // if everything completed, result is object we made
+  Result := obj;
+end;
+
+function GetEditableFileContainer: IwbContainerElementRef;
+var
+  i: Integer;
+  aPlugin: TPlugin;
+  aFile: IwbFile;
+  Container: IwbContainerElementRef;
+begin
+  Result := nil;
+  i := 0;
+  repeat
+    // exit if max index reached
+    if i > Pred(PluginsList.Count) then
+      exit;
+
+    // get next plugin
+    aPlugin := TPlugin(PluginsList[i]);
+    Inc(i);
+
+    // exit if file is invalid
+    aFile := aPlugin._File;
+    if not Supports(aFile, IwbContainerElementRef, Container) then
+      exit;
+  until Container.IsElementEditable(nil);
+  Result := Container;
+end;
+
+procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
+var
+  i: Integer;
+  RecordDef: PwbRecordDef;
+  item: TMenuItem;
+begin
+  // populate wbGroupOrder to additem
+  with TStringList.Create do try
+    Sorted := True;
+    Duplicates := dupIgnore;
+
+    // initialize list contents
+    AddStrings(wbGroupOrder);
+    Sorted := False;
+
+    // get record def names, if available
+    for i := Pred(Count) downto 0 do
+      if wbFindRecordDef(AnsiString(Strings[i]), RecordDef) then
+        Strings[i] := Strings[i] + ' - ' + RecordDef.Name
+      else
+        Delete(i);
+
+    // populate menu items
+    for i := 0 to Pred(Count) do begin
+      if Length(Strings[i]) < 4 then
+        continue;
+      item := TMenuItem.Create(AddItem);
+      item.Caption := Strings[i];
+      item.OnClick := Event;
+      AddItem.Add(item);
+    end;
+  finally
+    Free;
+  end;
+end;
 
 { Returns true if the input record is an override record }
 function IsOverride(aRecord: IwbMainRecord): boolean;
@@ -3932,7 +4136,8 @@ begin
   color := clBlack;
   description := '';
   records := '';
-  tree := nil;
+  tree := SO;
+  tree.O['records'] := SA([]);
 end;
 
 destructor TSmashSetting.Destroy;

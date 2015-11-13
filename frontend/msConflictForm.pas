@@ -109,7 +109,7 @@ begin
     exit;
 
   // get hint
-  sHint := node.Text + #13#10'Type: '+GetSmashTypeName(e.smashType);
+  sHint := node.Text + #13#10'Type: '+stToString(e.smashType);
   if e.linkTo <> '' then
     sHint := sHint + #13#10'Linked to: '+e.linkTo;
   if e.linkFrom <> '' then
