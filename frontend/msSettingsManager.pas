@@ -51,9 +51,9 @@ type
           ChainNodesItem: TMenuItem;
           StateImages: TImageList;
           FlagIcons: TImageList;
+    BuildFromPluginsItem: TMenuItem;
 
     // TREE METHODS
-    procedure TreeDone;
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
     procedure tvRecordsCustomDrawItem(Sender: TCustomTreeView;
       Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
@@ -69,6 +69,7 @@ type
     procedure LinkNodeItemClick(Sender: TObject);
     procedure TreePopupMenuPopup(Sender: TObject);
     procedure AddItemClick(Sender: TObject);
+    procedure BuildFromPluginsItemClick(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
     procedure PreserveDeletionsItemClick(Sender: TObject);
     procedure SingleEntityItemClick(Sender: TObject);
@@ -76,8 +77,6 @@ type
     procedure UnlinkNodeItemClick(Sender: TObject);
     procedure LinkNodes(node1, node2: TTreeNode);
     procedure ChainNodesItemClick(Sender: TObject);
-    procedure BuildTreeFromPlugins(var sl: TStringList);
-    procedure BuildTree;
     function DumpElement(node: TTreeNode): ISuperObject;
     procedure DumpTree;
     procedure DeleteNodes(var aList: TList);
@@ -443,6 +442,35 @@ begin
   tvRecords.Repaint;
 end;
 
+procedure TSettingsManager.BuildFromPluginsItemClick(Sender: TObject);
+var
+  slPlugins, slSelection: TStringList;
+  i, mr: Integer;
+  plugin: TPlugin;
+  selectionForm: TPluginSelectionForm;
+begin
+  // build list of plugin filenames
+  slPlugins := TStringList.Create;
+  slSelection := TStringList.Create;
+  for i := 0 to Pred(PluginsList.Count) do begin
+    plugin := TPlugin(PluginsList[i]);
+    slPlugins.Add(plugin.filename);
+  end;
+
+  // prompt user for plugin selectcion
+  selectionForm := TPluginSelectionForm.Create(self);
+  selectionForm.pluginsList := slPlugins;
+  selectionForm.selectionList := slSelection;
+  mr := selectionForm.ShowModal;
+  if mr = mrOK then
+    BuildTreeFromPlugins(tvRecords, slSelection, currentSetting.tree);
+
+  // free memory
+  selectionForm.Free;
+  slPlugins.Free;
+  slSelection.Free;
+end;
+
 procedure TSettingsManager.ToggleNodesItemClick(Sender: TObject);
 var
   i: Integer;
@@ -578,7 +606,7 @@ begin
   while Assigned(node) do begin
     obj.A['records'].O[i] := DumpElement(node);
     if node.StateIndex <> cUnChecked then
-      sl.Add(node.Text);
+      sl.Add(Copy(node.Text, 1, 4));
     Inc(i);
     node := node.getNextSibling;
   end;

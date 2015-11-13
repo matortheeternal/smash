@@ -253,6 +253,8 @@ type
   procedure LoadDefinitions;
   { Bethesda Plugin Functions }
   function BuildRecordDef(sName: string): ISuperObject;
+  procedure BuildTreeFromPlugins(var tv: TTreeView; var sl: TStringList;
+    tree: ISuperObject);
   function GetEditableFileContainer: IwbContainerElementRef;
   procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
   function IsOverride(aRecord: IwbMainRecord): boolean;
@@ -751,6 +753,65 @@ begin
 
   // if everything completed, result is object we made
   Result := obj;
+end;
+
+
+procedure BuildTreeFromPlugins(var tv: TTreeView; var sl: TStringList;
+  tree: ISuperObject);
+var
+  i, j: Integer;
+  plugin: TPlugin;
+  container: IwbContainerElementRef;
+  element: IwbElement;
+  rec: IwbMainRecord;
+  group: IwbGroupRecord;
+  RecordDef: PwbRecordDef;
+  sName: string;
+  slNewGroups: TStringList;
+  recObj: ISuperObject;
+begin
+  slNewGroups := TStringList.Create;
+  slNewGroups.Sorted := true;
+  slNewGroups.Duplicates := dupIgnore;
+  try
+    // loop through plugins
+    for i := 0 to Pred(sl.Count) do begin
+      plugin := PluginByFileName(sl[i]);
+      if not Assigned(plugin) then
+        continue;
+      // loop through top-level elements
+      if not Supports(plugin._File, IwbContainerElementRef, container) then
+        continue;
+      for j := 0 to Pred(container.ElementCount) do begin
+        element := container.Elements[j];
+        if not Supports(element, IwbGroupRecord, group) then
+          continue;
+        if group.ElementCount = 0 then
+          continue;
+        if not Supports(group.Elements[0], IwbMainRecord, rec) then
+          continue;
+        sName := rec.Signature;
+        if wbFindRecordDef(AnsiString(sName), RecordDef) then
+          slNewGroups.Add(sName + ' - ' + RecordDef.Name);
+      end;
+    end;
+
+    // create record defs
+    for i := 0 to Pred(slNewGroups.Count) do begin
+      sName := slNewGroups[i];
+      recObj := GetRecordObj(tree, sName);
+
+      // build record def if it isn't already present
+      if not Assigned(recObj) then begin
+        recObj := BuildRecordDef(sName);
+        tree.A['records'].Add(recObj);
+        LoadElement(tv, tv.Items[0], recObj, false);
+      end;
+    end;
+  finally
+    tv.Repaint;
+    slNewGroups.Free;
+  end;
 end;
 
 function GetEditableFileContainer: IwbContainerElementRef;
