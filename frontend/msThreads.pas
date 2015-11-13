@@ -38,16 +38,11 @@ type
   protected
     procedure Execute; override;
   end;
-  TTreeThread = class(TThread)
-  protected
-    procedure Execute; override;
-  end;
 
 var
   InitCallback, LoaderCallback, ErrorCheckCallback, ErrorFixCallback,
-  PatchCallback, SaveCallback, UpdateCallback, ConnectCallback, TreeCallback: TCallback;
+  PatchCallback, SaveCallback, UpdateCallback, ConnectCallback: TCallback;
   StatusCallback: TStatusCallback;
-  TargetSetting: TSmashSetting;
 
 implementation
 
@@ -373,109 +368,6 @@ begin
 
   if Assigned(SaveCallback) then
     Synchronize(nil, SaveCallback);
-end;
-
-procedure LoadElementData(container: IwbContainerElementRef;
-  var recObj: ISuperObject);
-var
-  innerContainer: IwbContainerElementRef;
-  element: IwbElement;
-  eObj: ISuperObject;
-  i: Integer;
-begin
-  // loop through container's elements
-  for i := 0 to Pred(container.ElementCount) do begin
-    element := container.Elements[i];
-    //if bOverridesOnly and (ConflictThis(element) = ctIdenticalToMaster) then
-      //continue;
-    eObj := GetElementObj(recObj, element.Name);
-    // create new element name item if missing
-    if not Assigned(eObj) then
-      eObj := CreateElementObj(recObj, element);
-    // traverse children of element, if it has any
-    if Supports(element, IwbContainerElementRef, innerContainer) then begin
-      if innerContainer.ElementCount > 0 then
-        LoadElementData(innerContainer, eObj);
-    end;
-  end;
-end;
-
-procedure LoadRecordData(f: IwbFile; var tree: ISuperObject);
-var
-  i: Integer;
-  container: IwbContainerElementRef;
-  rec: IwbMainRecord;
-  slSignatures: TStringList;
-  bHasSignature: boolean;
-  recObj: ISuperObject;
-begin
-  // initalize
-  slSignatures := TStringList.Create;
-
-  // try to load record data
-  try
-    slSignatures.CommaText := sRecords;
-
-    // loop through file's records
-    for i := 0 to Pred(f.RecordCount) do begin
-      if Tracker.Cancel then break;
-      rec := f.Records[i];
-      Tracker.UpdateProgress(1);
-      if i mod 11 = 0 then
-        Tracker.StatusMessage(Format('Building tree for %s (%d/%d)',
-          [f.filename, i + 1, f.RecordCount]));
-
-      // skip excluded signatures
-      bHasSignature := slSignatures.IndexOf(rec.Signature) > -1;
-      if (bTarget xor bHasSignature) then
-        continue;
-
-      // skip non-override records
-      if bOverridesOnly and not IsOverride(rec) then
-        continue;
-      recObj := GetRecordObj(tree, rec.Signature);
-
-      // add new record signature item if missing
-      if not Assigned(recObj) then
-        recObj := CreateRecordObj(tree, rec);
-
-      // traverse record
-      if Supports(rec, IwbContainerElementRef, container) then
-        LoadElementData(container, recObj);
-    end;
-  finally
-    slSignatures.Free;
-  end;
-end;
-
-procedure TTreeThread.Execute;
-var
-  i: Integer;
-  plugin: TPlugin;
-begin
-  FreeOnTerminate := true;
-
-  // build stringtree for plugins
-  TargetSetting.tree := SO;
-  TargetSetting.tree.O['records'] := SA([]);
-  for i := 0 to Pred(pluginsToHandle.Count) do begin
-    if Tracker.Cancel then break;
-    plugin := TPlugin(pluginsToHandle[i]);
-    Tracker.Write('Building tree for '+plugin.filename);
-    LoadRecordData(plugin._File, TargetSetting.tree);
-    Tracker.SetProgress(IntegerListSum(timeCosts, i));
-    if Tracker.Cancel then Tracker.Write('Tree building canceled.');
-  end;
-
-  // say thread is done if it wasn't cancelled
-  Tracker.Write(' ');
-  if not Tracker.Cancel then
-    Tracker.Write('All done!');
-
-  // clean up, fire callback
-  Tracker.Cancel := false;
-  if Assigned(TreeCallback) then
-    Synchronize(nil, TreeCallback);
 end;
 
 end.

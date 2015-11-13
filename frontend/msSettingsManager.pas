@@ -126,30 +126,6 @@ implementation
 {$R *.dfm}
 
 { Tree methods }
-procedure TSettingsManager.TreeDone;
-begin
-  xEditLogGroup := 'GENERAL';
-  pForm.SaveLog;
-  pForm.Visible := false;
-  FlashWindow(Application.Handle, True);
-  pForm.ShowModal;
-  pForm.Free;
-  Enabled := true;
-  ShowWindow(Handle, SW_RESTORE);
-  SetForegroundWindow(Handle);
-
-  // display tree
-  LoadTree(tvRecords, currentSetting);
-
-  // save setting if it's a new setting
-  if NewSettings.IndexOf(currentSetting) > -1 then
-    DumpTree;
-
-  // free lists
-  if Assigned(timeCosts) then timeCosts.Free;
-  if Assigned(pluginsToHandle) then pluginsToHandle.Free;
-end;
-
 procedure TSettingsManager.DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
 var
   icon: TIcon;
@@ -541,90 +517,6 @@ begin
   UpdateParent(tvRecords.Items[0].getFirstChild);
 end;
 
-procedure TSettingsManager.BuildTreeFromPlugins(var sl: TStringList);
-var
-  i: Integer;
-  plugin: TPlugin;
-begin
-  // create lists
-  pluginsToHandle := TList.Create;
-  timeCosts := TStringList.Create;
-
-  // populate lists
-  for i := 0 to Pred(sl.Count) do begin
-    plugin := PluginByFilename(sl[i]);
-    if not Assigned(plugin) then continue;
-    pluginsToHandle.Add(plugin);
-    timeCosts.Add(plugin.numRecords);
-  end;
-
-  // free and exit if no patches to check for errors
-  if pluginsToHandle.Count = 0 then begin
-    timeCosts.Free;
-    pluginsToHandle.Free;
-    exit;
-  end;
-
-  // prepare to build tree in separate thread
-  TreeView := tvRecords;
-  Enabled := false;
-
-  // show progress form
-  pForm := TProgressForm.Create(Self);
-  pForm.LogPath := LogPath;
-  pForm.PopupParent := Self;
-  pForm.Caption := GetString('msProg_BuildingTree');
-  pForm.MaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
-  pForm.Show;
-
-  // start save thread
-  TargetSetting := currentSetting;
-  TreeCallback := TreeDone;
-  TTreeThread.Create;
-end;
-
-procedure TSettingsManager.BuildTree;
-var
-  slPlugins, slSelection: TStringList;
-  i, mr: Integer;
-  plugin: TPlugin;
-  selectionForm: TPluginSelectionForm;
-begin
-  // build list of plugin filenames
-  slPlugins := TStringList.Create;
-  slSelection := TStringList.Create;
-  for i := 0 to Pred(PluginsList.Count) do begin
-    plugin := TPlugin(PluginsList[i]);
-    slPlugins.Add(plugin.filename);
-  end;
-
-  // prompt user for plugin selectcion
-  selectionForm := TPluginSelectionForm.Create(self);
-  selectionForm.pluginsList := slPlugins;
-  selectionForm.selectionList := slSelection;
-  mr := selectionForm.ShowModal;
-  bOverridesOnly := selectionForm.overridesOnly;
-  bTarget := selectionForm.targetRecords;
-  sRecords := selectionForm.records;
-  if mr = mrOK then
-    BuildTreeFromPlugins(slSelection);
-
-  // free memory
-  selectionForm.Free;
-  slPlugins.Free;
-  slSelection.Free;
-
-  // delete setting if mr is cancel
-  if mr = mrCancel then begin
-    lvSettings.Items.Count := lvSettings.Items.Count - 1;
-    SmashSettings.Delete(SmashSettings.IndexOf(currentSetting));
-    NewSettings.Delete(NewSettings.IndexOf(currentSetting));
-    currentSetting.Free;
-    lvSettings.Repaint;
-    lvSettingsChange(nil, nil, TItemChange(nil));
-  end;
-end;
-
 function TSettingsManager.DumpElement(node: TTreeNode): ISuperObject;
 var
   obj: ISuperObject;
@@ -838,10 +730,10 @@ begin
   edName.Text := currentSetting.name;
   cbColor.Selected := TColor(currentSetting.color);
   meDescription.Lines.Text := currentSetting.description;
+
+  // load tree if assigned
   if Assigned(currentSetting.tree) then
-    LoadTree(tvRecords, currentSetting)
-  else
-    BuildTree;
+    LoadTree(tvRecords, currentSetting);
 end;
 
 procedure TSettingsManager.btnDiscardClick(Sender: TObject);

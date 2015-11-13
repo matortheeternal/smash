@@ -338,9 +338,7 @@ type
     bWithinSingle: boolean);
   procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
   { Helper methods }
-  function CreateElementObj(var obj: ISuperObject; element: IwbElement): ISuperObject;
   function GetElementObj(var obj: ISuperObject; name: string): ISuperObject;
-  function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord): ISuperObject;
   function GetRecordObj(var tree: ISuperObject; sig: string): ISuperObject;
   function stToString(st: TSmashType): string;
   function GetSmashType(element: IwbElement): TSmashType;
@@ -464,10 +462,10 @@ var
   excludedGroups: array of string;
   bInitException, bLoadException, bChangeProfile, bForceTerminate, bAuthorized,
   bProgramUpdate, bDictionaryUpdate, bInstallUpdate, bConnecting,
-  bUpdatePatchStatus, bAllowClose, bOverridesOnly, bTarget: boolean;
+  bUpdatePatchStatus, bAllowClose: boolean;
   TempPath, LogPath, ProgramPath, dictionaryFilename, ActiveModProfile,
   ProgramVersion, xEditLogLabel, xEditLogGroup, DataPath, GamePath,
-  ProfilePath, sRecords: string;
+  ProfilePath: string;
   ConnectionAttempts: Integer;
   TCPClient: TidTCPClient;
   AppStartTime, LastStatusTime: TDateTime;
@@ -638,16 +636,6 @@ begin
       exit;
     end;
   end;
-end;
-
-procedure AddAll(container: IwbContainerElementRef);
-var
-  AddList: TDynStrings;
-  i: Integer;
-begin
-  AddList := container.GetAddList;
-  for i := Low(AddList) to High(AddList) do
-    container.Assign(i, nil, false);
 end;
 
 function BuildElementDef(element: IwbElement): ISuperObject;
@@ -2647,22 +2635,6 @@ end;
 }
 {******************************************************************************}
 
-function CreateElementObj(var obj: ISuperObject; element: IwbElement): ISuperObject;
-var
-  item: ISuperObject;
-begin
-  Result := nil;
-  if not Assigned(obj) then
-    exit;
-  if not Assigned(obj['c']) then
-    obj.O['c'] := SA([]);
-  item := SO;
-  item.S['n'] := element.Name;
-  item.I['t'] := Ord(GetSmashType(element));
-  obj.A['c'].Add(item);
-  Result := item;
-end;
-
 {
   GetChildObj:
   Gets the child json object from a node in a TSmashSetting tree
@@ -2703,7 +2675,7 @@ var
 begin
   Result := nil;
   for item in tree['records'] do begin
-    if item.S['n'] = sig then
+    if StrToSignature(item.S['n']) = sig then
       Result := item;
   end;
 end;
