@@ -16,12 +16,6 @@ type
     SelectAllItem: TMenuItem;
     SelectNoneItem: TMenuItem;
     InvertSelectionItem: TMenuItem;
-    gbOptions: TGroupBox;
-    kbOverridesOnly: TCheckBox;
-    rbTarget: TRadioButton;
-    rbSkip: TRadioButton;
-    lblRecords: TLabel;
-    edRecords: TEdit;
     procedure FormShow(Sender: TObject);
     procedure CheckListBoxClick(Sender: TObject);
     procedure btnOKClick(Sender: TObject);
@@ -30,17 +24,12 @@ type
     procedure SelectAllItemClick(Sender: TObject);
     procedure SelectNoneItemClick(Sender: TObject);
     procedure InvertSelectionItemClick(Sender: TObject);
-    procedure rbTargetClick(Sender: TObject);
-    procedure rbSkipClick(Sender: TObject);
   private
     { Private declarations }
   public
     { Public declarations }
     pluginsList: TStringList;
     selectionList: TStringList;
-    overridesOnly: boolean;
-    targetRecords: boolean;
-    records: string;
   end;
 
 var
@@ -59,9 +48,6 @@ begin
     if CheckListBox.Checked[i] then
       selectionList.Add(CheckListBox.Items[i]);
   end;
-  overridesOnly := kbOverridesOnly.Checked;
-  targetRecords := rbTarget.Checked;
-  records := edRecords.Text;
   if selectionList.Count > 0 then
     ModalResult := mrOK;
 end;
@@ -103,16 +89,6 @@ var
 begin
   for i := 0 to Pred(CheckListBox.GetCount) do
     CheckListBox.Checked[i] := not CheckListBox.Checked[i];
-end;
-
-procedure TPluginSelectionForm.rbTargetClick(Sender: TObject);
-begin
-  rbSkip.Checked := not rbTarget.Checked;
-end;
-
-procedure TPluginSelectionForm.rbSkipClick(Sender: TObject);
-begin
-  rbTarget.Checked := not rbSkip.Checked;
 end;
 
 procedure TPluginSelectionForm.SelectAllItemClick(Sender: TObject);

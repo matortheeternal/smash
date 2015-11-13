@@ -2,7 +2,7 @@ object PluginSelectionForm: TPluginSelectionForm
   Left = 0
   Top = 0
   Caption = 'Plugin selection'
-  ClientHeight = 453
+  ClientHeight = 424
   ClientWidth = 334
   Color = clBtnFace
   Constraints.MaxHeight = 1500
@@ -35,8 +35,9 @@ object PluginSelectionForm: TPluginSelectionForm
     Left = 8
     Top = 45
     Width = 318
-    Height = 258
+    Height = 335
     Margins.Top = 8
+    Margins.Bottom = 8
     Align = alCustom
     Anchors = [akLeft, akTop, akRight, akBottom]
     ItemHeight = 13
@@ -44,10 +45,11 @@ object PluginSelectionForm: TPluginSelectionForm
     TabOrder = 0
     OnClick = CheckListBoxClick
     OnKeyUp = CheckListBoxKeyUp
+    ExplicitHeight = 364
   end
   object btnOK: TButton
     Left = 170
-    Top = 420
+    Top = 391
     Width = 75
     Height = 25
     Align = alCustom
@@ -55,11 +57,11 @@ object PluginSelectionForm: TPluginSelectionForm
     Caption = 'OK'
     TabOrder = 1
     OnClick = btnOKClick
-    ExplicitTop = 352
+    ExplicitTop = 420
   end
   object btnCancel: TButton
     Left = 251
-    Top = 420
+    Top = 391
     Width = 75
     Height = 25
     Align = alCustom
@@ -67,74 +69,7 @@ object PluginSelectionForm: TPluginSelectionForm
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 2
-    ExplicitTop = 352
-  end
-  object gbOptions: TGroupBox
-    Left = 8
-    Top = 309
-    Width = 318
-    Height = 100
-    Caption = 'Options'
-    TabOrder = 3
-    object lblRecords: TLabel
-      Left = 12
-      Top = 72
-      Width = 39
-      Height = 13
-      Margins.Left = 8
-      Margins.Top = 8
-      Align = alCustom
-      Caption = 'Records'
-    end
-    object kbOverridesOnly: TCheckBox
-      Left = 12
-      Top = 21
-      Width = 298
-      Height = 17
-      Margins.Left = 8
-      Margins.Top = 8
-      Margins.Right = 8
-      Margins.Bottom = 8
-      Align = alCustom
-      Anchors = [akLeft, akRight]
-      Caption = 'Build tree from override records only'
-      TabOrder = 0
-    end
-    object rbSkip: TRadioButton
-      Left = 162
-      Top = 46
-      Width = 144
-      Height = 17
-      Margins.Right = 12
-      Align = alCustom
-      Caption = 'Skip records'
-      Checked = True
-      TabOrder = 1
-      TabStop = True
-      OnClick = rbSkipClick
-    end
-    object rbTarget: TRadioButton
-      Left = 12
-      Top = 44
-      Width = 144
-      Height = 17
-      Margins.Left = 12
-      Align = alCustom
-      Caption = 'Target records'
-      TabOrder = 2
-      OnClick = rbTargetClick
-    end
-    object edRecords: TEdit
-      Left = 104
-      Top = 69
-      Width = 206
-      Height = 21
-      Margins.Right = 8
-      Margins.Bottom = 8
-      Align = alCustom
-      Anchors = [akLeft, akTop, akRight]
-      TabOrder = 3
-    end
+    ExplicitTop = 420
   end
   object CheckListPopupMenu: TPopupMenu
     Left = 64
