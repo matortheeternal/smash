@@ -359,16 +359,16 @@ end;
 function HandleElement(se, me, de: IwbElement; dstRec: IwbMainRecord;
   obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 var
-  srcType, dstType: TwbDefType;
+  srcType, dstType: TSmashType;
   container: IwbContainerElementRef;
-  subDef: IwbSubRecordDef;
   bCanAdd, bIsContainer: boolean;
+  seVal, meVal: string;
 begin
   Result := false;
 
   // deftype and elementtype
-  srcType := se.Def.DefType;
-  dstType := de.Def.DefType;
+  srcType := GetSmashType(se);
+  dstType := GetSmashType(de);
 
   // other type information
   bIsContainer := Supports(se, IwbContainerElementRef, container)
@@ -376,17 +376,11 @@ begin
   bCanAdd := se.CanAssign(High(Integer), nil, True)
     and not (esNotSuitableToAddTo in se.ElementStates);
 
-  // get the deftype of value held by subrecorddefs
-  if Supports(se.Def, IwbSubRecordDef, subDef) then
-    srcType := subDef.Value.DefType;
-  if Supports(de.Def, IwbSubRecordDef, subDef) then
-    dstType := subDef.Value.DefType;
-
   // exit if srcType <> dstType
   if srcType <> dstType then begin
     if settings.debugSkips then begin
       Tracker.Write('      Source and destination types don''t match');
-      Tracker.Write('      '+dtToString(srcType)+' != '+dtToString(dstType));
+      Tracker.Write('      '+stToString(srcType)+' != '+stToString(dstType));
       Tracker.Write('      Skipping '+se.Path);
     end;
     exit;
@@ -397,11 +391,11 @@ begin
     Tracker.Write('      '+se.Path);
   if settings.debugTypes then begin
     Tracker.Write('      bCanAdd: '+BoolToStr(bCanAdd, true));
-    Tracker.Write('      DefType: '+dtToString(srcType));
+    Tracker.Write('      SmashType: '+stToString(srcType));
   end;
 
   // merge array
-  if bCanAdd and (srcType = dtArray) then begin
+  if bCanAdd and (srcType in stArrays) then begin
     if settings.debugTraversal then
       Tracker.Write('         Merging array');
     try
@@ -411,7 +405,7 @@ begin
     end;
   end
   // else recurse deeper
-  else if (srcType <> dtInteger) and bIsContainer then begin
+  else if bIsContainer and (srcType <> stInteger) then begin
     if settings.debugTraversal then
       Tracker.Write('        Recursing deeper');
     try
@@ -421,10 +415,21 @@ begin
     end;
   end
   // else copy element value
-  else if (not (srcType in dtNonValues)) and (se.EditValue <> me.EditValue) then begin
-    if not bSingle then
-      CopyElementValue(se, me, de);
-    Result := true;
+  else if (srcType in stValues) then begin
+    seVal := se.EditValue;
+    meVal := me.EditValue;
+    if (seVal <> meVal) then begin
+      if not bSingle then
+        CopyElementValue(se, me, de);
+      Result := true;
+    end
+    else if settings.debugSkips then begin
+      Tracker.Write(Format('         Skipping, "%s" = "%s"', [seVal, meVal]));
+    end;
+  end
+  else if settings.debugSkips then begin
+    Tracker.Write(Format('         Skipping, %s is not a value type',
+      [stToString(srcType)]));
   end;
 end;
 
@@ -512,8 +517,11 @@ begin
 
     // if we're in a single entity and an element is changed, break
     // we don't need to handle anything anymore
-    if bSingle and Result then
+    if bSingle and Result then begin
+      if settings.debugSingle then
+        Tracker.Write('      Single entity change found at '+se.Path);
       break;
+    end;
 
     // if the element we're processing has the single entity flag set
     // and we're not currently in a single entity, copy entire element
