@@ -339,7 +339,7 @@ type
   function GetElementObj(var obj: ISuperObject; name: string): ISuperObject;
   function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord): ISuperObject;
   function GetRecordObj(var tree: ISuperObject; sig: string): ISuperObject;
-  function GetSmashTypeName(st: TSmashType): string;
+  function stToString(st: TSmashType): string;
   function GetSmashType(element: IwbElement): TSmashType;
   procedure HandleCanceled(msg: string);
   procedure RenamePatches(var sl: TStringList);
@@ -400,6 +400,11 @@ const
   cChecked = 1;
   cUnChecked = 2;
   cPartiallyChecked = 3;
+
+  // SMASH TYPE ARRAYS
+  stArrays = [ stUnsortedArray, stUnsortedStructArray,
+    stSortedArray, stSortedStructArray ];
+  stValues = [ stString, stFloat, stInteger, stByteArray ];
 
   // MERGE STATUSES
   StatusArray: array[0..10] of TPatchStatus = (
@@ -2499,7 +2504,7 @@ begin
   end;
 end;
 
-function GetSmashTypeName(st: TSmashType): string;
+function stToString(st: TSmashType): string;
 begin
   case Ord(st) of
     Ord(stUnknown): Result := 'Unknown';
