@@ -199,6 +199,7 @@ var
   aSetting: TSmashSetting;
   recObj: ISuperObject;
   e, eCopy: IwbElement;
+  bDeletions: boolean;
 begin
   Tracker.Write(' ');
   Tracker.Write('Smashing records');
@@ -250,8 +251,9 @@ begin
       // finally, recursively copy overridden elements
       try
         Tracker.Write('    Smashing record '+ovr.Name+' from file: '+f.FileName);
+        bDeletions := recObj.I['d'] = 1;
         rcore(IwbElement(ovr), IwbElement(rec), IwbElement(patchRec), patchRec,
-          recObj, false, false);
+          recObj, false, bDeletions);
       except
         on x: Exception do
           Tracker.Write('      Exception smashing record: '+ovr.Name+' : '+x.Message);
