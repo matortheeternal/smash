@@ -257,6 +257,8 @@ type
     tree: ISuperObject);
   function GetEditableFileContainer: IwbContainerElementRef;
   procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
+  function WinningOverrideInFiles(rec: IwbMainRecord;
+    var sl: TStringList): IwbMainRecord;
   function IsOverride(aRecord: IwbMainRecord): boolean;
   function ExtractFormID(filename: string): string;
   function RemoveFileIndex(formID: string): string;
@@ -660,12 +662,8 @@ begin
     // populate element children, if it supports them
     if not Supports(element, IwbContainerElementRef, container) then
       exit;
-    {if Supports(element.Def, IwbStructDef, strDef) then
-      for i := 0 to strDef.MemberCount do
-        container.Assign(i, nil, false);
-    if Supports(element.Def, IwbUnionDef, uniDef) then
-      for i := 0 to uniDef.MemberCount do
-        container.Assign(i, nil, false);}
+    if container.ElementCount = 0 then
+      container.Assign(High(Integer), nil, false);
 
     // traverse children
     obj.O['c'] := SA([]);
@@ -873,6 +871,24 @@ begin
     end;
   finally
     Free;
+  end;
+end;
+
+{ Returns the most-winning override of @rec from the
+  files listed in @sl }
+function WinningOverrideInFiles(rec: IwbMainRecord;
+  var sl: TStringList): IwbMainRecord;
+var
+  i: Integer;
+  ovr: IwbMainRecord;
+begin
+  Result := rec;
+  for i := Pred(rec.OverrideCount) downto 0 do begin
+    ovr := rec.Overrides[i];
+    if sl.IndexOf(ovr._file.FileName) > -1 then begin
+      Result := ovr;
+      exit;
+    end;
   end;
 end;
 
