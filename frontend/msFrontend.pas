@@ -252,7 +252,9 @@ type
   function GetGamePath(mode: TGameMode): string;
   procedure LoadDefinitions;
   { Bethesda Plugin Functions }
-  function BuildRecordDef(sName: string): ISuperObject;
+  function BuildRecordDef(container: IwbContainer; sName: string;
+    mrDef: IwbRecordDef; out recObj: ISuperObject): boolean; overload;
+  function BuildRecordDef(sName: string; out recObj: ISuperObject): boolean; overload;
   procedure BuildTreeFromPlugins(var tv: TTreeView; var sl: TStringList;
     tree: ISuperObject);
   function GetEditableFileContainer: IwbContainerElementRef;
@@ -309,7 +311,6 @@ type
   procedure SaveLog(var Log: TList);
   function MessageEnabled(msg: TLogMessage): boolean;
   { Loading and saving methods }
-  procedure LoadExcludedGroups;
   procedure LoadLanguage;
   function GetString(name: string): string;
   procedure SaveProfile(var p: TProfile);
@@ -343,7 +344,7 @@ type
   procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
   { Helper methods }
   function GetElementObj(var obj: ISuperObject; name: string): ISuperObject;
-  function GetRecordObj(var tree: ISuperObject; sig: string): ISuperObject;
+  function GetRecordObj(var tree: ISuperObject; name: string): ISuperObject;
   function stToString(st: TSmashType): string;
   function GetSmashType(element: IwbElement): TSmashType;
   procedure HandleCanceled(msg: string);
@@ -463,7 +464,6 @@ var
   CurrentProfile: TProfile;
   statistics, sessionStatistics: TStatistics;
   status, RemoteStatus: TmsStatus;
-  excludedGroups: array of string;
   bInitException, bLoadException, bChangeProfile, bForceTerminate, bAuthorized,
   bProgramUpdate, bDictionaryUpdate, bInstallUpdate, bConnecting,
   bUpdatePatchStatus, bAllowClose: boolean;
@@ -644,57 +644,107 @@ end;
 
 function BuildElementDef(element: IwbElement): ISuperObject;
 var
-  obj: ISuperObject;
   container: IwbContainerElementRef;
   i: Integer;
   childElement: IwbElement;
-  {def: IwbNamedDef;
-  strDef: IwbStructDef;
-  uniDef: IwbUnionDef;}
 begin
-  Result := nil;
   // release object if something goes wrong
-  obj := SO;
+  Result := SO;
   try
-    obj.S['n'] := element.Name;
-    obj.I['t'] := Ord(GetSmashType(element));
+    Result.S['n'] := element.Name;
+    Result.I['t'] := Ord(GetSmashType(element));
 
     // populate element children, if it supports them
     if not Supports(element, IwbContainerElementRef, container) then
       exit;
-    if container.ElementCount = 0 then
+    // assign to container if it doesn't have element but can hold them
+    if (container.ElementCount = 0)
+    and container.CanAssign(High(Integer), nil, false) then try
       container.Assign(High(Integer), nil, false);
+    except
+      // oops, container assignment failed
+      // this catches an assertion error when assigning to a DOBJ record
+      on x: Exception do
+        exit;
+    end;
 
-    // traverse children
-    obj.O['c'] := SA([]);
-    for i := 0 to Pred(container.ElementCount) do begin
-      childElement := container.Elements[i];
-      obj.A['c'].Add(BuildElementDef(childElement));
+    // if we have children, make children array and recurse
+    if container.ElementCount > 0 then begin
+      Result.O['c'] := SA([]);
+      // traverse children
+      for i := 0 to Pred(container.ElementCount) do begin
+        childElement := container.Elements[i];
+        Result.A['c'].Add(BuildElementDef(childElement));
+      end;
     end;
   except
     on x: Exception do begin
-      obj._Release;
+      Result._Release;
       raise x;
     end;
   end;
-
-  // if everything completed, result is object we made
-  Result := obj;
 end;
 
-function BuildRecordDef(sName: string): ISuperObject;
+function BuildRecordDef(container: IwbContainer; sName: string;
+  mrDef: IwbRecordDef; out recObj: ISuperObject): boolean;
+var
+  i: Integer;
+  rec, element: IwbElement;
+  recContainer: IwbContainerElementRef;
+begin
+  Result := false;
+  rec := container.Add(sName);
+  // exit if we couldn't add record
+  if not Assigned(rec) then begin
+    ShowMessage('Couldn''t add '+sName+' to '+container.Path);
+    exit;
+  end;
+
+  // else traverse record's children to construct
+  // record prototype
+  try
+    if not Supports(rec, IwbContainerElementRef, recContainer) then
+      exit;
+    // add all
+    for i := 0 to Pred(mrDef.MemberCount) do
+      rec.Assign(i, nil, False);
+
+    // construct json
+    recObj := SO;
+    try
+      recObj.S['n'] := sName;
+      recObj.I['t'] := Ord(stRecord);
+      recObj.O['c'] := SA([]);
+      for i := 0 to Pred(recContainer.ElementCount) do begin
+        element := recContainer.Elements[i];
+        recObj.A['c'].Add(BuildElementDef(element));
+      end;
+    except
+      on x: Exception do begin
+        recObj._Release;
+        raise x;
+      end;
+    end;
+  finally
+    rec.Remove;
+  end;
+
+  // if everything completed, result is object we made
+  Result := true;
+end;
+
+function BuildRecordDef(sName: string; out recObj: ISuperObject): boolean;
 var
   sig: TwbSignature;
   def: TwbRecordDefEntry;
   mrDef: IwbRecordDef;
   Container: IwbContainerElementRef;
-  group, rec, element: IwbElement;
+  groupContainer: IwbContainer;
+  group: IwbElement;
   aFile: IwbFile;
-  i: Integer;
-  obj: ISuperObject;
   bAssignedGroup: boolean;
 begin
-  Result := nil;
+  Result := false;
   bAssignedGroup := false;
   sig := StrToSignature(sName);
 
@@ -704,53 +754,27 @@ begin
 
   // get file container
   Container := GetEditableFileContainer;
-  aFile := (Container as IwbFile);
+  aFile := (GetEditableFileContainer as IwbFile);
 
   // create group in file if missing
   group := aFile.GroupBySignature[sig];
   if not Assigned(group) then begin
     bAssignedGroup := true;
     group := Container.Add(sName);
+    // if group couldn't be added we exit
+    if not Assigned(group) then
+      exit;
   end;
 
   // get to the def if we can
   try
-    if not Supports(group, IwbContainerElementRef, container) then
+    if not Supports(group, IwbContainer, groupContainer) then
       exit;
-    rec := container.Add(sName);
-    try
-      if not Supports(rec, IwbContainerElementRef, container) then
-        exit;
-      // add all
-      for i := 0 to Pred(mrDef.MemberCount) do
-        rec.Assign(i, nil, False);
-
-      // construct json
-      obj := SO;
-      try
-        obj.S['n'] := sName;
-        obj.I['t'] := Ord(stRecord);
-        obj.O['c'] := SA([]);
-        for i := 0 to Pred(container.ElementCount) do begin
-          element := container.Elements[i];
-          obj.A['c'].Add(BuildElementDef(element));
-        end;
-      except
-        on x: Exception do begin
-          obj._Release;
-          raise x;
-        end;
-      end;
-    finally
-      rec.Remove;
-    end;
+    Result := BuildRecordDef(groupContainer, sName, mrDef, recObj);
   finally
     if bAssignedGroup then
       group.Remove;
   end;
-
-  // if everything completed, result is object we made
-  Result := obj;
 end;
 
 
@@ -759,56 +783,57 @@ procedure BuildTreeFromPlugins(var tv: TTreeView; var sl: TStringList;
 var
   i, j: Integer;
   plugin: TPlugin;
-  container: IwbContainerElementRef;
-  element: IwbElement;
   rec: IwbMainRecord;
-  group: IwbGroupRecord;
   RecordDef: PwbRecordDef;
-  sName: string;
-  slNewGroups: TStringList;
+  def: TwbRecordDefEntry;
+  sName, sSignature: string;
+  slRecordSignatures: TStringList;
   recObj: ISuperObject;
 begin
-  slNewGroups := TStringList.Create;
-  slNewGroups.Sorted := true;
-  slNewGroups.Duplicates := dupIgnore;
+  slRecordSignatures := TStringList.Create;
+  slRecordSignatures.Sorted := true;
+  slRecordSignatures.Duplicates := dupIgnore;
   try
     // loop through plugins
     for i := 0 to Pred(sl.Count) do begin
       plugin := PluginByFileName(sl[i]);
       if not Assigned(plugin) then
         continue;
-      // loop through top-level elements
-      if not Supports(plugin._File, IwbContainerElementRef, container) then
+      if not plugin._File.IsEditable then
         continue;
-      for j := 0 to Pred(container.ElementCount) do begin
-        element := container.Elements[j];
-        if not Supports(element, IwbGroupRecord, group) then
+      // loop through records
+      for j := 0 to Pred(plugin._File.RecordCount) do begin
+        rec := plugin._File.Records[j];
+        // skip non-override records
+        if rec.IsMaster then
           continue;
-        if group.ElementCount = 0 then
-          continue;
-        if not Supports(group.Elements[0], IwbMainRecord, rec) then
-          continue;
-        sName := rec.Signature;
-        if wbFindRecordDef(AnsiString(sName), RecordDef) then
-          slNewGroups.Add(sName + ' - ' + RecordDef.Name);
-      end;
-    end;
+        sSignature := rec.Signature;
 
-    // create record defs
-    for i := 0 to Pred(slNewGroups.Count) do begin
-      sName := slNewGroups[i];
-      recObj := GetRecordObj(tree, sName);
+        // skip record signatures we've already seen
+        if (slRecordSignatures.IndexOf(sSignature) > -1) then
+          continue;
+        slRecordSignatures.Add(sSignature);
+        // skip records that aren't defined
+        if not wbFindRecordDef(AnsiString(sSignature), RecordDef) then
+          continue;
 
-      // build record def if it isn't already present
-      if not Assigned(recObj) then begin
-        recObj := BuildRecordDef(sName);
-        tree.A['records'].Add(recObj);
-        LoadElement(tv, tv.Items[0], recObj, false);
+        // get record def object if it exists
+        sName := sSignature + ' - ' + RecordDef.Name;
+        recObj := GetRecordObj(tree, sName);
+
+        // build record def if it doesn't exist
+        if not Assigned(recObj) then begin
+          def := GetRecordDef(rec.Signature);
+          if not BuildRecordDef(rec.Container, sName, def.rdeDef, recObj) then
+            continue;
+          tree.A['records'].Add(recObj);
+          LoadElement(tv, tv.Items[0], recObj, false);
+        end;
       end;
     end;
   finally
     tv.Repaint;
-    slNewGroups.Free;
+    slRecordSignatures.Free;
   end;
 end;
 
@@ -1991,14 +2016,6 @@ end;
 }
 {******************************************************************************}
 
-procedure LoadExcludedGroups;
-begin
-  SetLength(excludedGroups, 3);
-  excludedGroups[0] := 'RACE';
-  excludedGroups[1] := 'NAVI';
-  excludedGroups[2] := 'NAVM';
-end;
-
 procedure LoadLanguage;
 const
   langFile = 'http://raw.githubusercontent.com/matortheeternal/patch-plugins/master/frontend/lang/english.lang';
@@ -2637,15 +2654,18 @@ procedure LoadElement(var tv: TTreeView; node: TTreeNode; obj: ISuperObject;
   bWithinSingle: boolean);
 var
   item: ISuperObject;
-  child: TTreeNode;
+  child, nextChild: TTreeNode;
   bProcess, bPreserveDeletions, bIsSingle: boolean;
   priority: Integer;
   oSmashType: TSmashType;
-  sLinkTo, sLinkFrom: string;
+  sName, sLinkTo, sLinkFrom: string;
   e: TElementData;
 begin
   if not Assigned(obj) then
     exit;
+
+  // load data from json
+  sName := obj.S['n'];
   priority := obj.I['r'];
   bProcess := obj.I['p'] = 1;
   bPreserveDeletions := obj.I['d'] = 1;
@@ -2654,15 +2674,34 @@ begin
   oSmashType := TSmashType(obj.I['t']);
   sLinkTo := obj.S['lt'];
   sLinkFrom := obj.S['lf'];
+
+  // create child
   e := TElementData.Create(priority, bProcess, bPreserveDeletions, bIsSingle,
     oSmashType, sLinkTo, sLinkFrom);
-  child := tv.Items.AddChildObject(node, obj.S['n'], e);
+  // nodes insert in sorted order for record nodes
+  if (node.Level = 0) and node.hasChildren then begin
+    child := node.getFirstChild;
+    while (AnsiCompareText(child.Text, sName) < 0) do begin
+      nextChild := child.getNextSibling;
+      if not Assigned(nextChild) then
+        break;
+      child := nextChild;
+    end;
+    child := tv.Items.InsertObject(child, sName, e);
+  end
+  // else just add them in the order they were found
+  else
+    child := tv.Items.AddChildObject(node, sName, e);
+
+  // set check state
   if bIsSingle then
     child.StateIndex := cPartiallyChecked
   else if bProcess then
     child.StateIndex := cChecked
   else
     child.StateIndex := cUnChecked;
+
+  // recurse into children
   if Assigned(obj.O['c']) then try
     for item in obj['c'] do
       LoadElement(tv, child, item, bWithinSingle);
@@ -2746,13 +2785,15 @@ begin
   Result := item;
 end;
 
-function GetRecordObj(var tree: ISuperObject; sig: string): ISuperObject;
+function GetRecordObj(var tree: ISuperObject; name: string): ISuperObject;
 var
+  aSignature: TwbSignature;
   item: ISuperObject;
 begin
   Result := nil;
+  aSignature := StrToSignature(name);
   for item in tree['records'] do begin
-    if StrToSignature(item.S['n']) = sig then
+    if StrToSignature(item.S['n']) = aSignature then
       Result := item;
   end;
 end;

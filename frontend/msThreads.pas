@@ -119,7 +119,6 @@ begin
     wbLanguage := settings.language;
     wbEditAllowed := True;
     wbContainerHandler := wbCreateContainerHandler;
-    LoadExcludedGroups;
     wbContainerHandler.AddFolder(wbDataPath);
 
     // IF AUTOMATIC UPDATING IS ENABLED, CHECK FOR UPDATE

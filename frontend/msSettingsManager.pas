@@ -192,7 +192,7 @@ begin
   // this allows right clicking to be used to select nodes
   if Button = mbRight then begin
     node := tvRecords.GetNodeAt(X, Y);
-    if not node.Selected then begin
+    if Assigned(node) and not node.Selected then begin
       tvRecords.ClearSelection(false);
       tvRecords.Select(node);
     end;
@@ -433,7 +433,8 @@ begin
 
   // build record def if it isn't already present
   if not Assigned(recObj) then begin
-    recObj := BuildRecordDef(groupName);
+    if not BuildRecordDef(groupName, recObj) then
+      exit;
     currentSetting.tree.A['records'].Add(recObj);
     LoadElement(tvRecords, tvRecords.Items[0], recObj, false);
   end;
