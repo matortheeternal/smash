@@ -39,6 +39,8 @@ type
     constructor Create(time, appTime, group, &label, text: string); Overload;
   end;
   // SERVER/CLIENT
+  TMessageID = ( MSG_UNKNOWN, MSG_NOTIFY, MSG_REGISTER, MSG_AUTH_RESET,
+    MSG_STATISTICS, MSG_STATUS, MSG_REQUEST, MSG_REPORT );
   TmsMessage = class(TObject)
   public
     id: integer;
@@ -56,20 +58,13 @@ type
     fo3Hash: string;
     constructor Create; Overload;
   end;
-  // GENERAL
+  // SMASH CLASSES
+  TCheckState = ( csUnknown, csChecked, csUnChecked, csPartiallyChecked );
   TSmashType = ( stUnknown, stRecord, stString, stInteger, stFlag, stFloat,
     stStruct, stUnsortedArray, stUnsortedStructArray, stSortedArray,
     stSortedStructArray, stByteArray, stUnion );
-  TGameMode = Record
-    longName: string;
-    gameName: string;
-    gameMode: TwbGameMode;
-    appName: string;
-    exeName: string;
-    appIDs: string;
-    bsaOptMode: string;
-  end;
   TElementData = class(TObject)
+  public
     priority: byte;
     process: boolean;
     preserveDeletions: boolean;
@@ -77,9 +72,8 @@ type
     smashType: TSmashType;
     linkTo: string;
     linkFrom: string;
-    constructor Create(priority: byte; process: boolean;
-      preserveDeletions: boolean; singleEntity: boolean;
-      smashType: TSmashType; linkTo, linkFrom: string); overload;
+    constructor Create(priority: byte; process, preserveDeletions, singleEntity:
+      boolean; smashType: TSmashType; linkTo, linkFrom: string); overload;
   end;
   TSmashSetting = class(TObject)
   public
@@ -99,22 +93,24 @@ type
     procedure Delete;
     procedure Rename(newName: string);
   end;
-  TReport = class(TObject)
+  TRecommendation = class(TObject)
   public
     game: string;
     username: string;
     filename: string;
     hash: string;
+    setting: string;
+    settingHash: string;
     recordCount: integer;
     rating: integer;
-    patchVersion: string;
+    smashVersion: string;
     notes: string;
     dateSubmitted: TDateTime;
     procedure SetNotes(notes: string);
     function GetNotes: string;
     procedure Save(const filename: string);
   end;
-  // PLUGINS AND PATCHES
+  // SMASH CORE CLASSES
   TPatchStatusID = ( psUnknown, psNoPlugins, psDirInvalid, psUnloaded,
     psErrors, psFailed, psUpToDate, psUpToDateForced, psBuildReady,
     psRebuildReady, psRebuildReadyForced );
@@ -178,7 +174,16 @@ type
     function FilesExist: boolean;
     function GetStatusColor: integer;
   end;
-  // SETTINGS AND STATISTICS
+  // CONFIGURATION CLASSES
+  TGameMode = Record
+    longName: string;
+    gameName: string;
+    gameMode: TwbGameMode;
+    appName: string;
+    exeName: string;
+    appIDs: string;
+    bsaOptMode: string;
+  end;
   TSettings = class(TObject)
   public
     [IniSection('General')]
@@ -333,8 +338,8 @@ type
   procedure LoadPluginInfo;
   procedure SaveReports(var lst: TList; path: string);
   function ReportExistsFor(var plugin: TPlugin): boolean;
-  procedure LoadReport(var report: TReport); overload;
-  procedure LoadReport(const filename: string; var report: TReport); overload;
+  procedure LoadReport(var report: TRecommendation); overload;
+  procedure LoadReport(const filename: string; var report: TRecommendation); overload;
   { Tree methods }
   procedure SetChildren(node: TTreeNode; state: Integer);
   procedure UpdateParent(node: TTreeNode);
@@ -391,21 +396,6 @@ const
   ProgramTranslators = ' ';
   xEditVersion = '3.1.1';
   bTranslationDump = false;
-
-  // MSG IDs
-  MSG_UNKNOWN = 0;
-  MSG_NOTIFY = 1;
-  MSG_REGISTER = 2;
-  MSG_AUTH_RESET = 3;
-  MSG_STATISTICS = 4;
-  MSG_STATUS = 5;
-  MSG_REQUEST = 6;
-  MSG_REPORT = 7;
-
-  // CHECKED STATES
-  cChecked = 1;
-  cUnChecked = 2;
-  cPartiallyChecked = 3;
 
   // SMASH TYPE ARRAYS
   stArrays = [ stUnsortedArray, stUnsortedStructArray,
@@ -2486,12 +2476,12 @@ end;
 procedure SaveReports(var lst: TList; path: string);
 var
   i: Integer;
-  report: TReport;
+  report: TRecommendation;
   fn: string;
 begin
   //ForceDirectories(path);
   for i := 0 to Pred(lst.Count) do begin
-    report := TReport(lst[i]);
+    report := TRecommendation(lst[i]);
     report.dateSubmitted := Now;
     fn := Format('%s-%s.txt', [report.filename, report.hash]);
     report.Save(path + fn);
@@ -2508,7 +2498,7 @@ begin
   Result := FileExists(unsubmittedPath) or FileExists(submittedPath);
 end;
 
-procedure LoadReport(var report: TReport);
+procedure LoadReport(var report: TRecommendation);
 var
   fn, unsubmittedPath, submittedPath: string;
 begin
@@ -2521,13 +2511,13 @@ begin
     LoadReport(submittedPath, report);
 end;
 
-procedure LoadReport(const filename: string; var report: TReport);
+procedure LoadReport(const filename: string; var report: TRecommendation);
 var
   sl: TStringList;
 begin
   sl := TStringList.Create;
   sl.LoadFromFile(filename);
-  report := TReport(TRttiJson.FromJson(sl.Text, report.ClassType));
+  report := TRecommendation(TRttiJson.FromJson(sl.Text, report.ClassType));
   sl.Free;
 end;
 
@@ -2557,7 +2547,7 @@ begin
   while Assigned(tmp) do begin
     tmp.StateIndex := state;
     e := TElementData(tmp.Data);
-    e.process := state <> cUnChecked;
+    e.process := state <> csUnChecked;
     e.singleEntity := false;
     if tmp.HasChildren then
       SetChildren(tmp, state);
@@ -2584,23 +2574,23 @@ begin
   if e.singleEntity then exit;
 
   // parent state is checked if all siblings are checked
-  state := cChecked;
+  state := csChecked;
   tmp := node.getFirstChild;
   while Assigned(tmp) do begin
-    if tmp.StateIndex <> cChecked then begin
-      state := cPartiallyChecked;
+    if tmp.StateIndex <> csChecked then begin
+      state := csPartiallyChecked;
       break;
     end;
     tmp := tmp.getNextSibling;
   end;
 
   // parent state is unchecked if all siblings are unchecked
-  if state = cPartiallyChecked then begin
-    state := cUnChecked;
+  if state = csPartiallyChecked then begin
+    state := csUnChecked;
     tmp := node.getFirstChild;
     while Assigned(tmp) do begin
-      if tmp.StateIndex <> cUnChecked then begin
-        state := cPartiallyChecked;
+      if tmp.StateIndex <> csUnChecked then begin
+        state := csPartiallyChecked;
         break;
       end;
       tmp := tmp.getNextSibling;
@@ -2609,7 +2599,7 @@ begin
 
   // set state, recurse to next parent
   node.StateIndex := state;
-  e.process := state <> cUnChecked;
+  e.process := state <> csUnChecked;
   tmp := node.Parent;
   UpdateParent(tmp);
 end;
@@ -2629,24 +2619,24 @@ begin
 
   // if unchecked or partially checked, set to checked and
   // set all children to checked, update parents
-  if (node.StateIndex = cUnChecked)
-  or (node.StateIndex = cPartiallyChecked) then begin
-    node.StateIndex := cChecked;
+  if (node.StateIndex = csUnChecked)
+  or (node.StateIndex = csPartiallyChecked) then begin
+    node.StateIndex := csChecked;
     e := TElementData(node.Data);
     e.process := true;
     e.singleEntity := false;
     UpdateParent(node.Parent);
-    SetChildren(node, cChecked);
+    SetChildren(node, csChecked);
   end
   // if checked, set to unchecked and set all children to
   // unchecked, update parents
-  else if node.StateIndex = cChecked then begin
-    node.StateIndex := cUnChecked;
+  else if node.StateIndex = csChecked then begin
+    node.StateIndex := csUnChecked;
     e := TElementData(node.Data);
     e.process := false;
     e.singleEntity := false;
     UpdateParent(node.Parent);
-    SetChildren(node, cUnChecked);
+    SetChildren(node, csUnChecked);
   end;
 end;
 
@@ -2695,11 +2685,11 @@ begin
 
   // set check state
   if bIsSingle then
-    child.StateIndex := cPartiallyChecked
+    child.StateIndex := csPartiallyChecked
   else if bProcess then
-    child.StateIndex := cChecked
+    child.StateIndex := csChecked
   else
-    child.StateIndex := cUnChecked;
+    child.StateIndex := csUnChecked;
 
   // recurse into children
   if Assigned(obj.O['c']) then try
@@ -3626,7 +3616,7 @@ end;
 function SendReports(var lst: TList): boolean;
 var
   i: integer;
-  report: TReport;
+  report: TRecommendation;
   msg, response: TmsMessage;
   reportJson, LLine: string;
 begin
@@ -3639,7 +3629,7 @@ begin
   try
     // send all reports in @lst
     for i := 0 to Pred(lst.Count) do begin
-      report := TReport(lst[i]);
+      report := TRecommendation(lst[i]);
       if Length(report.notes) > 255 then begin
         Logger.Write('CLIENT', 'Report', 'Skipping '+report.filename+', notes too long.');
         continue;
@@ -3670,7 +3660,7 @@ function SendPendingReports: boolean;
 var
   lst: TList;
   info: TSearchRec;
-  report: TReport;
+  report: TRecommendation;
   path: string;
   i: Integer;
 begin
@@ -3690,7 +3680,7 @@ begin
     if not StrEndsWith(info.Name, '.txt') then
       continue;
     try
-      report := TReport.Create;
+      report := TRecommendation.Create;
       LoadReport(path + info.Name, report);
       DeleteFile(path + info.Name);
       report.Save(path + 'submitted\' + info.Name);
@@ -3708,7 +3698,7 @@ begin
 
   // free reports in list, then list
   for i := Pred(lst.Count) downto 0 do begin
-    report := TReport(lst[i]);
+    report := TRecommendation(lst[i]);
     report.Free;
   end;
   lst.Free;
@@ -3790,17 +3780,17 @@ begin
 end;
 
 { TReport }
-procedure TReport.SetNotes(notes: string);
+procedure TRecommendation.SetNotes(notes: string);
 begin
   self.notes := StringReplace(Trim(notes), #13#10, '@13', [rfReplaceAll]);
 end;
 
-function TReport.GetNotes: string;
+function TRecommendation.GetNotes: string;
 begin
   Result := StringReplace(notes, '@13', #13#10, [rfReplaceAll]);
 end;
 
-procedure TReport.Save(const filename: string);
+procedure TRecommendation.Save(const filename: string);
 var
   sl: TStringList;
 begin
@@ -4193,9 +4183,8 @@ begin
   self.enabled := enabled;
 end;
 
-constructor TElementData.Create(priority: Byte; process: Boolean;
-  preserveDeletions: Boolean; singleEntity: Boolean; smashType: TSmashType;
-  linkTo, linkFrom: string);
+constructor TElementData.Create(priority: Byte; process, preserveDeletions,
+  singleEntity: Boolean; smashType: TSmashType; linkTo, linkFrom: string);
 begin
   self.priority := priority;
   self.process := process;
