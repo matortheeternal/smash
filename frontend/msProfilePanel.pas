@@ -11,13 +11,12 @@ uses
   msFrontend;
 
 type
-  TSenderCallback = procedure(Sender: TObject) of object;
   TProfilePanel = class(TPanel)
   public
     Selected: boolean;
     Valid: boolean;
-    constructor ICreate(AOwner: TComponent; GameIcons: TImageList;
-      GeneralIcons: TImageList; name: string);
+    constructor ICreate(AOwner: TComponent; GameIcons, GeneralIcons: TImageList;
+      name: string);
     destructor Destroy; override;
     procedure ToggleSelect(Sender: TObject);
     procedure Deselect;

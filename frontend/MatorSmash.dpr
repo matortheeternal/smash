@@ -75,7 +75,7 @@ begin
     aSettings.Free;
   end;
 
-  // initialize application, load settings
+  // initialize application
   Application.Initialize;
   ForceDirectories(ProgramPath + 'profiles');
 

@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls, ExtCtrls, pngimage,
-  mteTracker, mteHelpers, msFrontend;
+  mteTracker, mteHelpers;
 
 type
   TSplashForm = class(TForm)
