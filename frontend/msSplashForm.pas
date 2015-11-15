@@ -31,7 +31,7 @@ implementation
 
 procedure TSplashForm.ProgressMessage(const s: string);
 begin
-  lblProgress.Caption := s;
+  lblProgress.Caption := '  '+s;
   Application.ProcessMessages;
 end;
 

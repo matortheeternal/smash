@@ -13,6 +13,8 @@ object SplashForm: TSplashForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  GlassFrame.Enabled = True
+  GlassFrame.SheetOfGlass = True
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
@@ -14036,7 +14038,6 @@ object SplashForm: TSplashForm
     Font.Height = -24
     Font.Name = 'Tahoma'
     Font.Style = []
-    GlowSize = 3
     ParentColor = False
     ParentFont = False
   end
@@ -14052,26 +14053,26 @@ object SplashForm: TSplashForm
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = []
-    GlowSize = 3
     ParentColor = False
     ParentFont = False
   end
   object lblProgress: TLabel
     Left = 24
-    Top = 208
+    Top = 200
     Width = 481
-    Height = 13
+    Height = 31
     AutoSize = False
-    Caption = 'Loading...'
+    Caption = '  Loading...'
     Color = clWhite
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = []
-    GlowSize = 3
+    GlowSize = 1
     ParentColor = False
     ParentFont = False
+    Layout = tlCenter
   end
   object lblVersion: TLabel
     Left = 174
@@ -14085,7 +14086,6 @@ object SplashForm: TSplashForm
     Font.Height = -9
     Font.Name = 'Tahoma'
     Font.Style = []
-    GlowSize = 3
     ParentColor = False
     ParentFont = False
   end
