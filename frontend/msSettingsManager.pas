@@ -398,7 +398,7 @@ begin
   for i := 0 to Pred(tvRecords.SelectionCount) do begin
     bHasChildren := bHasChildren or tvRecords.Selections[i].HasChildren;
     bRecordsSelected := bRecordsSelected and (tvRecords.Selections[i].Level = 1);
-    bSomeUnChecked := bSomeUnChecked or (tvRecords.Selections[i].StateIndex = cUnChecked);
+    bSomeUnChecked := bSomeUnChecked or (tvRecords.Selections[i].StateIndex = csUnChecked);
   end;
 
   // enable/disable menu items
@@ -522,10 +522,10 @@ begin
     e := TElementData(node.Data);
     e.singleEntity := not e.singleEntity;
     if e.singleEntity then
-      node.StateIndex := cPartiallyChecked
+      node.StateIndex := csPartiallyChecked
     else begin
-      SetChildren(node, cChecked);
-      node.StateIndex := cChecked;
+      SetChildren(node, csChecked);
+      node.StateIndex := csChecked;
     end;
     UpdateParent(node.Parent);
   end;
@@ -565,7 +565,7 @@ begin
   // loop through children
   node := parentNode.getFirstChild;
   while Assigned(node) do begin
-    node.StateIndex := cChecked;
+    node.StateIndex := csChecked;
     e := TElementData(node.Data);
 
     if Assigned(e) then begin
@@ -579,13 +579,13 @@ begin
           Ord(stStruct),
           Ord(stUnsortedStructArray): begin
             e.singleEntity := true;
-            node.StateIndex := cPartiallyChecked;
+            node.StateIndex := csPartiallyChecked;
           end;
           Ord(stSortedArray),
           Ord(stSortedStructArray):
             e.preserveDeletions := true;
           Ord(stByteArray):
-            node.StateIndex := cUnChecked;
+            node.StateIndex := csUnChecked;
         end;
       end;
     end;
@@ -595,7 +595,7 @@ begin
     if not bParentIsRoot then begin
       for i := Low(disabledElements) to High(disabledElements) do
         if Pos(disabledElements[i], node.Text) > 0 then begin
-          node.StateIndex := cUnChecked;
+          node.StateIndex := csUnChecked;
         end;
     end
     // else disable records that match a string in the
@@ -603,12 +603,12 @@ begin
     else begin
       for i := Low(disabledRecords) to High(disabledRecords) do
         if Pos(disabledRecords[i], node.Text) = 1 then begin
-          node.StateIndex := cUnChecked;
+          node.StateIndex := csUnChecked;
         end;
     end;
     
     // recurse
-    if (node.HasChildren) and (node.StateIndex <> cUnChecked) then
+    if (node.HasChildren) and (node.StateIndex <> csUnChecked) then
       Autoset(node);
 
     // go to next sibling
@@ -647,7 +647,7 @@ begin
   nodesToPrune := TList.Create;
   for i := 0 to Pred(tvRecords.SelectionCount) do begin
     node := tvRecords.Selections[i];
-    if (node.Level = 1) and (node.StateIndex = cUnChecked) then
+    if (node.Level = 1) and (node.StateIndex = csUnChecked) then
       nodesToPrune.Add(node);
   end;
   DeleteNodes(nodesToPrune);
@@ -669,7 +669,7 @@ begin
   e := TElementData(node.Data);
   if (e.priority > 0) then
     obj.I['r'] := e.priority;
-  if (node.StateIndex <> cUnChecked) then
+  if (node.StateIndex <> csUnChecked) then
     obj.I['p'] := 1;
   if (e.preserveDeletions) then
     obj.I['d'] := 1;
@@ -715,7 +715,7 @@ begin
   sl := TStringList.Create;
   while Assigned(node) do begin
     obj.A['records'].O[i] := DumpElement(node);
-    if node.StateIndex <> cUnChecked then
+    if node.StateIndex <> csUnChecked then
       sl.Add(Copy(node.Text, 1, 4));
     Inc(i);
     node := node.getNextSibling;
@@ -777,7 +777,7 @@ begin
     node := tvRecords.Items[0].getFirstChild;
     // get nodes to prune
     while Assigned(node) do begin
-      if node.StateIndex = cUnChecked then
+      if node.StateIndex = csUnChecked then
         nodesToPrune.Add(node);
       node := node.getNextSibling;
     end;
@@ -794,7 +794,7 @@ begin
   Result := false;
   node := tvRecords.Items[0].getFirstChild;
   while Assigned(node) do begin
-    if node.StateIndex = cUnChecked then begin
+    if node.StateIndex = csUnChecked then begin
       Result := true;
       break;
     end;
