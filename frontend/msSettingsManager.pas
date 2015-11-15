@@ -53,6 +53,7 @@ type
           PruneNodesItem: TMenuItem;
           StateImages: TImageList;
           FlagIcons: TImageList;
+    SelectSimilarNodesItem: TMenuItem;
 
     // TREE METHODS
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
@@ -105,6 +106,7 @@ type
     procedure edNameChange(Sender: TObject);
     procedure CombineSettings(var sl: TStringList);
     procedure CombineSettingsItemClick(Sender: TObject);
+    procedure SelectSimilarNodesItemClick(Sender: TObject);
   private
     { Private declarations }
     lastHint: string;
@@ -946,6 +948,24 @@ end;
   - DeleteSettingItemClick
 }
 {******************************************************************************}
+
+procedure TSettingsManager.SelectSimilarNodesItemClick(Sender: TObject);
+var
+  i: Integer;
+  BaseSmashType: TSmashtype;
+  BaseNode: TTreeNode;
+  e: TElementData;
+begin
+  BaseNode := tvRecords.Selected;
+  e := TElementData(BaseNode.Data);
+  BaseSmashType := e.SmashType;
+  for i := 0 to Pred(tvRecords.Items.Count) do
+    if tvRecords.Items[i].Text = BaseNode.Text then
+      if TElementData(tvRecords.Items[i].Data).smashType = BaseSmashType then
+        begin
+          tvRecords.Select(tvRecords.Items[i],[ssCtrl]);
+        end;
+end;
 
 procedure TSettingsManager.SettingsPopupMenuPopup(Sender: TObject);
 var
