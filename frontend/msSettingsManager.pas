@@ -155,6 +155,11 @@ begin
     x := R.Right + 6;
     y := R.Top;
 
+    // this fixes a bug with drawing flags when expanding a node
+    if x < 20 then
+      exit;
+
+    // draw flags
     if e.preserveDeletions then
       DrawFlag(Sender.Canvas, x, y, 0);
     if e.singleEntity then
