@@ -39,8 +39,6 @@ type
     constructor Create(time, appTime, group, &label, text: string); Overload;
   end;
   // SERVER/CLIENT
-  TMessageID = ( MSG_UNKNOWN, MSG_NOTIFY, MSG_REGISTER, MSG_AUTH_RESET,
-    MSG_STATISTICS, MSG_STATUS, MSG_REQUEST, MSG_REPORT );
   TmsMessage = class(TObject)
   public
     id: integer;
@@ -59,7 +57,6 @@ type
     constructor Create; Overload;
   end;
   // SMASH CLASSES
-  TCheckState = ( csUnknown, csChecked, csUnChecked, csPartiallyChecked );
   TSmashType = ( stUnknown, stRecord, stString, stInteger, stFlag, stFloat,
     stStruct, stUnsortedArray, stUnsortedStructArray, stSortedArray,
     stSortedStructArray, stByteArray, stUnion );
@@ -396,6 +393,22 @@ const
   ProgramTranslators = ' ';
   xEditVersion = '3.1.1';
   bTranslationDump = false;
+
+  // MESSAGE IDS
+  MSG_UNKNOWN = 0;
+  MSG_NOTIFY = 1;
+  MSG_REGISTER = 2;
+  MSG_AUTH_RESET = 3;
+  MSG_STATISTICS = 4;
+  MSG_STATUS = 5;
+  MSG_REQUEST = 6;
+  MSG_REPORT = 7;
+
+  // CHECKBOX STATES
+  csUnknown = 0;
+  csChecked = 1;
+  csUnChecked = 2;
+  csPartiallyChecked = 3;
 
   // SMASH TYPE ARRAYS
   stArrays = [ stUnsortedArray, stUnsortedStructArray,
