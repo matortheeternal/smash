@@ -530,7 +530,7 @@ begin
     pForm.LogPath := LogPath;
     pForm.PopupParent := Self;
     pForm.Caption := GetString('msProg_Closing');
-    pForm.MaxProgress(PluginsList.Count + PatchesList.Count + 2);
+    pForm.SetMaxProgress(PluginsList.Count + PatchesList.Count + 2);
     pForm.Show;
 
     // start save thread
@@ -1862,7 +1862,7 @@ begin
   pForm.LogPath := LogPath;
   pForm.PopupParent := Self;
   pForm.Caption := GetString('msProg_Smashing');
-  pForm.MaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
+  pForm.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
   pForm.Show;
 
   // start patch thread
@@ -2064,7 +2064,7 @@ begin
   pForm.bDetailsVisible := false;
   pForm.PopupParent := Self;
   pForm.Caption := GetString('msProg_Smashing');
-  pForm.MaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
+  pForm.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
   pForm.Show;
 
   // start patch thread

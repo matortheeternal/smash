@@ -2927,7 +2927,7 @@ begin
   pf.LogPath := LogPath;
   pf.PopupParent := parent;
   pf.Caption := s;
-  pf.MaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
+  pf.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
   pf.Show;
 end;
 
@@ -4016,7 +4016,7 @@ var
   i: Integer;
   plugin: TPlugin;
 begin
-  Result := 1;
+  Result := 10000;
   for i := 0 to Pred(plugins.Count) do begin
     plugin := PluginByFilename(plugins[i]);
     if Assigned(plugin) then

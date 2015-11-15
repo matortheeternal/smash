@@ -19,8 +19,10 @@ type
     procedure StatusMessage(const s: string);
     procedure Write(const s: string);
     procedure SaveLog;
-    procedure MaxProgress(const i: Integer);
     procedure SetProgress(const i: Integer);
+    procedure SetMaxProgress(const i: Integer);
+    function GetProgress: Integer;
+    function GetMaxProgress: Integer;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ToggleDetails(Sender: TObject);
@@ -66,10 +68,12 @@ end;
 procedure TProgressForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   SetTaskbarProgressState(tbpsNone);
-  Tracker.OnMaxEvent := nil;
-  Tracker.OnProgressEvent := nil;
+  Tracker.OnSetMaxEvent := nil;
+  Tracker.OnUpdateEvent := nil;
   Tracker.OnLogEvent := nil;
   Tracker.OnSetEvent := nil;
+  Tracker.OnGetEvent := nil;
+  Tracker.OnGetMaxEvent := nil;
   Tracker.OnStatusEvent := nil;
 end;
 
@@ -90,11 +94,13 @@ begin
   SetTaskbarProgressState(tbpsNormal);
   bDetailsVisible := true;
   DetailsMemo.ReadOnly := true;
-  Tracker.OnMaxEvent := MaxProgress;
-  Tracker.OnProgressEvent := UpdateProgress;
+  Tracker.OnSetMaxEvent := SetMaxProgress;
+  Tracker.OnUpdateEvent := UpdateProgress;
   Tracker.OnLogEvent := Write;
   Tracker.OnSetEvent := SetProgress;
   Tracker.OnStatusEvent := StatusMessage;
+  Tracker.OnGetEvent := GetProgress;
+  Tracker.OnGetMaxEvent := GetMaxProgress;
 end;
 
 procedure TProgressForm.FormShow(Sender: TObject);
@@ -113,15 +119,25 @@ begin
   end;
 end;
 
-procedure TProgressForm.MaxProgress(const i: Integer);
-begin
-  ProgressBar.Max := i;
-end;
-
 procedure TProgressForm.SetProgress(const i: Integer);
 begin
   ProgressBar.Position := i;
   SetTaskbarProgressValue(ProgressBar.Position, ProgressBar.Max);
+end;
+
+procedure TProgressForm.SetMaxProgress(const i: Integer);
+begin
+  ProgressBar.Max := i;
+end;
+
+function TProgressForm.GetProgress: Integer;
+begin
+  Result := ProgressBar.Position;
+end;
+
+function TProgressForm.GetMaxProgress: Integer;
+begin
+  Result := ProgressBar.Max;
 end;
 
 procedure TProgressForm.UpdateProgress(const i: Integer);

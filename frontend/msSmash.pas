@@ -130,7 +130,7 @@ end;
 procedure BuildOverridesList(var patch: TPatch; var lst: TList;
   var records: TInterfaceList);
 var
-  i, j, skips: Integer;
+  i, j, recCount: Integer;
   plugin: TPlugin;
   aSetting: TSmashSetting;
   aFile: IwbFile;
@@ -152,48 +152,44 @@ begin
 
     // loop through file records
     Tracker.Write('Processing '+plugin.filename);
-    skips := 0;
-    for j := 0 to Pred(aFile.RecordCount) do begin
+    recCount := Pred(aFile.RecordCount);
+    for j := 0 to recCount do begin
       if Tracker.Cancel then break;
       rec := aFile.Records[j];
+      if j mod 500 = 499 then
+        Tracker.UpdateProgress(500);
+
       // skip non-override records
-      if rec.IsMaster then begin
-        Inc(skips);
+      if rec.IsMaster then
         continue;
-      end;
-      // skip records that have 1 or fewer overrides
+      // skip records that have 1 or fewer overrides in
+      // files being patched
       rec := rec.Master;
-      if OverrideCountInFiles(rec, patch.plugins) < 2 then begin
-        Inc(skips);
+      if OverrideCountInFiles(rec, patch.plugins) < 2 then
         continue;
-      end;
+
       // skip records according to smash setting
       recObj := aSetting.GetRecordDef(rec.Signature);
-      if not Assigned(recObj) then begin
-        Inc(skips);
+      if not Assigned(recObj) then
         continue;
-      end;
-      if (recObj.I['p'] <> 1) then begin
-        Inc(skips);
+      if (recObj.I['p'] <> 1) then
         continue;
-      end;
 
-      // TODO: skip records that are ITM or ITPO
       // add record to overrides list
       if records.IndexOf(rec) = -1 then
         records.Add(rec);
     end;
     
     // update progress bar for file
-    Tracker.UpdateProgress(skips);
+    Tracker.UpdateProgress(recCount mod 500);
   end;
 end;
 
 procedure SmashRecords(var patch: TPatch; var records: TInterfaceList);
 var
-  i: Integer;
+  i, j: Integer;
+  incProgress, currentProgress: Real;
   rec, ovr, patchRec: IwbMainRecord;
-  j: Integer;
   f, patchFile: IwbFile;
   plugin: TPlugin;
   aSetting: TSmashSetting;
@@ -204,14 +200,18 @@ begin
   Tracker.Write(' ');
   Tracker.Write('Smashing records');
   patchFile := patch.plugin._File;
+
   // loop through records to smash
+  currentProgress := Tracker.GetProgress;
+  incProgress := (Tracker.GetMaxProgress - Tracker.GetProgress) / records.Count;
   for i := 0 to Pred(records.Count) do begin
     if Tracker.Cancel then break;
     if not Supports(records[i], IwbMainRecord, rec) then
       exit;
     Tracker.StatusMessage(Format('Smashing records (%d/%d)',
       [i + 1, records.Count]));
-    Tracker.UpdateProgress(1);
+    currentProgress := currentProgress + incProgress;
+    Tracker.SetProgress(Round(currentProgress));
     // loop through record's overrides
     patchRec := nil;
     for j := 0 to Pred(rec.OverrideCount) do begin
@@ -220,11 +220,6 @@ begin
       f := ovr._File;
       plugin := PluginByFileName(f.FileName);
       if not Assigned(plugin) then
-        continue;
-      if patch.plugins.IndexOf(plugin.filename) = -1 then
-        continue;
-      // skip overrides in plugins that are skipped
-      if plugin.setting = 'Skip' then
         continue;
       // skip ctIdenticalToMaster overrides
       if (ConflictThisForMainRecord(ovr) = ctIdenticalToMaster) then
@@ -241,7 +236,7 @@ begin
       // copy record to smashed patch if it hasn't been copied yet
       if not Assigned(patchRec) then try
         e := WinningOverrideInFiles(rec, patch.plugins);
-        Tracker.Write('  Copying record '+e.Name);
+        Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'');
         patchRec := eCopy as IwbMainRecord;
       except on x: Exception do
@@ -250,7 +245,8 @@ begin
 
       // finally, recursively copy overridden elements
       try
-        Tracker.Write('    Smashing record '+ovr.Name+' from file: '+f.FileName);
+        Tracker.Write(Format('    Smashing override from: %s',
+          [f.FileName]));
         bDeletions := recObj.I['d'] = 1;
         rcore(IwbElement(ovr), IwbElement(rec), IwbElement(patchRec), patchRec,
           recObj, false, bDeletions);
