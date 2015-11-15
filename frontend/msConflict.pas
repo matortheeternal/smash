@@ -75,6 +75,7 @@ type
   function ConflictAllForElements(e1, e2: IwbElement; aSiblingCompare,
     aInjected: Boolean): TConflictAll;
   function ConflictThisForMainRecord(aMainRecord: IwbMainRecord): TConflictThis;
+  function ConflictAllForMainRecord(aMainRecord: IwbMainRecord): TConflictAll;
 
 implementation
 
@@ -857,6 +858,15 @@ var
 begin
   ConflictLevelForMainRecord(aMainRecord, ca, ct);
   Result := ct;
+end;
+
+function ConflictAllForMainRecord(aMainRecord: IwbMainRecord): TConflictAll;
+var
+  ct: TConflictThis;
+  ca: TConflictAll;
+begin
+  ConflictLevelForMainRecord(aMainRecord, ca, ct);
+  Result := ca;
 end;
 
 end.
