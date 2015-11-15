@@ -174,6 +174,9 @@ begin
         continue;
       if (recObj.I['p'] <> 1) then
         continue;
+      // skip non-conflicting records
+      if ConflictAllForMainRecord(rec) < caConflict then
+        continue;
 
       // add record to overrides list
       if records.IndexOf(rec) = -1 then
