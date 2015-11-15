@@ -41,17 +41,18 @@ type
           tvRecords: TTreeView;
           TreePopupMenu: TPopupMenu;
           AddItem: TMenuItem;
+          BuildFromPluginsItem: TMenuItem;
+          AutosetItem: TMenuItem;
           ToggleNodesItem: TMenuItem;
           PreserveDeletionsItem: TMenuItem;
           SingleEntityItem: TMenuItem;
-          AutoPruneItem: TMenuItem;
-          PruneNodesItem: TMenuItem;
+          ChainNodesItem: TMenuItem;
           LinkNodeToItem: TMenuItem;
           UnlinkNodeItem: TMenuItem;
-          ChainNodesItem: TMenuItem;
+          AutoPruneItem: TMenuItem;
+          PruneNodesItem: TMenuItem;
           StateImages: TImageList;
           FlagIcons: TImageList;
-    BuildFromPluginsItem: TMenuItem;
 
     // TREE METHODS
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
@@ -81,8 +82,11 @@ type
     procedure DumpTree;
     procedure DeleteNodes(var aList: TList);
     procedure DeleteChildren(node: TTreeNode);
-    procedure AutoPrune;
     function CanPruneRecords: boolean;
+    procedure AutoPrune;
+    procedure AutoPruneItemClick(Sender: TObject);
+    procedure Autoset(parentNode: TTreeNode);
+    procedure AutosetItemClick(Sender: TObject);
     // SETTINGS MANAGER EVENTS
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -101,7 +105,6 @@ type
     procedure edNameChange(Sender: TObject);
     procedure CombineSettings(var sl: TStringList);
     procedure CombineSettingsItemClick(Sender: TObject);
-    procedure AutoPruneItemClick(Sender: TObject);
   private
     { Private declarations }
     lastHint: string;
@@ -532,6 +535,107 @@ end;
 procedure TSettingsManager.AutoPruneItemClick(Sender: TObject);
 begin
   AutoPrune;
+end;
+
+procedure TSettingsManager.Autoset(parentNode: TTreeNode);
+const
+  disabledElements: array[0..3] of string = (
+    'Record Header',
+    'Count',
+    'Unused',
+    'Unknown'
+  );
+  disabledRecords: array[0..4] of string = (
+    'NAVM',
+    'NAVI',
+    'LCTN',
+    'DOBJ',
+    'RACE'
+  );
+var
+  i: Integer;
+  node: TTreeNode;
+  e: TElementData;
+  bParentIsRoot, bParentIsRecord: boolean;
+begin
+  // get parent booleans
+  bParentIsRoot := parentNode.Level = 0;
+  bParentIsRecord := parentNode.Level = 1;
+
+  // loop through children
+  node := parentNode.getFirstChild;
+  while Assigned(node) do begin
+    node.StateIndex := cChecked;
+    e := TElementData(node.Data);
+
+    if Assigned(e) then begin
+      // if parent is root, preserve deletions
+      if bParentIsRoot then
+        e.preserveDeletions := true;
+
+      // if parent is record, perform case statement on type
+      if bParentIsRecord then begin
+        case Ord(e.smashType) of
+          Ord(stStruct),
+          Ord(stUnsortedStructArray): begin
+            e.singleEntity := true;
+            node.StateIndex := cPartiallyChecked;
+          end;
+          Ord(stSortedArray),
+          Ord(stSortedStructArray):
+            e.preserveDeletions := true;
+          Ord(stByteArray):
+            node.StateIndex := cUnChecked;
+        end;
+      end;
+    end;
+
+    // if we're not on the root, disable elements that match
+    // a string in the disableElements array
+    if not bParentIsRoot then begin
+      for i := Low(disabledElements) to High(disabledElements) do
+        if Pos(disabledElements[i], node.Text) > 0 then begin
+          node.StateIndex := cUnChecked;
+        end;
+    end
+    // else disable records that match a string in the
+    // disabledRecords array
+    else begin
+      for i := Low(disabledRecords) to High(disabledRecords) do
+        if Pos(disabledRecords[i], node.Text) = 1 then begin
+          node.StateIndex := cUnChecked;
+        end;
+    end;
+    
+    // recurse
+    if (node.HasChildren) and (node.StateIndex <> cUnChecked) then
+      Autoset(node);
+
+    // go to next sibling
+    node := node.getNextSibling;
+  end;
+
+  // update parent node
+  UpdateParent(parentNode);
+
+  // repaint
+  tvRecords.Repaint;
+end;
+
+procedure TSettingsManager.AutosetItemClick(Sender: TObject);
+const
+  msg = 'This will change all nodes in this setting, are you sure you want to continue?';
+var
+  mr: Integer;
+begin
+  // confirm with the user that this is what they
+  // really want to do
+  mr := MessageDlg(msg, mtConfirmation, [mbYes, mbNo], 0);
+  if mr = mrYes then begin
+    Enabled := false;
+    Autoset(tvRecords.Items[0]);
+    Enabled := true;
+  end;
 end;
 
 procedure TSettingsManager.PruneNodesItemClick(Sender: TObject);
