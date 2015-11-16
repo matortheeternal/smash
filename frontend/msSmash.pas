@@ -261,10 +261,62 @@ begin
   end;
 end;
 
+procedure RemoveEmptyContainers(aContainer: IwbContainer);
+const
+  NoConflictArray: set of TConflictThis = [
+    ctIdenticalToMaster,
+    ctIdenticalToMasterWinsConflict
+  ];
+var
+  container, nextContainer: IwbContainer;
+  group: IwbGroupRecord;
+  rec: IwbMainRecord;
+  ct: TConflictThis;
+begin
+  container := aContainer;
+  // traverse up container until we find an IwbMainRecord
+  while Assigned(container) and
+  not Supports(container, IwbGroupRecord, group) do begin
+    // break if container still has elements in it
+    if container.ElementCount > 0 then
+      exit;
+
+    // else remove it and traverse up to next container
+    nextContainer := container.Container;
+    container.Remove;
+    container := nextContainer;
+  end;
+
+  // exit if we couldn't find an IwbGroupRecord container
+  // or group is not empty
+  if (not Assigned(group)) or (group.ElementCount > 0) then
+    exit;
+
+  // remove group and exit if it isn't a child group
+  rec := group.ChildrenOf;
+  if not Assigned(rec) then begin
+    Tracker.Write('    Removing Empty Group: '+group.Name);
+    group.Remove;
+    exit;
+  end;
+
+  // exit if record is not ITM or ITPO
+  ct := ConflictThisForMainRecord(rec);
+  if (ct in NoConflictArray) then
+    exit;
+
+  // else remove MainRecord and recurse
+  Tracker.Write('    Removing ITM: '+rec.Name);
+  nextContainer := rec.Container;
+  rec.Remove;
+  RemoveEmptyContainers(nextContainer);
+end;
+
 procedure RemoveITPOs(aFile: IwbFile);
 var
   i, j, CountITPO: Integer;
   e, m, prevovr, ovr: IwbMainRecord;
+  container: IwbContainer;
 begin
   Tracker.Write(' ');
   Tracker.Write('Removing ITPO records from patch');
@@ -297,7 +349,13 @@ begin
     // remove record if no conflicts
     if ConflictAllForElements(prevovr, e, False, False) <= caNoConflict then begin
       Tracker.Write('    Removing ITPO: ' + e.Name);
+
+      // remove ITPO and empty containers
+      container := e.Container;
       e.Remove;
+      RemoveEmptyContainers(container);
+
+      // increment our ITPO counter
       Inc(CountITPO);
     end;
   end;

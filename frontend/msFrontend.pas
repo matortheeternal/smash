@@ -348,6 +348,7 @@ type
   function GetElementObj(var obj: ISuperObject; name: string): ISuperObject;
   function GetRecordObj(var tree: ISuperObject; name: string): ISuperObject;
   function stToString(st: TSmashType): string;
+  function ctToString(ct: TConflictThis): string;
   function GetSmashType(element: IwbElement): TSmashType;
   procedure HandleCanceled(msg: string);
   procedure RenamePatches(var sl: TStringList);
@@ -2818,6 +2819,24 @@ begin
     Ord(stByteArray): Result := 'Byte Array';
     Ord(stUnion): Result := 'Union';
     else Result := 'Unknown';
+  end;
+end;
+
+function ctToString(ct: TConflictThis): string;
+begin
+  case Ord(ct) of
+    Ord(ctUnknown): Result := 'ctUnknown';
+    Ord(ctIgnored): Result := 'ctIgnored';
+    Ord(ctNotDefined): Result := 'ctNotDefined';
+    Ord(ctIdenticalToMaster): Result := 'ctIdenticalToMaster';
+    Ord(ctOnlyOne): Result := 'ctOnlyOne';
+    Ord(ctHiddenByModGroup): Result := 'ctHiddenByModGroup';
+    Ord(ctMaster): Result := 'ctMaster';
+    Ord(ctConflictBenign): Result := 'ctConflictBenign';
+    Ord(ctOverride): Result := 'ctOverride';
+    Ord(ctIdenticalToMasterWinsConflict): Result := 'ctIdenticalToMasterWinsConflict';
+    Ord(ctConflictWins): Result := 'ctConflictWins';
+    Ord(ctConflictLoses): Result := 'ctConflictLoses';
   end;
 end;
 
