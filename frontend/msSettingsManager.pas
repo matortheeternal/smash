@@ -485,30 +485,37 @@ end;
 procedure TSettingsManager.SelectSimilarNodesItemClick(Sender: TObject);
 var
   i, index: Integer;
-  tvNode: TTreeNode;
+  node: TTreeNode;
   reqSmashType, currentSmashType: TSmashtype;
   slSelection: TStringList;
 begin
+  // Create StringList
   slSelection := TStringList.Create;
   try
-    for i := 0 to Pred(tvRecords.SelectionCount) do
-    begin
-      tvNode := tvRecords.Selections[i];
-      reqSmashType := TElementData(tvNode.Data).smashType;
-      slSelection.AddObject(tvNode.Text, TObject(reqSmashType));
+    // Add "Text" and "SmashType" of selected nodes to StringList
+    // Note: "SmashType" has to be converted to be used in a StringList
+    for i := 0 to Pred(tvRecords.SelectionCount) do begin
+      node := tvRecords.Selections[i];
+      reqSmashType := TElementData(node.Data).smashType;
+      // "SmashType" converted into TObject
+      slSelection.AddObject(node.Text, TObject(reqSmashType));
     end;
+    // Go through all nodes and check if their "Text" is in StringList
     for i := 0 to Pred(tvRecords.Items.Count) do begin
-      currentSmashType := TElementData(tvRecords.Items[i].Data).smashType;
-      index := slSelection.IndexOf(tvRecords.Items[i].Text);
-      if (index > -1) then
-      begin
+      node := tvRecords.Items[i];
+      currentSmashType := TElementData(node.Data).smashType;
+      index := slSelection.IndexOf(node.Text);
+      // If a "Text" is found, get associated "SmashType" from StringList
+      if (index > -1) then begin
+        // Convert "SmashType" back to TSmashType
         reqSmashType := TSmashType(slSelection.Objects[index]);
-          if (currentSmashType = reqSmashType) and (tvRecords.Items[i].Text = slSelection[index]) then
-            if tvRecords.Items[i].Selected <> True then
-              tvRecords.Select(tvRecords.Items[i], [ssCtrl]);
+          // Check if node's and saved "SmashType" match and if node is selected
+          if (currentSmashType = reqSmashType) and (node.Selected <> True) then
+            tvRecords.Select(node, [ssCtrl]);
       end;
     end;
   finally
+    // Finally free the StringList
     slSelection.Free;
   end;
 end;
