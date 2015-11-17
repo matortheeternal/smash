@@ -43,6 +43,7 @@ type
           AddItem: TMenuItem;
           BuildFromPluginsItem: TMenuItem;
           AutosetItem: TMenuItem;
+          SelectSimilarNodesItem: TMenuItem;
           ToggleNodesItem: TMenuItem;
           PreserveDeletionsItem: TMenuItem;
           SingleEntityItem: TMenuItem;
@@ -71,6 +72,7 @@ type
     procedure TreePopupMenuPopup(Sender: TObject);
     procedure AddItemClick(Sender: TObject);
     procedure BuildFromPluginsItemClick(Sender: TObject);
+    procedure SelectSimilarNodesItemClick(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
     procedure PreserveDeletionsItemClick(Sender: TObject);
     procedure SingleEntityItemClick(Sender: TObject);
@@ -478,6 +480,44 @@ begin
   selectionForm.Free;
   slPlugins.Free;
   slSelection.Free;
+end;
+
+procedure TSettingsManager.SelectSimilarNodesItemClick(Sender: TObject);
+var
+  i, index: Integer;
+  node: TTreeNode;
+  reqSmashType, currentSmashType: TSmashtype;
+  slSelection: TStringList;
+begin
+  // Create StringList
+  slSelection := TStringList.Create;
+  try
+    // Add "Text" and "SmashType" of selected nodes to StringList
+    // Note: "SmashType" has to be converted to be used in a StringList
+    for i := 0 to Pred(tvRecords.SelectionCount) do begin
+      node := tvRecords.Selections[i];
+      reqSmashType := TElementData(node.Data).smashType;
+      // "SmashType" converted into TObject
+      slSelection.AddObject(node.Text, TObject(reqSmashType));
+    end;
+    // Go through all nodes and check if their "Text" is in StringList
+    for i := 0 to Pred(tvRecords.Items.Count) do begin
+      node := tvRecords.Items[i];
+      currentSmashType := TElementData(node.Data).smashType;
+      index := slSelection.IndexOf(node.Text);
+      // If a "Text" is found, get associated "SmashType" from StringList
+      if (index > -1) then begin
+        // Convert "SmashType" back to TSmashType
+        reqSmashType := TSmashType(slSelection.Objects[index]);
+          // Check if node's and saved "SmashType" match and if node is selected
+          if (currentSmashType = reqSmashType) and not node.Selected then
+            tvRecords.Select(node, [ssCtrl]);
+      end;
+    end;
+  finally
+    // Finally free the StringList
+    slSelection.Free;
+  end;
 end;
 
 procedure TSettingsManager.ToggleNodesItemClick(Sender: TObject);
