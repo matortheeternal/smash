@@ -957,7 +957,6 @@ var
   bSelection: TStringList;
 begin
   bSelection := TStringList.Create;
-  bSelection.CaseSensitive := true;
   try
     for i := 0 to Pred(tvRecords.SelectionCount) do
     begin
