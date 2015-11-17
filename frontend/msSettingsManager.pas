@@ -485,31 +485,31 @@ end;
 procedure TSettingsManager.SelectSimilarNodesItemClick(Sender: TObject);
 var
   i, index: Integer;
-  bNode, nNode: TTreeNode;
-  bSmashType, nSmashType: TSmashtype;
-  bSelection: TStringList;
+  tvNode: TTreeNode;
+  reqSmashType, currentSmashType: TSmashtype;
+  slSelection: TStringList;
 begin
-  bSelection := TStringList.Create;
+  slSelection := TStringList.Create;
   try
     for i := 0 to Pred(tvRecords.SelectionCount) do
     begin
-      bNode := tvRecords.Selections[i];
-      bSmashType := TElementData(bNode.Data).smashType;
-      bSelection.AddObject(bNode.Text, TObject(bSmashType));
+      tvNode := tvRecords.Selections[i];
+      reqSmashType := TElementData(tvNode.Data).smashType;
+      slSelection.AddObject(tvNode.Text, TObject(reqSmashType));
     end;
     for i := 0 to Pred(tvRecords.Items.Count) do begin
-      nSmashType := TElementData(tvRecords.Items[i].Data).smashType;
-      index := bSelection.IndexOf(tvRecords.Items[i].Text);
+      currentSmashType := TElementData(tvRecords.Items[i].Data).smashType;
+      index := slSelection.IndexOf(tvRecords.Items[i].Text);
       if (index > -1) then
       begin
-        bSmashType := TSmashType(bSelection.Objects[index]);
-          if (nSmashType = bSmashType) and (tvRecords.Items[i].Text = bSelection[index]) then
+        reqSmashType := TSmashType(slSelection.Objects[index]);
+          if (currentSmashType = reqSmashType) and (tvRecords.Items[i].Text = slSelection[index]) then
             if tvRecords.Items[i].Selected <> True then
               tvRecords.Select(tvRecords.Items[i], [ssCtrl]);
       end;
     end;
   finally
-    bSelection.Free;
+    slSelection.Free;
   end;
 end;
 
