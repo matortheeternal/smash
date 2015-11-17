@@ -510,7 +510,7 @@ begin
         // Convert "SmashType" back to TSmashType
         reqSmashType := TSmashType(slSelection.Objects[index]);
           // Check if node's and saved "SmashType" match and if node is selected
-          if (currentSmashType = reqSmashType) and (node.Selected <> True) then
+          if (currentSmashType = reqSmashType) and not node.Selected then
             tvRecords.Select(node, [ssCtrl]);
       end;
     end;
