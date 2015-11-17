@@ -951,20 +951,34 @@ end;
 
 procedure TSettingsManager.SelectSimilarNodesItemClick(Sender: TObject);
 var
-  i: Integer;
-  BaseSmashType: TSmashtype;
-  BaseNode: TTreeNode;
-  e: TElementData;
+  i, index: Integer;
+  bNode, nNode: TTreeNode;
+  bSmashType, nSmashType: TSmashtype;
+  bSelection: TStringList;
 begin
-  BaseNode := tvRecords.Selected;
-  e := TElementData(BaseNode.Data);
-  BaseSmashType := e.SmashType;
-  for i := 0 to Pred(tvRecords.Items.Count) do
-    if tvRecords.Items[i].Text = BaseNode.Text then
-      if TElementData(tvRecords.Items[i].Data).smashType = BaseSmashType then
-        begin
-          tvRecords.Select(tvRecords.Items[i],[ssCtrl]);
-        end;
+  bSelection := TStringList.Create;
+  bSelection.CaseSensitive := true;
+  try
+    for i := 0 to Pred(tvRecords.SelectionCount) do
+    begin
+      bNode := tvRecords.Selections[i];
+      bSmashType := TElementData(bNode.Data).smashType;
+      bSelection.AddObject(bNode.Text, TObject(bSmashType));
+    end;
+    for i := 0 to Pred(tvRecords.Items.Count) do begin
+      nSmashType := TElementData(tvRecords.Items[i].Data).smashType;
+      index := bSelection.IndexOf(tvRecords.Items[i].Text);
+      if (index > -1) then
+      begin
+        bSmashType := TSmashType(bSelection.Objects[index]);
+          if (nSmashType = bSmashType) and (tvRecords.Items[i].Text = bSelection[index]) then
+            if tvRecords.Items[i].Selected <> True then
+              tvRecords.Select(tvRecords.Items[i], [ssCtrl]);
+      end;
+    end;
+  finally
+    bSelection.Free;
+  end;
 end;
 
 procedure TSettingsManager.SettingsPopupMenuPopup(Sender: TObject);
