@@ -43,6 +43,7 @@ type
           AddItem: TMenuItem;
           BuildFromPluginsItem: TMenuItem;
           AutosetItem: TMenuItem;
+          SelectSimilarNodesItem: TMenuItem;
           ToggleNodesItem: TMenuItem;
           PreserveDeletionsItem: TMenuItem;
           SingleEntityItem: TMenuItem;
@@ -53,7 +54,6 @@ type
           PruneNodesItem: TMenuItem;
           StateImages: TImageList;
           FlagIcons: TImageList;
-    SelectSimilarNodesItem: TMenuItem;
 
     // TREE METHODS
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
@@ -72,6 +72,7 @@ type
     procedure TreePopupMenuPopup(Sender: TObject);
     procedure AddItemClick(Sender: TObject);
     procedure BuildFromPluginsItemClick(Sender: TObject);
+    procedure SelectSimilarNodesItemClick(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
     procedure PreserveDeletionsItemClick(Sender: TObject);
     procedure SingleEntityItemClick(Sender: TObject);
@@ -106,7 +107,6 @@ type
     procedure edNameChange(Sender: TObject);
     procedure CombineSettings(var sl: TStringList);
     procedure CombineSettingsItemClick(Sender: TObject);
-    procedure SelectSimilarNodesItemClick(Sender: TObject);
   private
     { Private declarations }
     lastHint: string;
@@ -480,6 +480,37 @@ begin
   selectionForm.Free;
   slPlugins.Free;
   slSelection.Free;
+end;
+
+procedure TSettingsManager.SelectSimilarNodesItemClick(Sender: TObject);
+var
+  i, index: Integer;
+  bNode, nNode: TTreeNode;
+  bSmashType, nSmashType: TSmashtype;
+  bSelection: TStringList;
+begin
+  bSelection := TStringList.Create;
+  try
+    for i := 0 to Pred(tvRecords.SelectionCount) do
+    begin
+      bNode := tvRecords.Selections[i];
+      bSmashType := TElementData(bNode.Data).smashType;
+      bSelection.AddObject(bNode.Text, TObject(bSmashType));
+    end;
+    for i := 0 to Pred(tvRecords.Items.Count) do begin
+      nSmashType := TElementData(tvRecords.Items[i].Data).smashType;
+      index := bSelection.IndexOf(tvRecords.Items[i].Text);
+      if (index > -1) then
+      begin
+        bSmashType := TSmashType(bSelection.Objects[index]);
+          if (nSmashType = bSmashType) and (tvRecords.Items[i].Text = bSelection[index]) then
+            if tvRecords.Items[i].Selected <> True then
+              tvRecords.Select(tvRecords.Items[i], [ssCtrl]);
+      end;
+    end;
+  finally
+    bSelection.Free;
+  end;
 end;
 
 procedure TSettingsManager.ToggleNodesItemClick(Sender: TObject);
@@ -948,37 +979,6 @@ end;
   - DeleteSettingItemClick
 }
 {******************************************************************************}
-
-procedure TSettingsManager.SelectSimilarNodesItemClick(Sender: TObject);
-var
-  i, index: Integer;
-  bNode, nNode: TTreeNode;
-  bSmashType, nSmashType: TSmashtype;
-  bSelection: TStringList;
-begin
-  bSelection := TStringList.Create;
-  try
-    for i := 0 to Pred(tvRecords.SelectionCount) do
-    begin
-      bNode := tvRecords.Selections[i];
-      bSmashType := TElementData(bNode.Data).smashType;
-      bSelection.AddObject(bNode.Text, TObject(bSmashType));
-    end;
-    for i := 0 to Pred(tvRecords.Items.Count) do begin
-      nSmashType := TElementData(tvRecords.Items[i].Data).smashType;
-      index := bSelection.IndexOf(tvRecords.Items[i].Text);
-      if (index > -1) then
-      begin
-        bSmashType := TSmashType(bSelection.Objects[index]);
-          if (nSmashType = bSmashType) and (tvRecords.Items[i].Text = bSelection[index]) then
-            if tvRecords.Items[i].Selected <> True then
-              tvRecords.Select(tvRecords.Items[i], [ssCtrl]);
-      end;
-    end;
-  finally
-    bSelection.Free;
-  end;
-end;
 
 procedure TSettingsManager.SettingsPopupMenuPopup(Sender: TObject);
 var
