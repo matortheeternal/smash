@@ -38,11 +38,15 @@ type
         btnDiscard: TButton;
         [FormSection('Tree')]
           lblTree: TLabel;
+          edSearch: TEdit;
           tvRecords: TTreeView;
           TreePopupMenu: TPopupMenu;
           AddItem: TMenuItem;
           BuildFromPluginsItem: TMenuItem;
           AutosetItem: TMenuItem;
+          ShowHideItem: TMenuItem;
+          ShowHideEverythingItem: TMenuItem;
+          ShowHideSameLevelItem: TMenuItem;
           SelectSimilarNodesItem: TMenuItem;
           ToggleNodesItem: TMenuItem;
           PreserveDeletionsItem: TMenuItem;
@@ -72,6 +76,7 @@ type
     procedure TreePopupMenuPopup(Sender: TObject);
     procedure AddItemClick(Sender: TObject);
     procedure BuildFromPluginsItemClick(Sender: TObject);
+    procedure ShowHideEverythingItemClick(Sender: TObject);
     procedure SelectSimilarNodesItemClick(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
     procedure PreserveDeletionsItemClick(Sender: TObject);
@@ -91,6 +96,7 @@ type
     procedure AutosetItemClick(Sender: TObject);
     // SETTINGS MANAGER EVENTS
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure lvSettingsChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
@@ -107,9 +113,15 @@ type
     procedure edNameChange(Sender: TObject);
     procedure CombineSettings(var sl: TStringList);
     procedure CombineSettingsItemClick(Sender: TObject);
+    procedure ShowHideSameLevelItemClick(Sender: TObject);
+    procedure edSearchClick(Sender: TObject);
+    procedure edSearchKeyPress(Sender: TObject; var Key: Char);
+    procedure edSearchChange(Sender: TObject);
   private
     { Private declarations }
     lastHint: string;
+    bSearchActive: Boolean;
+    slSearchResults: TStringList;
   public
     { Public declarations }
     FilterFilename: string;
@@ -130,6 +142,49 @@ implementation
 {$R *.dfm}
 
 { Tree methods }
+procedure TSettingsManager.edSearchChange(Sender: TObject);
+begin
+  bSearchActive := False;
+end;
+
+procedure TSettingsManager.edSearchClick(Sender: TObject);
+begin
+  if edSearch.Text = 'Search...' then
+    edSearch.Text := '';
+end;
+
+procedure TSettingsManager.edSearchKeyPress(Sender: TObject; var Key: Char);
+var
+  i: Integer;
+  node: TTreeNode;
+begin
+  if tvRecords.Items.Count = 0 then
+    exit;
+  if Key <> #13 then
+    exit;
+  if not bSearchActive then begin
+    slSearchResults.Clear;
+    for i := 0 to Pred(tvRecords.Items.Count) do begin
+      node := tvRecords.Items[i];
+        if (Pos(edSearch.Text, node.Text) > 0) then
+          slSearchResults.AddObject(node.Text,TObject(node));
+        end;
+    bSearchActive := True;
+    i := -1;
+  end
+  else begin
+    if slSearchResults.Count > 0 then begin
+      i := i + 1;
+        if not i >= slSearchResults.Count then begin
+          TTreeNode(slSearchResults.Objects[i]).Focused := True;
+          tvRecords.SetFocus;
+        end;
+    end
+  else
+    i := 0;
+  end;
+end;
+
 procedure TSettingsManager.DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
 var
   icon: TIcon;
@@ -480,6 +535,21 @@ begin
   selectionForm.Free;
   slPlugins.Free;
   slSelection.Free;
+end;
+
+procedure TSettingsManager.ShowHideEverythingItemClick(Sender: TObject);
+var
+  i: Integer;
+  bState: Boolean;
+begin
+  bState := tvRecords.Selected.Expanded;
+  for i := 0 to Pred(tvRecords.Items.Count) do
+    tvRecords.Items[i].Expanded :=not bState;
+end;
+
+procedure TSettingsManager.ShowHideSameLevelItemClick(Sender: TObject);
+begin
+  // ToDo
 end;
 
 procedure TSettingsManager.SelectSimilarNodesItemClick(Sender: TObject);
@@ -860,6 +930,15 @@ begin
   NewSettings := TList.Create;
   lvSettings.OwnerDraw := not settings.simpleDictionaryView;
   lvSettings.Items.Count := SmashSettings.Count;
+
+  // Create the StringList for the Search
+  slSearchResults := TStringList.Create;
+end;
+
+procedure TSettingsManager.FormDestroy(Sender: TObject);
+begin
+  // Free the Search StringList
+  slSearchResults.Free;
 end;
 
 procedure TSettingsManager.FormShow(Sender: TObject);

@@ -16,6 +16,7 @@ object SettingsManager: TSettingsManager
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -121,9 +122,9 @@ object SettingsManager: TSettingsManager
     end
     object tvRecords: TTreeView
       Left = 8
-      Top = 237
+      Top = 264
       Width = 354
-      Height = 306
+      Height = 279
       Margins.Left = 8
       Align = alCustom
       Anchors = [akLeft, akTop, akRight, akBottom]
@@ -136,6 +137,7 @@ object SettingsManager: TSettingsManager
       PopupMenu = TreePopupMenu
       ReadOnly = True
       ShowHint = True
+      SortType = stText
       StateImages = StateImages
       TabOrder = 0
       OnCollapsing = tvRecordsCollapsing
@@ -200,6 +202,17 @@ object SettingsManager: TSettingsManager
       Anchors = [akLeft, akTop, akRight, akBottom]
       TabOrder = 5
     end
+    object edSearch: TEdit
+      Left = 8
+      Top = 237
+      Width = 354
+      Height = 21
+      TabOrder = 6
+      Text = 'Search...'
+      OnChange = edSearchChange
+      OnClick = edSearchClick
+      OnKeyPress = edSearchKeyPress
+    end
   end
   object SettingsPopupMenu: TPopupMenu
     OnPopup = SettingsPopupMenuPopup
@@ -224,8 +237,8 @@ object SettingsManager: TSettingsManager
   end
   object TreePopupMenu: TPopupMenu
     OnPopup = TreePopupMenuPopup
-    Left = 704
-    Top = 256
+    Left = 696
+    Top = 280
     object AddItem: TMenuItem
       Caption = 'Add'
     end
@@ -236,6 +249,17 @@ object SettingsManager: TSettingsManager
     object AutosetItem: TMenuItem
       Caption = 'Autoset attributes'
       OnClick = AutosetItemClick
+    end
+    object ShowHideItem: TMenuItem
+      Caption = 'Show/Hide'
+      object ShowHideEverythingItem: TMenuItem
+        Caption = 'Everything'
+        OnClick = ShowHideEverythingItemClick
+      end
+      object ShowHideSameLevelItem: TMenuItem
+        Caption = 'Same level'
+        OnClick = ShowHideSameLevelItemClick
+      end
     end
     object SelectSimilarNodesItem: TMenuItem
       Caption = 'Select similar nodes'
@@ -259,8 +283,6 @@ object SettingsManager: TSettingsManager
     end
     object LinkNodeToItem: TMenuItem
       Caption = 'Link node to'
-      object TMenuItem
-      end
     end
     object UnlinkNodeItem: TMenuItem
       Caption = 'Unlink nodes'
@@ -278,10 +300,10 @@ object SettingsManager: TSettingsManager
   object StateImages: TImageList
     Height = 17
     Width = 17
-    Left = 784
-    Top = 256
+    Left = 776
+    Top = 280
     Bitmap = {
-      494C010104000800AC0011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010104000800B40011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000440000002200000001002000000000002024
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -590,10 +612,10 @@ object SettingsManager: TSettingsManager
       000000000000000000000000000000000000000000000000000000000000}
   end
   object FlagIcons: TImageList
-    Left = 856
-    Top = 256
+    Left = 840
+    Top = 280
     Bitmap = {
-      494C010103000800D40010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010103000800DC0010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000D7D7F8FF7373E6FF3434DBFF2121BEFF2121BEFF2D2DDAFF6B6BE4FFD2D2
