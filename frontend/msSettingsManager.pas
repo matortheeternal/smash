@@ -44,9 +44,7 @@ type
           AddItem: TMenuItem;
           BuildFromPluginsItem: TMenuItem;
           AutosetItem: TMenuItem;
-          ShowHideItem: TMenuItem;
-          ShowHideEverythingItem: TMenuItem;
-          ShowHideSameLevelItem: TMenuItem;
+    ShowHideEverythingItem: TMenuItem;
           SelectSimilarNodesItem: TMenuItem;
           ToggleNodesItem: TMenuItem;
           PreserveDeletionsItem: TMenuItem;
@@ -113,7 +111,6 @@ type
     procedure edNameChange(Sender: TObject);
     procedure CombineSettings(var sl: TStringList);
     procedure CombineSettingsItemClick(Sender: TObject);
-    procedure ShowHideSameLevelItemClick(Sender: TObject);
     procedure edSearchClick(Sender: TObject);
     procedure edSearchKeyPress(Sender: TObject; var Key: Char);
     procedure edSearchChange(Sender: TObject);
@@ -167,21 +164,13 @@ begin
     for i := 0 to Pred(tvRecords.Items.Count) do begin
       node := tvRecords.Items[i];
         if (Pos(edSearch.Text, node.Text) > 0) then
+        tvRecords.Select(node, [ssCtrl]);
           slSearchResults.AddObject(node.Text,TObject(node));
         end;
     bSearchActive := True;
-    i := -1;
   end
   else begin
-    if slSearchResults.Count > 0 then begin
-      i := i + 1;
-        if not i >= slSearchResults.Count then begin
-          TTreeNode(slSearchResults.Objects[i]).Focused := True;
-          tvRecords.SetFocus;
-        end;
-    end
-  else
-    i := 0;
+    // ToDo
   end;
 end;
 
@@ -545,11 +534,6 @@ begin
   bState := tvRecords.Selected.Expanded;
   for i := 0 to Pred(tvRecords.Items.Count) do
     tvRecords.Items[i].Expanded :=not bState;
-end;
-
-procedure TSettingsManager.ShowHideSameLevelItemClick(Sender: TObject);
-begin
-  // ToDo
 end;
 
 procedure TSettingsManager.SelectSimilarNodesItemClick(Sender: TObject);

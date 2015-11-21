@@ -250,16 +250,9 @@ object SettingsManager: TSettingsManager
       Caption = 'Autoset attributes'
       OnClick = AutosetItemClick
     end
-    object ShowHideItem: TMenuItem
-      Caption = 'Show/Hide'
-      object ShowHideEverythingItem: TMenuItem
-        Caption = 'Everything'
-        OnClick = ShowHideEverythingItemClick
-      end
-      object ShowHideSameLevelItem: TMenuItem
-        Caption = 'Same level'
-        OnClick = ShowHideSameLevelItemClick
-      end
+    object ShowHideEverythingItem: TMenuItem
+      Caption = 'Show/Hide everything'
+      OnClick = ShowHideEverythingItemClick
     end
     object SelectSimilarNodesItem: TMenuItem
       Caption = 'Select similar nodes'
@@ -303,7 +296,7 @@ object SettingsManager: TSettingsManager
     Left = 776
     Top = 280
     Bitmap = {
-      494C010104000800B40011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010104000800BC0011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000440000002200000001002000000000002024
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -615,7 +608,7 @@ object SettingsManager: TSettingsManager
     Left = 840
     Top = 280
     Bitmap = {
-      494C010103000800DC0010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010103000800E40010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000D7D7F8FF7373E6FF3434DBFF2121BEFF2121BEFF2D2DDAFF6B6BE4FFD2D2
