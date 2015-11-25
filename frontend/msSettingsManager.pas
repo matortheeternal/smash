@@ -5,7 +5,7 @@ interface
 uses
   Windows, Types, Messages, SysUtils, Variants, Classes, Graphics, Controls,
   Forms, Dialogs, StdCtrls, ExtCtrls, ComCtrls, Grids, ValEdit, CommCtrl, Menus,
-  ImgList,
+  ImgList, StrUtils,
   // superobject
   superobject,
   // mte units
@@ -44,7 +44,7 @@ type
           AddItem: TMenuItem;
           BuildFromPluginsItem: TMenuItem;
           AutosetItem: TMenuItem;
-    ShowHideEverythingItem: TMenuItem;
+          ShowHideEverythingItem: TMenuItem;
           SelectSimilarNodesItem: TMenuItem;
           ToggleNodesItem: TMenuItem;
           PreserveDeletionsItem: TMenuItem;
@@ -114,6 +114,7 @@ type
     procedure edSearchClick(Sender: TObject);
     procedure edSearchKeyPress(Sender: TObject; var Key: Char);
     procedure edSearchChange(Sender: TObject);
+    procedure NextSearchResult();
   private
     { Private declarations }
     lastHint: string;
@@ -133,6 +134,7 @@ var
   currentSetting: TSmashSetting;
   pForm: TProgressForm;
   LastCollapseTime: TDateTime;
+  SearchIndex: Integer = -1;
 
 implementation
 
@@ -141,11 +143,13 @@ implementation
 { Tree methods }
 procedure TSettingsManager.edSearchChange(Sender: TObject);
 begin
+  // On search-field change set bSearchActive to false
   bSearchActive := False;
 end;
 
 procedure TSettingsManager.edSearchClick(Sender: TObject);
 begin
+  // Changes default text in search-field on first click
   if edSearch.Text = 'Search...' then
     edSearch.Text := '';
 end;
@@ -155,23 +159,40 @@ var
   i: Integer;
   node: TTreeNode;
 begin
+  // Exit if no records are available
   if tvRecords.Items.Count = 0 then
     exit;
+  // Exit function if input is not "Enter"
   if Key <> #13 then
     exit;
+  // Do a search when bSearchActive is false
   if not bSearchActive then begin
+    // Clear old results
     slSearchResults.Clear;
     for i := 0 to Pred(tvRecords.Items.Count) do begin
       node := tvRecords.Items[i];
-        if (Pos(edSearch.Text, node.Text) > 0) then
-        tvRecords.Select(node, [ssCtrl]);
+        // Check if search-string is contained in node-text
+        if ContainsText(node.Text, edSearch.Text) then
           slSearchResults.AddObject(node.Text,TObject(node));
         end;
     bSearchActive := True;
+    // Show result
+    NextSearchResult;
   end
-  else begin
-    // ToDo
+end;
+
+procedure TSettingsManager.NextSearchResult();
+var
+  node: TTreeNode;
+begin
+  Searchindex := Searchindex + 1;
+  if Searchindex > Pred(slSearchResults.Count) then begin
+    Searchindex := 0;
   end;
+  node := TTreeNode(slSearchResults.Objects[Searchindex]);
+  tvRecords.SetFocus;
+  node.Selected := true;
+  node.Focused := true;
 end;
 
 procedure TSettingsManager.DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
@@ -228,6 +249,10 @@ begin
       CheckboxManager(tvRecords.Selections[i]);
     // repaint tree view in case a single entity flag was unset
     tvRecords.Repaint;
+  end;
+  // If "Enter" pressed, show next result
+  if (Key = VK_RETURN) then begin
+    NextSearchResult;
   end;
 end;
 
@@ -531,8 +556,10 @@ var
   i: Integer;
   bState: Boolean;
 begin
-  bState := tvRecords.Selected.Expanded;
+  // Get expanded state of root node
+  bState := tvRecords.Items[0].Expanded;
   for i := 0 to Pred(tvRecords.Items.Count) do
+    // Apply inverted state to all nodes
     tvRecords.Items[i].Expanded :=not bState;
 end;
 
