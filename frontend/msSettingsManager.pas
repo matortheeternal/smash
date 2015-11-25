@@ -579,9 +579,8 @@ end;
 
 procedure TSettingsManager.Autoset(parentNode: TTreeNode);
 const
-  disabledElements: array[0..3] of string = (
+  disabledElements: array[0..2] of string = (
     'Record Header',
-    'Count',
     'Unused',
     'Unknown'
   );
@@ -594,7 +593,7 @@ const
   );
 var
   i: Integer;
-  node: TTreeNode;
+  node, nextNode: TTreeNode;
   e: TElementData;
   bParentIsRoot, bParentIsRecord: boolean;
 begin
@@ -645,6 +644,15 @@ begin
         if Pos(disabledRecords[i], node.Text) = 1 then begin
           node.StateIndex := csUnChecked;
         end;
+    end;
+
+    // disable count elements
+    if bParentIsRecord then begin
+      nextNode := node.getNextSibling;
+      if Assigned(nextNode)
+      and (TElementData(nextNode.Data).smashType in stArrays)
+      and (Pos('Count', node.Text) > 0) then
+        node.StateIndex := csUnChecked;
     end;
     
     // recurse
