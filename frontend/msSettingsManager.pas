@@ -584,11 +584,12 @@ const
     'Unused',
     'Unknown'
   );
-  disabledRecords: array[0..4] of string = (
+  disabledRecords: array[0..5] of string = (
+    'DOBJ',
+    'LCTN',
+    'IDLE',
     'NAVM',
     'NAVI',
-    'LCTN',
-    'DOBJ',
     'RACE'
   );
 var
