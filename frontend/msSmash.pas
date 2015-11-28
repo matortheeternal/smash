@@ -188,6 +188,32 @@ begin
   end;
 end;
 
+procedure UpdateCounts(var rec: IwbMainRecord);
+var
+  container, arrayContainer: IwbContainerElementRef;
+  i: Integer;
+  element, nextElement: IwbElement;
+begin
+  // loop through children
+  if not Supports(rec, IwbContainerElementRef, container) then
+    exit;
+
+  // loop through top-level elements
+  for i := 0 to container.ElementCount - 2 do begin
+    element := container.Elements[i];
+    nextElement := container.Elements[i + 1];
+    if not Supports(nextElement, IwbContainerElementRef, arrayContainer) then
+      continue;
+
+    // if next element is an array element and current element has the
+    // word count in its name update the count to be the number of elements
+    // in the array
+    if (GetSmashType(nextElement) in stArrays)
+    and (Pos('Count', element.Name) > 0) then
+      element.NativeValue := arrayContainer.ElementCount;
+  end;
+end;
+
 procedure SmashRecords(var patch: TPatch; var records: TInterfaceList);
 var
   i, j: Integer;
@@ -257,6 +283,9 @@ begin
         on x: Exception do
           Tracker.Write('      Exception smashing record: '+ovr.Name+' : '+x.Message);
       end;
+
+      // update any count elements on the record
+      UpdateCounts(patchRec);
     end;
   end;
 end;
