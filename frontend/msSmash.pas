@@ -194,7 +194,11 @@ var
   i: Integer;
   element, nextElement: IwbElement;
 begin
-  // loop through children
+  // if reocrd is not editable, exit
+  if not rec.IsEditable then
+    exit;
+
+  // if record can't be treated as a container, exit
   if not Supports(rec, IwbContainerElementRef, container) then
     exit;
 
@@ -209,8 +213,12 @@ begin
     // word count in its name update the count to be the number of elements
     // in the array
     if (GetSmashType(nextElement) in stArrays)
-    and (Pos('Count', element.Name) > 0) then
+    and (Pos('Count', element.Name) > 0) then try
       element.NativeValue := arrayContainer.ElementCount;
+    except
+      on x: Exception do
+        Tracker.Write('    Exception updating count at '+element.Path);
+    end;
   end;
 end;
 
