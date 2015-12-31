@@ -189,7 +189,7 @@ function MergeArray(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
   obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 var
   i, s_ndx, m_ndx, d_ndx: integer;
-  se: IwbElement;
+  se, de: IwbElement;
   slMst, slDst, slSrc: TStringList;
   srcCont, dstCont, mstCont, seCont: IwbContainerElementRef;
   bSorted: boolean;
@@ -255,8 +255,11 @@ begin
         // add element to destination
         if settings.debugArrays then
           Tracker.Write('        > Adding element at '+dst.Path+' with values: '+slSrc[i]);
-        dstCont.Assign(dstCont.ElementCount, se, false);
-        slDst.Add(slSrc[i]);
+        de := dstCont.Assign(dstCont.ElementCount, se, false);
+        if bSorted then
+          slDst.Insert(dstCont.IndexOf(de), slSrc[i])
+        else
+          slDst.Add(slSrc[i]);
       end
 
       // Special handling for sorted arrays
