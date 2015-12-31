@@ -20,6 +20,9 @@ var
 implementation
 {$WARNINGS OFF}
 
+uses
+  SysUtils;
+
 procedure BuildCRCTable;
 var
   i, j: Word;
@@ -85,12 +88,13 @@ end;
 
 function StrCRC32(input: string): string;
 var
-  B: array of Byte absolute input;
+  B: TArray<Byte>;
   CRC: Longint;
   i: Integer;
 begin
   BuildCRCTable;
   CRC := $FFFFFFFF;
+  B := TEncoding.UTF8.GetBytes(input);
   for i := 0 to Pred(Length(B)) do
     CRC := RecountCRC(B[i], CRC);
   CRC := Not CRC;
