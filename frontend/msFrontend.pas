@@ -3793,13 +3793,13 @@ constructor TmsStatus.Create;
 begin
   ProgramVersion := GetVersionMem;
   if FileExists('TES5Dictionary.txt') then
-    TES5Hash := GetCRC32('TES5Dictionary.txt');
+    TES5Hash := FileCRC32('TES5Dictionary.txt');
   if FileExists('TES4Dictionary.txt') then
-    TES4Hash := GetCRC32('TES4Dictionary.txt');
+    TES4Hash := FileCRC32('TES4Dictionary.txt');
   if FileExists('FNVDictionary.txt') then
-    FNVHash := GetCRC32('FNVDictionary.txt');
+    FNVHash := FileCRC32('FNVDictionary.txt');
   if FileExists('FO3Dictionary.txt') then
-    FO3Hash := GetCRC32('FO3Dictionary.txt');
+    FO3Hash := FileCRC32('FO3Dictionary.txt');
 
   // log messages
   Logger.Write('GENERAL', 'Status', 'ProgramVersion: '+ProgramVersion);
@@ -4312,6 +4312,7 @@ procedure TSmashSetting.Save;
 var
   path: string;
 begin
+  hash := StrCRC32(tree.AsJSon);
   path := Format('%s\settings\%s.json', [ProgramPath, name]);
   ForceDirectories(ExtractFilePath(path));
   Dump.SaveTo(path);

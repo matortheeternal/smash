@@ -8,7 +8,8 @@ type
   end;
 
   // exported functions
-  function GetCRC32(FileName: string): string;
+  function FileCRC32(FileName: string): string;
+  function StrCRC32(input: string): string;
 
 const
   CRCPOLY = $EDB88320;
@@ -56,11 +57,11 @@ begin
     HextL := HextW(HiWord) + HextW(LoWord);
 end;
 
-function GetCRC32(FileName: string): string;
+function FileCRC32(FileName: string): string;
 var
   Buffer: PChar;
-  f: File of Byte;
-  b: array[0..255] of Byte;
+  F: File of Byte;
+  B: array[0..255] of Byte;
   CRC: Longint;
   e, i: Integer;
 begin
@@ -71,13 +72,27 @@ begin
   Reset(F);
   GetMem(Buffer, SizeOf(B));
   repeat
-    FillChar(b, SizeOf(b), 0);
-    BlockRead(F, b, SizeOf(b), e);
+    FillChar(B, SizeOf(B), 0);
+    BlockRead(F, B, SizeOf(B), e);
     for i := 0 to (e-1) do
-     CRC := RecountCRC(b[i], CRC);
+      CRC := RecountCRC(b[i], CRC);
   until (e < 255) or (IOresult <> 0);
   FreeMem(Buffer, SizeOf(B));
   CloseFile(F);
+  CRC := Not CRC;
+  Result := '$' + HextL(CRC);
+end;
+
+function StrCRC32(input: string): string;
+var
+  B: array of Byte absolute input;
+  CRC: Longint;
+  i: Integer;
+begin
+  BuildCRCTable;
+  CRC := $FFFFFFFF;
+  for i := 0 to Pred(Length(B)) do
+    CRC := RecountCRC(B[i], CRC);
   CRC := Not CRC;
   Result := '$' + HextL(CRC);
 end;
