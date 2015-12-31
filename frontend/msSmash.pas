@@ -390,7 +390,12 @@ begin
       // remove ITPO and empty containers
       container := e.Container;
       e.Remove;
-      RemoveEmptyContainers(container);
+      try
+        RemoveEmptyContainers(container);
+      except
+        on x: Exception do
+          Tracker.Write('      Exception removing empty containers: '+x.Message);
+      end;
 
       // increment our ITPO counter
       Inc(CountITPO);
