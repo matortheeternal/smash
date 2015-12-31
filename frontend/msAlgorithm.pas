@@ -59,16 +59,20 @@ end;
   destination patch record @dstRec.
 }
 function HandleElementLife(srcCont, dstCont, mstCont: IwbContainerElementRef;
-  dstRec: IwbMainRecord; bSingle, bDeletions: boolean): boolean;
+  dstRec: IwbMainRecord; obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
 var
   i: Integer;
   element: IwbElement;
+  eObj: ISuperObject;
+  process: boolean;
 begin
   Result := false;
 
   // handle element creation
   for i := 0 to Pred(srcCont.ElementCount) do begin
     element := srcCont.Elements[i];
+
+
     // if the element isn't in the destination record
     // and wasn't in the master record, copy it to the destination
     // if it isn't in the destination but is in the master it means
@@ -78,7 +82,20 @@ begin
       Result := true;
       if bSingle then 
         exit;
+
+      // skip according to setting
+      eObj := GetElementObj(obj, element.Name);
+      process := Assigned(eObj) and (eObj.I['p'] = 1);
+      if not process then begin
+        if settings.debugSkips then
+          Tracker.Write('      Skipping element creation at '+element.Path);
+        continue;
+      end;
+
+      // copy element
       try
+        if settings.debugChanges then
+          Tracker.Write('      Created element at '+element.Path);
         wbCopyElementToRecord(element, dstRec, false, true);
       except
         on x: Exception do
@@ -96,6 +113,19 @@ begin
         Result := true;
         if bSingle then
           exit;
+
+        // skip according to setting
+        eObj := GetElementObj(obj, element.Name);
+        process := Assigned(eObj) and (eObj.I['p'] = 1);
+        if not process then begin
+          if settings.debugSkips then
+            Tracker.Write('      Skipping element deletion at '+element.Path);
+          continue;
+        end;
+
+        // remove element
+        if settings.debugChanges then
+          Tracker.Write('      Deleted element at '+element.Path);
         dstCont.RemoveElement(element);
       end;
     end;
@@ -383,13 +413,14 @@ begin
   bCanAdd := se.CanAssign(High(Integer), nil, True)
     and not (esNotSuitableToAddTo in se.ElementStates);
 
-  // exit if srcType <> dstType
+  // exit if srcType <> dstType, returning true
   if srcType <> dstType then begin
     if settings.debugSkips then begin
       Tracker.Write('      Source and destination types don''t match');
       Tracker.Write('      '+stToString(srcType)+' != '+stToString(dstType));
       Tracker.Write('      Skipping '+se.Path);
     end;
+    Result := True;
     exit;
   end;
 
@@ -468,18 +499,36 @@ begin
   Result := false;
 
   // prepare containers
-  if not Supports(src, IwbContainerElementRef, srcCont) then
+  if not Supports(src, IwbContainerElementRef, srcCont) then begin
+    if settings.debugSkips then begin
+      Tracker.Write('      Source element not a container.');
+      Tracker.Write('      Skipping '+src.Path);
+    end;
     exit;
-  if not Supports(dst, IwbContainerElementRef, dstCont) then
+  end;
+  if not Supports(dst, IwbContainerElementRef, dstCont) then begin
+    if settings.debugSkips then begin
+      Tracker.Write('      Destination element not a container.');
+      Tracker.Write('      Skipping '+src.Path);
+    end;
     exit;
-  if not Supports(mst, IwbContainerElementRef, mstCont) then
+  end;
+  if not Supports(mst, IwbContainerElementRef, mstCont) then begin
+    if settings.debugSkips then begin
+      Tracker.Write('      Master element not a container.');
+      Tracker.Write('      Skipping '+src.Path);
+    end;
     exit;
+  end;
 
   // copy elements from source to destination if missing AND
   // delete elements missing from source if found in master and destination
-  Result := HandleElementLife(srcCont, dstCont, mstCont, dstRec, bSingle, bDeletions);
-  if bSingle and Result then
+  Result := HandleElementLife(srcCont, dstCont, mstCont, dstRec, obj, bSingle, bDeletions);
+  if bSingle and Result then begin
+    if settings.debugSingle then
+      Tracker.Write('      Single entity change found at '+src.Path);
     exit;
+  end;
 
   // loop through subelements
   for i := 0 to Pred(srcCont.ElementCount) do begin
