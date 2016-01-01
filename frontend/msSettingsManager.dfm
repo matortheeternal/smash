@@ -92,7 +92,7 @@ object SettingsManager: TSettingsManager
     end
     object lblDescription: TLabel
       Left = 8
-      Top = 60
+      Top = 93
       Width = 53
       Height = 13
       Margins.Left = 8
@@ -111,13 +111,23 @@ object SettingsManager: TSettingsManager
     end
     object lblColor: TLabel
       Left = 8
-      Top = 36
+      Top = 39
       Width = 25
       Height = 13
       Margins.Left = 8
       Margins.Top = 8
       Align = alCustom
       Caption = 'Color'
+    end
+    object lblHash: TLabel
+      Left = 8
+      Top = 63
+      Width = 24
+      Height = 13
+      Margins.Left = 8
+      Margins.Top = 8
+      Align = alCustom
+      Caption = 'Hash'
     end
     object tvRecords: TTreeView
       Left = 8
@@ -159,9 +169,9 @@ object SettingsManager: TSettingsManager
     end
     object meDescription: TMemo
       Left = 8
-      Top = 79
+      Top = 112
       Width = 354
-      Height = 133
+      Height = 100
       Margins.Left = 8
       Margins.Right = 8
       Align = alCustom
@@ -199,6 +209,21 @@ object SettingsManager: TSettingsManager
       Align = alCustom
       Anchors = [akLeft, akTop, akRight, akBottom]
       TabOrder = 5
+    end
+    object edHash: TEdit
+      Left = 152
+      Top = 63
+      Width = 210
+      Height = 21
+      Margins.Left = 8
+      Margins.Right = 8
+      Align = alCustom
+      Anchors = [akLeft, akTop, akRight]
+      Enabled = False
+      ReadOnly = True
+      TabOrder = 6
+      Text = '$00000000'
+      OnChange = edNameChange
     end
   end
   object SettingsPopupMenu: TPopupMenu
@@ -281,7 +306,7 @@ object SettingsManager: TSettingsManager
     Left = 784
     Top = 256
     Bitmap = {
-      494C010104000800BC0011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010104000800C00011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000440000002200000001002000000000002024
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -593,7 +618,7 @@ object SettingsManager: TSettingsManager
     Left = 856
     Top = 256
     Bitmap = {
-      494C010103000800E40010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010103000800E80010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000D7D7F8FF7373E6FF3434DBFF2121BEFF2121BEFF2D2DDAFF6B6BE4FFD2D2

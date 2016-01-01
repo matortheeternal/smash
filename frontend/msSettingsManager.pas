@@ -32,6 +32,8 @@ type
         edName: TEdit;
         lblColor: TLabel;
         cbColor: TColorBox;
+        lblHash: TLabel;
+        edHash: TEdit;
         lblDescription: TLabel;
         meDescription: TMemo;
         btnSave: TButton;
@@ -887,7 +889,7 @@ begin
   lvSettings.Width := lvSettings.Width + 1;
 end;
 
-// update meNotes when user changes entry
+// update setting data whenever user changes their selection
 procedure TSettingsManager.lvSettingsChange(Sender: TObject; Item: TListItem;
   Change: TItemChange);
 begin
@@ -898,6 +900,7 @@ begin
     edName.Enabled := false;
     cbColor.Selected := clBlack;
     cbColor.Enabled := false;
+    edHash.Text := '$00000000';
     meDescription.Text := '';
     meDescription.Enabled := false;
     tvRecords.Enabled := false;
@@ -915,6 +918,7 @@ begin
   btnDiscard.Enabled := true;
   currentSetting := TSmashSetting(SmashSettings[lvSettings.ItemIndex]);
   edName.Text := currentSetting.name;
+  edHash.Text := currentSetting.hash;
   cbColor.Selected := TColor(currentSetting.color);
   meDescription.Lines.Text := currentSetting.description;
 
@@ -951,6 +955,9 @@ begin
 
   // save the setting to disk
   currentSetting.Save;
+
+  // update edHash
+  edHash.Text := currentSetting.hash;
 
   // repaint list view
   lvSettings.Repaint;

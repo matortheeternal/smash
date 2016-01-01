@@ -223,6 +223,7 @@ begin
     // LOAD PLUGIN INFORMATION
     Tracker.Write('Loading plugin information');
     LoadPluginInfo;
+    LoadSettingTags;
 
     // CLEAN UP
     sl.Free;

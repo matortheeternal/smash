@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, SysUtils, Classes, IniFiles, Dialogs, Registry, Graphics, ShlObj,
-  Menus, Forms, ShellAPI, ComCtrls,
+  Menus, Forms, ShellAPI, ComCtrls, RegularExpressions,
   // indy components
   IdTCPClient, IdStack, IdGlobal,
   // superobject json library
@@ -89,6 +89,7 @@ type
     procedure Save;
     procedure Delete;
     procedure Rename(newName: string);
+    function MatchesHash(hash: string): boolean;
   end;
   TRecommendation = class(TObject)
   public
@@ -143,6 +144,8 @@ type
     function IsInPatch: boolean;
     procedure LoadInfoDump(obj: ISuperObject);
     function InfoDump: ISuperObject;
+    procedure SetSmashSetting(name: string; hash: string = '');
+    procedure GetSettingTag;
   end;
   TPatch = class(TObject)
   public
@@ -333,6 +336,7 @@ type
   procedure LoadSmashSettings;
   procedure SavePluginInfo;
   procedure LoadPluginInfo;
+  procedure LoadSettingTags;
   procedure SaveReports(var lst: TList; path: string);
   function ReportExistsFor(var plugin: TPlugin): boolean;
   procedure LoadReport(var report: TRecommendation); overload;
@@ -1919,6 +1923,8 @@ begin
   LabelFilters.Add(TFilter.Create('MERGE', 'Report', true));
   LabelFilters.Add(TFilter.Create('PLUGIN', 'Report', true));
   LabelFilters.Add(TFilter.Create('PLUGIN', 'Check', true));
+  LabelFilters.Add(TFilter.Create('PLUGIN', 'Tags', false));
+  LabelFilters.Add(TFilter.Create('PLUGIN', 'Settings', true));
 end;
 
 procedure RebuildLog;
@@ -2485,6 +2491,20 @@ begin
   // finalize
   obj := nil;
   sl.Free;
+end;
+
+procedure LoadSettingTags;
+var
+  i: Integer;
+  plugin: TPlugin;
+begin
+  // loop through loaded plugins
+  for i := 0 to Pred(PluginsList.Count) do begin
+    plugin := TPlugin(PluginsList[i]);
+    if plugin.setting <> '' then
+      continue;
+    plugin.GetSettingTag;
+  end;
 end;
 
 procedure SaveReports(var lst: TList; path: string);
@@ -3843,7 +3863,7 @@ constructor TPlugin.Create;
 begin
   hasData := false;
   patch := ' ';
-  setting := 'Skip';
+  setting := '';
   smashSetting := SettingByName(setting);
   description := TStringList.Create;
   masters := TStringList.Create;
@@ -3944,11 +3964,55 @@ end;
 
 procedure TPlugin.LoadInfoDump(obj: ISuperObject);
 begin
-  setting := obj.AsObject.S['setting'];
+  SetSmashSetting(obj.AsObject.S['setting']);
+end;
+
+procedure TPlugin.SetSmashSetting(name: string; hash: string = '');
+begin
+  setting := name;
   smashSetting := SettingByName(setting);
-  if not Assigned(smashSetting) then begin
+  if not (Assigned(smashSetting) and smashSetting.MatchesHash(hash)) then begin
+    Logger.Write('PLUGIN', 'Settings', 'No setting found matching '+name);
     setting := 'Skip';
     smashSetting := SettingByName(setting);
+  end
+  else
+    Logger.Write('PLUGIN', 'Settings', 'Applied setting '+name);
+end;
+
+procedure TPlugin.GetSettingTag;
+var
+  regex: TRegEx;
+  match: TMatch;
+  sl: TStringList;
+begin
+  // get setting tags from description
+  regex := TRegEx.Create('{{([^}]*)}}');
+  match := regex.Match(description.Text);
+
+  // set to skip setting if no setting tag is found
+  if not match.Success then begin
+    Logger.Write('PLUGIN', 'Tags', 'No tags found for '+filename);
+    setting := 'Skip';
+    smashSetting := SettingByName(setting);
+  end
+  // else try to use the specified setting
+  else begin
+    Logger.Write('PLUGIN', 'Tags', 'Found tag '+match.Value+' for '+filename);
+
+    // does the tag have a hash?
+    if Pos('|', match.Groups.Item[1].Value) > 0 then begin
+      // split match on |
+      sl := TStringList.Create;
+      sl.Delimiter := '|';
+      sl.StrictDelimiter := true;
+      sl.DelimitedText := match.Groups.Item[0].Value;
+
+      // set setting to record
+      SetSmashSetting(sl[0], sl[1]);
+    end
+    else
+      SetSmashSetting(match.Groups.Item[1].Value);
   end;
 end;
 
@@ -4336,6 +4400,19 @@ begin
   if FileExists(oldpath) then
     RenameFile(oldpath, newpath);
   name := newName;
+end;
+
+function TSmashSetting.MatchesHash(hash: string): boolean;
+begin
+  // result is true if hash is blank
+  if hash = '' then begin
+    Result := true;
+    exit;
+  end;
+
+  // else result is true if the input hash matches setting's hash
+  // starting at the first hexadecimal digit
+  Result := Pos(hash, self.hash) = 2;
 end;
 
 { TSettings constructor }
