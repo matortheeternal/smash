@@ -339,7 +339,7 @@ begin
 
   // exit if record is not ITM or ITPO
   ct := ConflictThisForMainRecord(rec);
-  if (ct in NoConflictArray) then
+  if not (ct in NoConflictArray) then
     exit;
 
   // else remove MainRecord and recurse
