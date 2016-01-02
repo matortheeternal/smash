@@ -527,7 +527,7 @@ begin
 
     // show progress form
     pForm := TProgressForm.Create(Self);
-    pForm.LogPath := LogPath;
+    pForm.LogPath := LogPath + 'main\';
     pForm.PopupParent := Self;
     pForm.Caption := GetString('msProg_Closing');
     pForm.SetMaxProgress(PluginsList.Count + PatchesList.Count + 2);
@@ -1243,7 +1243,7 @@ begin
   EditPatch.patch := patch;
   if EditPatch.ShowModal = mrOk then begin
     patch := EditPatch.patch;
-    LogMessage('MERGE', 'New', 'Created new patch '+patch.name);
+    LogMessage('PATCH', 'New', 'Created new patch '+patch.name);
     // add patch to list and update views
     PatchesList.Add(patch);
     UpdatePatches;
@@ -1332,7 +1332,7 @@ begin
     LogListView.Canvas.Font.Color := settings.loadMessageColor
   else if (msg.group = 'CLIENT') then
     LogListView.Canvas.Font.Color := settings.clientMessageColor
-  else if (msg.group = 'MERGE') then
+  else if (msg.group = 'PATCH') then
     LogListView.Canvas.Font.Color := settings.patchMessageColor
   else if (msg.group = 'PLUGIN') then
     LogListView.Canvas.Font.Color := settings.pluginMessageColor
@@ -1517,7 +1517,7 @@ var
   bNeverBuilt, bHasBuildStatus, bHasUpToDateStatus, bHasSelection,
   bIsNotTop, bIsNotBottom: boolean;
   patch: TPatch;
-  i, mergesSelected: Integer;
+  i, patchesSelected: Integer;
   sBuild, sRebuild: string;
 begin
   bNeverBuilt := false;
@@ -1525,14 +1525,14 @@ begin
   bHasUpToDateStatus := false;
   bIsNotTop := true;
   bIsNotBottom := true;
-  mergesSelected := 0;
+  patchesSelected := 0;
 
   // loop through list view to find selection
   for i := 0 to Pred(PatchesListView.Items.Count) do begin
     if not PatchesListView.Items[i].Selected then
       continue;
     patch := TPatch(PatchesList[i]);
-    Inc(mergesSelected);
+    Inc(patchesSelected);
     // update booleans
     if i = 0 then bIsNotTop := false;
     if i = Pred(PatchesList.Count) then bIsNotBottom := false;
@@ -1541,7 +1541,7 @@ begin
     bHasUpToDateStatus := bHasUpToDateStatus or (patch.status in UpToDateStatuses);
   end;
 
-  bHasSelection := (mergesSelected > 0);
+  bHasSelection := (patchesSelected > 0);
   // change enabled state of MergesPopupMenu items based on booleans
   EditPatchItem.Enabled := bHasSelection;
   DeletePatchItem.Enabled := bHasSelection;
@@ -1556,8 +1556,8 @@ begin
   ToTopItem.Enabled := bHasSelection and bIsNotTop;
   ToBottomItem.Enabled := bHasSelection and bIsNotBottom;
 
-  // one or multiple merges?
-  if (mergesSelected = 1) then begin
+  // one or multiple patchs?
+  if (patchesSelected = 1) then begin
     sBuild := 'msMain_BuildPatch';
     sRebuild := 'msMain_RebuildPatch';
   end
@@ -1565,7 +1565,7 @@ begin
     sBuild := 'msMain_BuildPatches';
     sRebuild := 'msMain_RebuildPatches';
   end;
-  // handle build merges menu item
+  // handle build patchs menu item
   if bNeverBuilt then
     BuildPatchItem.Caption := GetString(sBuild)
   else if bHasBuildStatus then
@@ -1588,7 +1588,7 @@ begin
     if not PatchesListView.Items[i].Selected then
       continue;
     patch := TPatch(PatchesList[i]);
-    Logger.Write('MERGE', 'Edit', 'Editing '+patch.name);
+    Logger.Write('PATCH', 'Edit', 'Editing '+patch.name);
     // create EditForm
     EditPatch := TEditForm.Create(Self);
     EditPatch.patch := patch;
@@ -1749,12 +1749,12 @@ begin
     if not PatchesListView.Items[i].Selected then
       continue;
     patch := TPatch(PatchesList[i]);
-    Logger.Write('MERGE', 'Plugins', 'Removing plugins from '+patch.name);
+    Logger.Write('PATCH', 'Plugins', 'Removing plugins from '+patch.name);
     // remove plugins that aren't loaded or have errors
     for j := Pred(patch.plugins.Count) downto 0 do begin
       plugin := PluginByFilename(patch.plugins[j]);
       if not Assigned(plugin) then begin
-        Logger.Write('MERGE', 'Plugins', 'Removing '+patch.plugins[j]+', plugin not loaded');
+        Logger.Write('PATCH', 'Plugins', 'Removing '+patch.plugins[j]+', plugin not loaded');
         patch.plugins.Delete(j);
         continue;
       end;
@@ -1802,7 +1802,7 @@ begin
   // loop through patches
   for i := Pred(patchesToDelete.Count) downto 0 do begin
     patch := TPatch(patchesToDelete[i]);
-    Logger.Write('MERGE', 'Delete', 'Deleting patch '+patch.name);
+    Logger.Write('PATCH', 'Delete', 'Deleting patch '+patch.name);
     PatchesListView.Items.Count := PatchesListView.Items.Count - 1;
 
     // remove patch from plugin patch properties
@@ -1842,7 +1842,7 @@ begin
       continue;
 
     // else calculate time cost and build patch
-    Logger.Write('MERGE', 'Build', 'Building '+patch.name);
+    Logger.Write('PATCH', 'Build', 'Building '+patch.name);
     timeCost := patch.GetTimeCost * 2;
     timeCosts.Add(IntToStr(timeCost));
     patchesToBuild.Add(patch);
@@ -1857,9 +1857,9 @@ begin
 
   // Show progress form
   self.Enabled := false;
-  xEditLogGroup := 'MERGE';
+  xEditLogGroup := 'PATCH';
   pForm := TProgressForm.Create(Self);
-  pForm.LogPath := LogPath;
+  pForm.LogPath := LogPath + 'patch\';
   pForm.PopupParent := Self;
   pForm.Caption := GetString('msProg_Smashing');
   pForm.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
@@ -1899,7 +1899,7 @@ begin
     if not PatchesListView.Items[i].Selected then
       continue;
     patch := TPatch(PatchesList[i]);
-    Logger.Write('MERGE', 'Status', 'Toggled rebuild status on '+patch.name);
+    Logger.Write('PATCH', 'Status', 'Toggled rebuild status on '+patch.name);
     // if forced up to date, set to Ready to be rebuilt
     if patch.status = psUpToDateForced then
       patch.status := psRebuildReady
@@ -2040,7 +2040,7 @@ begin
   patchesToBuild := TList.Create;
   for i := 0 to Pred(PatchesList.Count) do begin
     patch := TPatch(PatchesList[i]);
-    Logger.Write('MERGE', 'Build', 'Building '+patch.name);
+    Logger.Write('PATCH', 'Build', 'Building '+patch.name);
     if not (patch.status in BuildStatuses) then
       continue;
     timeCost := patch.GetTimeCost;
@@ -2058,9 +2058,9 @@ begin
 
   // make and show progress form
   self.Enabled := false;
-  xEditLogGroup := 'MERGE';
+  xEditLogGroup := 'PATCH';
   pForm := TProgressForm.Create(Self);
-  pForm.LogPath := LogPath;
+  pForm.LogPath := LogPath + 'patch\';
   pForm.bDetailsVisible := false;
   pForm.PopupParent := Self;
   pForm.Caption := GetString('msProg_Smashing');
