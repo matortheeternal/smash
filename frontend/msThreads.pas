@@ -340,7 +340,12 @@ begin
   // save ESPs only if it's safe to do so
   if not bInitException then begin
     // Save plugin errors
-    SavePluginInfo;
+    try
+      SavePluginInfo;
+    except
+      on x: Exception do
+        Tracker.Write('Exception saving plugin errors '+x.Message);
+    end;
     Tracker.SetProgress(PluginsList.Count + 1);
     Tracker.Write(' ');
     // save patches

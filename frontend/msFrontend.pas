@@ -2450,7 +2450,7 @@ begin
 
   // loop through plugins
   Tracker.Write('Dumping plugin errors to JSON');
-  for i := 0 to Pred(PluginsList.Count) do begin
+  for i := 0 to Pred(PluginsList.Count) do try
     plugin := PluginsList[i];
     Tracker.UpdateProgress(1);
     if plugin.smashSetting.bVirtual or (plugin.setting = 'Skip') then
@@ -2461,6 +2461,9 @@ begin
       obj.A['plugins'].Add(plugin.InfoDump)
     else
       obj.A['plugins'].O[index] := plugin.InfoDump;
+  except
+    on x: Exception do
+      Tracker.Write('  Exception '+x.Message);
   end;
 
   // save and finalize
