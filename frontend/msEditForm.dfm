@@ -1,6 +1,7 @@
 object EditForm: TEditForm
   Left = 0
   Top = 0
+  ActiveControl = edName
   Caption = 'Edit patch'
   ClientHeight = 151
   ClientWidth = 333
@@ -50,6 +51,8 @@ object EditForm: TEditForm
         Align = alCustom
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 0
+        OnChange = edNameChange
+        OnKeyDown = edKeyDown
       end
       object edFilename: TEdit
         Left = 102
@@ -60,6 +63,9 @@ object EditForm: TEditForm
         Align = alCustom
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 1
+        OnChange = edFilenameChange
+        OnEnter = edFilenameEnter
+        OnKeyDown = edKeyDown
       end
     end
   end
