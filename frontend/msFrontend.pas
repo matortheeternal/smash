@@ -2360,6 +2360,8 @@ begin
   Tracker.Write('Saving smash settings');
   for i := 0 to Pred(SmashSettings.Count) do begin
     aSetting := TSmashSetting(SmashSettings[i]);
+    if aSetting.bVirtual then
+      continue;
     Tracker.Write('  Saving '+aSetting.name);
     aSetting.Save;
   end;
@@ -2390,7 +2392,7 @@ var
   path: String;
 begin
   SmashSettings := TList.Create;
-  path := ProgramPath + 'settings\';
+  path := Format('%s\settings\%s\', [ProgramPath, GameMode.gameName]);
   ForceDirectories(path);
 
   // load setting files from settings path
@@ -4545,7 +4547,8 @@ var
   path: string;
 begin
   UpdateHash;
-  path := Format('%s\settings\%s.json', [ProgramPath, name]);
+  path := Format('%s\settings\%s\%s.json',
+    [ProgramPath, GameMode.gameName, name]);
   ForceDirectories(ExtractFilePath(path));
   Dump.SaveTo(path);
 end;
@@ -4554,7 +4557,8 @@ procedure TSmashSetting.Delete;
 var
   path: string;
 begin
-  path := Format('%s\settings\%s.json', [ProgramPath, name]);
+  path := Format('%s\settings\%s\%s.json',
+    [ProgramPath, GameMode.gameName, name]);
   if FileExists(path) then
     DeleteToRecycleBin(path, false);
 end;
@@ -4563,8 +4567,10 @@ procedure TSmashSetting.Rename(newName: string);
 var
   oldPath, newPath: string;
 begin
-  oldPath := ProgramPath + 'settings\' + name + '.json';
-  newPath := ProgramPath + 'settings\' + newName + '.json';
+  oldPath := Format('%s\settings\%s\%s.json',
+    [ProgramPath, GameMode.gameName, name]);
+  newPath := Format('%s\settings\%s\%s.json',
+    [ProgramPath, GameMode.gameName, newName]);
   if FileExists(oldpath) then
     RenameFile(oldpath, newpath);
   name := newName;
