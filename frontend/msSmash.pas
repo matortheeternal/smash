@@ -255,6 +255,9 @@ begin
       if Tracker.Cancel then break;
       ovr := rec.Overrides[j];
       f := ovr._File;
+      // skip overrides that are in plugins we aren't patching
+      if patch.plugins.IndexOf(f.FileName) = -1 then
+        continue;
       plugin := PluginByFileName(f.FileName);
       if not Assigned(plugin) then
         continue;
