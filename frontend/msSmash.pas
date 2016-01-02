@@ -226,7 +226,7 @@ procedure SmashRecords(var patch: TPatch; var records: TInterfaceList);
 var
   i, j: Integer;
   incProgress, currentProgress: Real;
-  rec, ovr, patchRec: IwbMainRecord;
+  rec, mst, ovr, patchRec: IwbMainRecord;
   f, patchFile: IwbFile;
   plugin: TPlugin;
   aSetting: TSmashSetting;
@@ -285,7 +285,11 @@ begin
         Tracker.Write(Format('    Smashing override from: %s',
           [f.FileName]));
         bDeletions := recObj.I['d'] = 1;
-        rcore(IwbElement(ovr), IwbElement(rec), IwbElement(patchRec), patchRec,
+        // conflict resolve with winning override in masters
+        mst := WinningOverrideInFiles(rec, patch.masters);
+        if not Assigned(mst) then
+          mst := rec;
+        rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
           recObj, false, bDeletions);
       except
         on x: Exception do
