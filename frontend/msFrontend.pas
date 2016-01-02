@@ -80,12 +80,14 @@ type
     records: string;
     tree: ISuperObject;
     color: Int64;
+    bVirtual: boolean;
     constructor Create;
     destructor Destroy; override;
     constructor Clone(s: TSmashSetting);
     function GetRecordDef(sig: string): ISuperObject;
     procedure LoadDump(dump: ISuperObject);
     function Dump: ISuperObject;
+    procedure UpdateHash;
     procedure Save;
     procedure Delete;
     procedure Rename(newName: string);
@@ -144,7 +146,7 @@ type
     function IsInPatch: boolean;
     procedure LoadInfoDump(obj: ISuperObject);
     function InfoDump: ISuperObject;
-    procedure SetSmashSetting(name: string; hash: string = '');
+    procedure SetSmashSetting(aSetting: TSmashSetting);
     procedure GetSettingTag;
   end;
   TPatch = class(TObject)
@@ -364,6 +366,12 @@ type
   function GetEntry(name, numRecords, version: string): TSmashSetting;
   function PluginLoadOrder(filename: string): integer;
   function SettingByName(name: string): TSmashSetting;
+  function SettingByHash(hash: string): TSmashSetting;
+  function GetSmashSetting(setting: string): TSmashSetting;
+  function GetRecordObject(tree: ISuperObject; sig: string): ISuperObject;
+  function CreateCombinedSetting(var sl: TStringList; name: string;
+    bVirtual: boolean = false): TSmashSetting;
+  function CombineRecords(var lst: TList; var slRecords: TStringList): boolean;
   function PluginByFilename(filename: string): TPlugin;
   function PatchByName(patches: TList; name: string): TPatch;
   function PatchByFilename(patches: TList; filename: string): TPatch;
@@ -2443,6 +2451,8 @@ begin
   for i := 0 to Pred(PluginsList.Count) do begin
     plugin := PluginsList[i];
     Tracker.UpdateProgress(1);
+    if plugin.smashSetting.bVirtual or (plugin.setting = 'Skip') then
+      continue;
     Tracker.Write('  Dumping '+plugin.filename);
     index := IndexOfDump(obj.A['plugins'], plugin);
     if index = -1 then
@@ -3049,6 +3059,124 @@ begin
       exit;
     end;
   end;
+end;
+
+{ Gets a smash setting matching the given hash. }
+function SettingByHash(hash: string): TSmashSetting;
+var
+  i: integer;
+  aSetting: TSmashSetting;
+begin
+  Result := nil;
+  for i := 0 to Pred(SmashSettings.Count) do begin
+    aSetting := TSmashSetting(SmashSettings[i]);
+    if aSetting.MatchesHash(hash) then begin
+      Result := aSetting;
+      exit;
+    end;
+  end;
+end;
+
+{ Gets a smash setting matching a name or hash }
+function GetSmashSetting(setting: string): TSmashSetting;
+var
+  sl: TStringList;
+  smashSetting: TSmashSetting;
+begin
+  // default result
+  Result := nil;
+
+  // parse setting name and hash
+  if Pos('|', setting) > 0 then begin
+    sl := TStringList.Create;
+    try
+      sl.Delimiter := '|';
+      sl.StrictDelimiter := true;
+      sl.DelimitedText := setting;
+
+      // if we have a setting name, use it to get a smash setting
+      if Length(sl[0]) > 0 then begin
+        smashSetting := SettingByName(sl[0]);
+        // and return it if the hash matches
+        if Assigned(smashSetting) and smashSetting.MatchesHash(sl[1]) then
+          Result := smashSetting;
+      end
+      // else just get the setting from the hash
+      else
+        Result := SettingByHash(sl[1]);
+    finally
+      sl.Free;
+    end;
+  end
+  // else just return SettingByName
+  else
+    Result := SettingByName(setting);
+end;
+
+function GetRecordObject(tree: ISuperObject; sig: string): ISuperObject;
+var
+  item: ISuperObject;
+begin
+  Result := nil;
+  for item in tree['records'] do begin
+    if Copy(item.S['n'], 1, 4) = sig then begin
+      Result := item;
+      break;
+    end;
+  end;
+end;
+
+function CreateCombinedSetting(var sl: TStringList; name: string;
+  bVirtual: boolean = false): TSmashSetting;
+var
+  i: Integer;
+  newSetting, aSetting: TSmashSetting;
+  recordObj: ISuperObject;
+begin
+  newSetting := TSmashSetting.Create;
+  newSetting.tree := SO;
+  newSetting.tree.O['records'] := SA([]);
+
+  for i := 0 to Pred(sl.Count) do begin
+    aSetting := TSmashSetting(sl.Objects[i]);
+    recordObj := GetRecordObject(aSetting.tree, sl[i]);
+    newSetting.tree.A['records'].Add(recordObj);
+  end;
+  newSetting.records := sl.CommaText;
+
+  // set other attributes
+  newSetting.UpdateHash;
+  newSetting.bVirtual := bVirtual;
+  if Length(name) > 24 then
+    newSetting.name := 'cs'+newSetting.hash
+  else
+    newSetting.name := name;
+
+  // add new setting to SmashSettings list
+  SmashSettings.Add(newSetting);
+  Result := newSetting;
+end;
+
+function CombineRecords(var lst: TList; var slRecords: TStringList): boolean;
+var
+  setting: TSmashSetting;
+  sl: TStringList;
+  i, j: Integer;
+begin
+  sl := TStringList.Create;
+  Result := false;
+  for i := 0 to Pred(lst.Count) do begin
+    setting := TSmashSetting(lst[i]);
+    sl.CommaText := setting.records;
+    for j := 0 to Pred(sl.Count) do begin
+      if slRecords.IndexOf(sl[j]) > -1 then
+        Result := true;
+      slRecords.AddObject(sl[j], TObject(setting));
+    end;
+  end;
+
+  // free memory
+  sl.Free;
 end;
 
 { Gets a plugin matching the given name. }
@@ -3963,56 +4091,91 @@ begin
 end;
 
 procedure TPlugin.LoadInfoDump(obj: ISuperObject);
+var
+  aSetting: TSmashSetting;
 begin
-  SetSmashSetting(obj.AsObject.S['setting']);
+  aSetting := SettingByName(obj.AsObject.S['setting']);
+  SetSmashSetting(aSetting);
 end;
 
-procedure TPlugin.SetSmashSetting(name: string; hash: string = '');
+procedure TPlugin.SetSmashSetting(aSetting: TSmashSetting);
 begin
-  setting := name;
-  smashSetting := SettingByName(setting);
-  if not (Assigned(smashSetting) and smashSetting.MatchesHash(hash)) then begin
-    Logger.Write('PLUGIN', 'Settings', 'No setting found matching '+name);
+  if not Assigned(aSetting) then begin
     setting := 'Skip';
     smashSetting := SettingByName(setting);
   end
-  else
-    Logger.Write('PLUGIN', 'Settings', 'Applied setting '+name);
+  else begin
+    setting := aSetting.name;
+    smashSetting := aSetting;
+    Logger.Write('PLUGIN', 'Settings', 'Using '+setting+' for '+filename);
+  end;
 end;
 
 procedure TPlugin.GetSettingTag;
 var
   regex: TRegEx;
   match: TMatch;
-  sl: TStringList;
+  sl, slRecords: TStringList;
+  aSetting: TSmashSetting;
+  settingsToCombine: TList;
+  i: Integer;
 begin
   // get setting tags from description
-  regex := TRegEx.Create('{{([^}]*)}}');
+  regex := TRegEx.Create('{{(BASH:){0,1}([^}]*)}}');
   match := regex.Match(description.Text);
 
-  // set to skip setting if no setting tag is found
+  // set to skip setting if no tag is found
   if not match.Success then begin
     Logger.Write('PLUGIN', 'Tags', 'No tags found for '+filename);
     setting := 'Skip';
     smashSetting := SettingByName(setting);
   end
-  // else try to use the specified setting
+  // else parse settings from tag
   else begin
     Logger.Write('PLUGIN', 'Tags', 'Found tag '+match.Value+' for '+filename);
 
-    // does the tag have a hash?
-    if Pos('|', match.Groups.Item[1].Value) > 0 then begin
-      // split match on |
-      sl := TStringList.Create;
-      sl.Delimiter := '|';
-      sl.StrictDelimiter := true;
-      sl.DelimitedText := match.Groups.Item[0].Value;
+    // split tag on commas
+    sl := TStringList.Create;
+    sl.Delimiter := ',';
+    sl.StrictDelimiter := true;
+    sl.DelimitedText := match.Groups.Item[2].Value;
 
-      // set setting to record
-      SetSmashSetting(sl[0], sl[1]);
+    // if only one setting present, use it
+    if sl.Count = 1 then begin
+      aSetting := GetSmashSetting(sl[0]);
+      SetSmashSetting(aSetting);
     end
-    else
-      SetSmashSetting(match.Groups.Item[1].Value);
+    // else make a combined setting
+    else begin
+      settingsToCombine := TList.Create;
+
+      // loop through found settings
+      for i := Pred(sl.Count) downto 0 do begin
+        aSetting := GetSmashSetting(sl[i]);
+        if not Assigned(aSetting) then begin
+          sl.Delete(i);
+          continue;
+        end;
+        settingsToCombine.Add(aSetting);
+      end;
+
+      // if settingToCombine has only 1 setting, just use that setting
+      if settingsToCombine.Count = 0 then
+        SetSmashSetting(nil)
+      else if settingsToCombine.Count = 1 then
+        SetSmashSetting(settingsToCombine[0])
+      // else build a combined setting
+      else begin
+        Logger.Write('PLUGIN', 'Settings', 'Building combined setting');
+        slRecords := TStringList.Create;
+        CombineRecords(settingsToCombine, slRecords);
+        aSetting := CreateCombinedSetting(slRecords, sl.DelimitedText, true);
+        SetSmashSetting(aSetting);
+      end;
+    end;
+
+    // free memory
+    sl.Free;
   end;
 end;
 
@@ -4372,11 +4535,16 @@ begin
   Result := obj;
 end;
 
+procedure TSmashSetting.UpdateHash;
+begin
+  hash := StrCRC32(tree.AsJSon);
+end;
+
 procedure TSmashSetting.Save;
 var
   path: string;
 begin
-  hash := StrCRC32(tree.AsJSon);
+  UpdateHash;
   path := Format('%s\settings\%s.json', [ProgramPath, name]);
   ForceDirectories(ExtractFilePath(path));
   Dump.SaveTo(path);

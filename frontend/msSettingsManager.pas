@@ -103,12 +103,11 @@ type
     procedure NewSettingItemClick(Sender: TObject);
     procedure DeleteSettingItemClick(Sender: TObject);
     procedure CloneSettingItemClick(Sender: TObject);
+    procedure CombineSettingsItemClick(Sender: TObject);
     procedure SettingsPopupMenuPopup(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
     procedure btnDiscardClick(Sender: TObject);
     procedure edNameChange(Sender: TObject);
-    procedure CombineSettings(var sl: TStringList);
-    procedure CombineSettingsItemClick(Sender: TObject);
   private
     { Private declarations }
     lastHint: string;
@@ -1057,84 +1056,54 @@ begin
   lvSettings.Items.Count := lvSettings.Items.Count + 1;
 end;
 
-function GetRecordObject(tree: ISuperObject; sig: string): ISuperObject;
-var
-  item: ISuperObject;
-begin
-  Result := nil;
-  for item in tree['records'] do begin
-    if item.S['n'] = sig then begin
-      Result := item;
-      break;
-    end;
-  end;
-end;
-
-procedure TSettingsManager.CombineSettings(var sl: TStringList);
-var
-  i: Integer;
-  newSetting, aSetting: TSmashSetting;
-  recordObj: ISuperObject;
-begin
-  newSetting := TSmashSetting.Create;
-  newSetting.tree := SO;
-  newSetting.tree.O['records'] := SA([]);
-
-  for i := 0 to Pred(sl.Count) do begin
-    aSetting := TSmashSetting(sl.Objects[i]);
-    recordObj := GetRecordObject(aSetting.tree, sl[i]);
-    newSetting.tree.A['records'].Add(recordObj);
-  end;
-  newSetting.records := sl.CommaText;
-
-  // add new setting to display
-  SmashSettings.Add(newSetting);
-  lvSettings.Items.Count := lvSettings.Items.Count + 1;
-end;
-
 procedure TSettingsManager.CombineSettingsItemClick(Sender: TObject);
 var
   i: Integer;
   ListItem: TListItem;
   settingsToCombine: TList;
   setting: TSmashSetting;
-  slRecords, sl: TStringList;
-  j: Integer;
-  bConflicting: boolean;
+  sl, slRecords: TStringList;
   cForm: TConflictForm;
 begin
+  // create lists
   settingsToCombine := TList.Create;
   slRecords := TStringList.Create;
   sl := TStringList.Create;
-  bConflicting := false;
-  for i := 0 to Pred(lvSettings.Items.Count) do begin
-    ListItem := lvSettings.Items[i];
-    if not ListItem.Selected then
-      continue;
-    setting := TSmashSetting(SmashSettings[i]);
-    settingsToCombine.Add(setting);
-    sl.CommaText := setting.records;
-    for j := 0 to Pred(sl.Count) do begin
-      if slRecords.IndexOf(sl[j]) > -1 then
-        bConflicting := true;
-      slRecords.AddObject(sl[j], TObject(setting));
+  sl.StrictDelimiter := true;
+  sl.Delimiter := ',';
+
+  try
+    // add selected settings to the settingsToCombine list
+    for i := 0 to Pred(lvSettings.Items.Count) do begin
+      ListItem := lvSettings.Items[i];
+      if not ListItem.Selected then
+        continue;
+      setting := TSmashSetting(SmashSettings[i]);
+      settingsToCombine.Add(setting);
+      sl.Add(setting.name);
     end;
-  end;
 
-  if bConflicting then begin
-    cForm := TConflictForm.Create(self);
-    cForm.slConflicts := slRecords;
-    if cForm.ShowModal = mrOK then
-      CombineSettings(slRecords);
-  end
-  else begin
-    CombineSettings(slRecords);
-  end;
+    // build a list of the record objects in the settings
+    // if conflicts found, have user resolve them
+    if CombineRecords(settingsToCombine, slRecords) then begin
+      cForm := TConflictForm.Create(self);
+      cForm.slConflicts := slRecords;
+      if cForm.ShowModal = mrOK then
+        CreateCombinedSetting(slRecords, sl.DelimitedText);
+    end
+    // else just create the combined setting
+    else begin
+      CreateCombinedSetting(slRecords, sl.DelimitedText);
+    end;
+  finally
+    // update lvSettings
+    lvSettings.Items.Count := SmashSettings.Count;
 
-  // free memory
-  settingsToCombine.Free;
-  slRecords.Free;
-  sl.Free;
+    // free memory
+    settingsToCombine.Free;
+    slRecords.Free;
+    sl.Free;
+  end;
 end;
 
 // repaint when splitter is moved
