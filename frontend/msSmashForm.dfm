@@ -200,10 +200,6 @@ object SmashForm: TSmashForm
       object PatchesTabSheet: TTabSheet
         Caption = 'Patches'
         ImageIndex = 1
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object PatchesListView: TListView
           Left = 3
           Top = 3
@@ -253,10 +249,6 @@ object SmashForm: TSmashForm
       object LogTabSheet: TTabSheet
         Caption = 'Log'
         ImageIndex = 2
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object LogListView: TListView
           Left = 3
           Top = 3
@@ -319,27 +311,26 @@ object SmashForm: TSmashForm
       Height = 13
       Caption = 'Details'
     end
-    object DetailsEditor: TValueListEditor
+    object DetailsGrid: TStringGrid
       Left = 3
       Top = 27
       Width = 591
       Height = 584
       Align = alCustom
       Anchors = [akLeft, akTop, akRight, akBottom]
-      DisplayOptions = [doAutoColResize, doKeyColFixed]
+      ColCount = 2
+      DefaultColWidth = 150
+      DefaultRowHeight = 22
       DoubleBuffered = True
-      FixedCols = 1
-      Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goAlwaysShowEditor, goThumbTracking]
+      RowCount = 1
+      FixedRows = 0
       ParentDoubleBuffered = False
       PopupMenu = DetailsPopupMenu
+      ScrollBars = ssVertical
       TabOrder = 0
-      TitleCaptions.Strings = (
-        'Name'
-        'Value')
-      OnMouseUp = DetailsEditorMouseUp
-      ColWidths = (
-        150
-        435)
+      OnDrawCell = DetailsGridDrawCell
+      OnMouseMove = DetailsGridMouseMove
+      OnMouseUp = DetailsGridMouseUp
     end
   end
   object StatusPanel: TPanel
@@ -761,7 +752,7 @@ object SmashForm: TSmashForm
       BevelEdges = []
       BevelKind = bkFlat
       BevelOuter = bvNone
-      Caption = 'v2.00.00.000'
+      Caption = 'v0.00.00.000'
       Ctl3D = True
       ParentCtl3D = False
       TabOrder = 7
@@ -850,7 +841,7 @@ object SmashForm: TSmashForm
     Left = 1008
     Top = 8
     Bitmap = {
-      494C010108001400580240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C0101080014005C0240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000000100006000000001002000000000000080
       0100000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

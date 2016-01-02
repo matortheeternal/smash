@@ -51,7 +51,7 @@ type
         DetailsPanel: TPanel;
         [FormSection('Details Panel')]
           DetailsLabel: TLabel;
-          DetailsEditor: TValueListEditor;
+          DetailsGrid: TStringGrid;
           DetailsPopupMenu: TPopupMenu;
           DetailsCopyToClipboardItem: TMenuItem;
         [FormSection('Plugins Tab')]
@@ -133,13 +133,18 @@ type
     procedure UpdateStatusBar;
     procedure UpdateListViews;
     // DETAILS EDITOR EVENTS
-    function AddDetailsItem(name, value: string; editable: boolean = false):
-      TItemProp;
-    procedure AddDetailsList(name: string; sl: TStringList; editable: boolean = false);
+    procedure AddDetailsItem(name, value: string);
+    procedure AddDetailsList(name: string; sl: TStringList);
     procedure PageControlChange(Sender: TObject);
     procedure UpdateApplicationDetails;
-    procedure DetailsEditorMouseUp(Sender: TObject; Button: TMouseButton;
+    procedure DetailsCopyToClipboardItemClick(Sender: TObject);
+    procedure DetailsPanelResize(Sender: TObject);
+    procedure DetailsGridMouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer);
+    procedure DetailsGridMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure DetailsGridDrawCell(Sender: TObject; ACol, ARow: Integer;
+      Rect: TRect; State: TGridDrawState);
     // PLUGINS LIST VIEW EVENTS
     procedure UpdatePluginDetails;
     procedure AddPluginsToPatch(var patch: TPatch);
@@ -200,7 +205,6 @@ type
     procedure UpdateButtonClick(Sender: TObject);
     procedure HelpButtonClick(Sender: TObject);
     procedure ToggleAutoScrollItemClick(Sender: TObject);
-    procedure DetailsCopyToClipboardItemClick(Sender: TObject);
     procedure ImageDisconnectedClick(Sender: TObject);
     procedure DictionaryButtonClick(Sender: TObject);
   protected
@@ -209,6 +213,7 @@ type
     procedure WMActivateApp(var AMessage: TMessage); message WM_ACTIVATEAPP;
   private
     { Private declarations }
+    slDetails: TStringList;
   public
     { Public declarations }
   end;
@@ -257,7 +262,7 @@ begin
   end;
   // correct width if active
   if bLogActive then
-    CorrectListViewWidth(LogListView);
+    ListView_CorrectWidth(LogListView);
 end;
 
 { Prints a message to the log }
@@ -453,6 +458,7 @@ begin
   StatusPanelVersion.Caption := 'v'+ProgramVersion;
 
   // UPDATE GUI
+  slDetails := TStringList.Create;
   PluginsListView.OwnerDraw := not settings.simplePluginsView;
   PluginsListView.Items.Count := PluginsList.Count;
   UpdateLog;
@@ -474,8 +480,8 @@ begin
       TLoaderThread.Create;
 
     // CORRECT LIST VIEW WIDTHS
-    CorrectListViewWidth(PatchesListView);
-    CorrectListViewWidth(PluginsListView);
+    ListView_CorrectWidth(PatchesListView);
+    ListView_CorrectWidth(PluginsListView);
 
     // LOAD AND DISPLAY HINTS
     if settings.buildRefs then
@@ -709,7 +715,7 @@ end;
 
 {******************************************************************************}
 { Details Editor Events
-  Methods for helping with the DetailsEditor control.  Methods include:
+  Methods for helping with the DetailsGrid control.  Methods include:
   - AddDetailsItem
   - AddDetailsList
   - PageControlChange
@@ -720,34 +726,25 @@ end;
 {
    Adds a ListItem to DetailsView with @name and @value
 }
-function TSmashForm.AddDetailsItem(name, value: string;
-  editable: boolean = false): TItemProp;
-var
-  prop: TItemProp;
+procedure TSmashForm.AddDetailsItem(name, value: string);
 begin
-  DetailsEditor.InsertRow(name, value, true);
-  prop := DetailsEditor.ItemProps[DetailsEditor.RowCount - 1];
-  prop.ReadOnly := not editable;
-  Result := prop;
+  slDetails.Add(name + '=' + value);
 end;
 
 {
   Add one or more ListItem to DetailsView with @name and the values
   in @sl
 }
-procedure TSmashForm.AddDetailsList(name: string; sl: TStringList;
-  editable: boolean = false);
+procedure TSmashForm.AddDetailsList(name: string; sl: TStringList);
 var
   i: integer;
 begin
-  sl.Text := Wordwrap(sl.Text, 80);
   if sl.Count > 0 then begin
-    AddDetailsItem(name, sl[0], editable);
-    for i := 1 to Pred(sl.Count) do
-      AddDetailsItem(' ', sl[i], editable);
+    for i := 0 to Pred(sl.Count) do
+      slDetails.Add(Format('%s[%d]=%s', [name, i, sl[i]]));
   end
   else
-    AddDetailsItem(name, ' ', editable);
+    slDetails.Add(name + '= ');
 end;
 
 {
@@ -761,15 +758,15 @@ begin
   case ndx of
     0: begin
       UpdatePluginDetails;
-      CorrectListViewWidth(PluginsListView);
+      ListView_CorrectWidth(PluginsListView);
     end;
     1: begin
       UpdatePatchDetails;
-      CorrectListViewWidth(PatchesListView);
+      ListView_CorrectWidth(PatchesListView);
     end;
     2: begin
       UpdateApplicationDetails;
-      CorrectListViewWidth(LogListView);
+      ListView_CorrectWidth(LogListView);
     end;
   end;
 end;
@@ -777,7 +774,7 @@ end;
 procedure TSmashForm.UpdateApplicationDetails;
 begin
   // prepare list view for application information
-  DetailsEditor.Strings.Clear;
+  slDetails.Clear;
   DetailsLabel.Caption := GetString('msMain_AppDetails');
 
   // add details items
@@ -801,6 +798,11 @@ begin
   AddDetailsItem(GetString('msMain_xEditCredits'), 'zilav, hlp, Sharlikran, ElminsterAU');
   AddDetailsItem(GetString('msMain_Testers'), ProgramTesters);
   AddDetailsItem(GetString('msMain_Translators'), ProgramTranslators);
+
+  // update gui
+  StringGrid_CorrectWidth(DetailsGrid);
+  DetailsGrid.RowCount := slDetails.Count;
+  DetailsGrid.Repaint;
 end;
 
 procedure TSmashForm.DetailsCopyToClipboardItemClick(Sender: TObject);
@@ -815,11 +817,11 @@ begin
   // empty names and empty values
   name := ' ';
   value := ' ';
-  for i := 0 to Pred(DetailsEditor.Strings.Count) do begin
+  for i := 0 to Pred(slDetails.Count) do begin
     previousName := name;
-    name := DetailsEditor.Strings.Names[i];
+    name := slDetails.Names[i];
     previousValue := value;
-    value := DetailsEditor.Strings.ValueFromIndex[i];
+    value := slDetails.ValueFromIndex[i];
     if (name <> ' ') then
       sl.Add(Format('%s: %s', [name, value]))
     else if (value <> ' ') then begin
@@ -838,8 +840,40 @@ begin
   sl.Free;
 end;
 
+{ Resize StringGrid columns when parent panel changes size }
+procedure TSmashForm.DetailsPanelResize(Sender: TObject);
+begin
+  StringGrid_CorrectWidth(DetailsGrid);
+end;
+
+{ Make cursor pointer if mouse is over a URL }
+procedure TSmashForm.DetailsGridMouseMove(Sender: TObject; Shift: TShiftState;
+  X, Y: Integer);
+var
+  ACol, ARow: integer;
+  value: string;
+begin
+  // don't change cursor if in help mode
+  if Screen.Cursor = crHelp then
+    exit;
+
+  DetailsGrid.MouseToCell(X, Y, ACol, ARow);
+  // use default cursor on cells in column 0, or at an invalid cell
+  if (ACol = 0) or (ARow > Pred(slDetails.Count)) then begin
+    Screen.Cursor := crDefault;
+    exit;
+  end;
+
+  // test if cell is a url
+  value := slDetails.ValueFromIndex[ARow];
+  if IsURL(value) then
+    Screen.Cursor := crHandPoint
+  else
+    Screen.Cursor := crDefault;
+end;
+
 { Handle user clicking URL }
-procedure TSmashForm.DetailsEditorMouseUp(Sender: TObject; Button: TMouseButton;
+procedure TSmashForm.DetailsGridMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   ACol, ARow: integer;
@@ -848,17 +882,80 @@ begin
   // only process left clicks
   if Button <> mbLeft then
     exit;
-  DetailsEditor.MouseToCell(X, Y, ACol, ARow);
+
+  DetailsGrid.MouseToCell(X, Y, ACol, ARow);
+  // skip clicks on cells in column 0
+  if ACol = 0 then
+    exit;
+
   try
-    value := DetailsEditor.Cells[ACol, ARow];
-    if Pos(' ', value) > 0 then
-      value := Copy(value, 1, Pos(' ', value));
+    value := slDetails.ValueFromIndex[ARow];
     if IsURL(value) and ((Now - LastURLTime) * 86400 > 1.0) then begin
       ShellExecute(0, 'open', PChar(value), '', '', SW_SHOWNORMAL);
       LastURLTime := Now;
     end;
   except
     // invalid cell
+  end;
+end;
+
+{ Handle drawing of a cell }
+procedure TSmashForm.DetailsGridDrawCell(Sender: TObject; ACol, ARow: Integer;
+  Rect: TRect; State: TGridDrawState);
+var
+  sText, sNextVal, sNextName: string;
+  iHalfBottom, iPadding: Integer;
+begin
+  // initialize stuff
+  sText := ' ';
+  iPadding := (Rect.Bottom - Rect.Top) - DetailsGrid.Canvas.TextHeight('Hg');
+  iHalfBottom := Rect.Top + (Rect.Bottom - Rect.Top) div 2;
+  DetailsGrid.Font.Style := [];
+  DetailsGrid.Font.Color := clBlack;
+
+  // draw name
+  if ACol = 0 then begin
+    DetailsGrid.Canvas.Brush.Color := TColor($00f6f4f3);
+    DetailsGrid.Canvas.Rectangle(Rect);
+    DetailsGrid.Canvas.Brush.Color := clWindow;
+    DetailsGrid.Canvas.Rectangle(Rect.Left, Rect.Top, Rect.Right, iHalfBottom);
+
+    if Assigned(slDetails) and (slDetails.Count > ARow) then
+      sText := slDetails.Names[ARow];
+    // handle lists
+    sText := RemoveFromEnd(sText, '[0]');
+    if StrEndsWith(sText, ']') then
+      exit;
+
+    DetailsGrid.Canvas.Brush.Style := bsClear;
+    DetailsGrid.Canvas.TextOut(Rect.Left + 4, Rect.Top + (iPadding div 2), sText);
+  end
+  // draw value
+  else if ACol = 1 then begin
+    DetailsGrid.Canvas.Brush.Color := clWindow;
+    DetailsGrid.Canvas.Rectangle(Rect);
+
+    if Assigned(slDetails) and (slDetails.Count > ARow) then
+      sText := slDetails.ValueFromIndex[ARow];
+    // handle special drawing of urls and master files
+    if (Pred(slDetails.Count) > ARow) then begin
+      sNextVal := slDetails.ValueFromIndex[ARow + 1];
+      sNextName := slDetails.Names[ARow + 1];
+      // urls blue and underlined
+      if IsURL(sNextVal) then begin
+        DetailsGrid.Font.Style := [fsUnderline];
+        DetailsGrid.Font.Color := clBlue;
+      end
+      // esps and esms red if not loaded
+      else if Pos('Plugins[', sNextName) = 1 then begin
+        if not Assigned(PluginByFileName(sNextVal)) then
+          DetailsGrid.Font.Color := clRed;
+      end;
+    end;
+
+    // draw text
+    DetailsGrid.Canvas.Brush.Style := bsClear;
+    DetailsGrid.Canvas.TextOut(Rect.Left + 4, Rect.Top + (iPadding div 2), sText);
   end;
 end;
 
@@ -886,7 +983,7 @@ begin
     exit;
 
   // prepare list view for plugin information
-  DetailsEditor.Strings.Clear;
+  slDetails.Clear;
   DetailsLabel.Caption := GetString('msMain_PluginDetails');
 
   // get plugin information
@@ -904,6 +1001,11 @@ begin
   AddDetailsItem(GetString('msMain_Author'), plugin.author);
   AddDetailsList(GetString('msMain_Description'), plugin.description);
   AddDetailsList(GetString('msMain_Masters'), plugin.masters);
+
+  // update gui
+  StringGrid_CorrectWidth(DetailsGrid);
+  DetailsGrid.RowCount := slDetails.Count;
+  DetailsGrid.Repaint;
 end;
 
 procedure TSmashForm.ChangePatchSetting(aSetting: TSmashSetting);
@@ -1193,14 +1295,14 @@ begin
     exit;
 
   // prepare list view for patch information
-  DetailsEditor.Strings.Clear;
+  slDetails.Clear;
   DetailsLabel.Caption := GetString('msMain_PatchDetails');
 
   // get patch information
   patch := PatchesList[PatchesListView.ItemIndex];
-  AddDetailsItem(GetString('msMain_Status'), StatusArray[Ord(patch.status)].desc, false);
-  AddDetailsItem(GetString('msMain_PatchName'), patch.name, true);
-  AddDetailsItem(GetString('msMain_Filename'), patch.filename, true);
+  AddDetailsItem(GetString('msMain_Status'), StatusArray[Ord(patch.status)].desc);
+  AddDetailsItem(GetString('msMain_PatchName'), patch.name);
+  AddDetailsItem(GetString('msMain_Filename'), patch.filename);
   AddDetailsItem(GetString('msMain_PluginCount'), IntToStr(patch.plugins.Count));
   AddDetailsItem(GetString('msMain_DateBuilt'), DateBuiltString(patch.dateBuilt));
   AddDetailsList(GetString('msMain_Plugins'), patch.plugins);
@@ -1209,6 +1311,11 @@ begin
     AddDetailsList(GetString('msMain_Fails'), patch.fails)
   else
     AddDetailsItem(GetString('msMain_Fails'), GetString('msMain_TooManyFails'));
+
+  // update gui
+  StringGrid_CorrectWidth(DetailsGrid);
+  DetailsGrid.RowCount := slDetails.Count;
+  DetailsGrid.Repaint;
 end;
 
 procedure TSmashForm.UpdatePatches;
@@ -1439,7 +1546,7 @@ begin
   LogListView.Items.Count := 0;
   RebuildLog;
   LogListView.Items.Count := Log.Count;
-  CorrectListViewWidth(LogListView);
+  ListView_CorrectWidth(LogListView);
 end;
 
 // toggles a label filter for the LogListView
@@ -1454,7 +1561,7 @@ begin
   LogListView.Items.Count := 0;
   RebuildLog;
   LogListView.Items.Count := Log.Count;
-  CorrectListViewWidth(LogListView);
+  ListView_CorrectWidth(LogListView);
 end;
 
 // toggles auto scroll for the LogListView
@@ -1796,8 +1903,8 @@ begin
   if not bApproved then
     exit;
 
-  // clear details editor
-  DetailsEditor.Strings.Clear;
+  // clear details grid
+  slDetails.Clear;
 
   // loop through patches
   for i := Pred(patchesToDelete.Count) downto 0 do begin
