@@ -4376,8 +4376,8 @@ begin
   status := psUnknown;
 
   // don't patch if no plugins to patch
-  if (plugins.Count < 1) then begin
-    Logger.Write('MERGE', 'Status', name + ' -> No plugins to patch');
+  if (plugins.Count < 2) then begin
+    Logger.Write('MERGE', 'Status', name + ' -> Need two or more plugins to patch');
     status := psNoPlugins;
     exit;
   end;
