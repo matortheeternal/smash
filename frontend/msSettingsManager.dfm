@@ -138,6 +138,7 @@ object SettingsManager: TSettingsManager
       Align = alCustom
       Anchors = [akLeft, akTop, akRight, akBottom]
       DoubleBuffered = True
+      Enabled = False
       Indent = 19
       MultiSelect = True
       MultiSelectStyle = [msControlSelect, msShiftSelect, msVisibleOnly]
@@ -164,6 +165,7 @@ object SettingsManager: TSettingsManager
       Margins.Right = 8
       Align = alCustom
       Anchors = [akLeft, akTop, akRight]
+      Enabled = False
       TabOrder = 1
       OnChange = edNameChange
     end
@@ -176,6 +178,7 @@ object SettingsManager: TSettingsManager
       Margins.Right = 8
       Align = alCustom
       Anchors = [akLeft, akTop, akRight]
+      Enabled = False
       TabOrder = 2
     end
     object btnSave: TButton
@@ -210,6 +213,7 @@ object SettingsManager: TSettingsManager
       Margins.Right = 8
       Align = alCustom
       Anchors = [akLeft, akTop, akRight, akBottom]
+      Enabled = False
       TabOrder = 5
     end
     object edHash: TEdit
@@ -308,7 +312,7 @@ object SettingsManager: TSettingsManager
     Left = 784
     Top = 256
     Bitmap = {
-      494C010104000800C40011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010104000800C80011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000440000002200000001002000000000002024
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -620,7 +624,7 @@ object SettingsManager: TSettingsManager
     Left = 856
     Top = 256
     Bitmap = {
-      494C010103000800EC0010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010103000800F00010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000D7D7F8FF7373E6FF3434DBFF2121BEFF2121BEFF2D2DDAFF6B6BE4FFD2D2
