@@ -171,14 +171,14 @@ begin
     slSearchResults.Clear;
     for i := 0 to Pred(tvRecords.Items.Count) do begin
       node := tvRecords.Items[i];
-        // Check if search-string is contained in node-text
-        if ContainsText(node.Text, edSearch.Text) then
-          slSearchResults.AddObject(node.Text,TObject(node));
-        end;
+      // Check if search-string is contained in node-text
+      if ContainsText(node.Text, edSearch.Text) then
+        slSearchResults.AddObject(node.Text,TObject(node));
+    end;
     bSearchActive := True;
     // Show result
     NextSearchResult;
-  end
+  end;
 end;
 
 procedure TSettingsManager.NextSearchResult();
@@ -560,7 +560,7 @@ begin
   bState := tvRecords.Items[0].Expanded;
   for i := 0 to Pred(tvRecords.Items.Count) do
     // Apply inverted state to all nodes
-    tvRecords.Items[i].Expanded :=not bState;
+    tvRecords.Items[i].Expanded := not bState;
 end;
 
 procedure TSettingsManager.SelectSimilarNodesItemClick(Sender: TObject);
