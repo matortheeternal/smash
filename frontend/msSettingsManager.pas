@@ -637,6 +637,8 @@ begin
       for i := Low(disabledElements) to High(disabledElements) do
         if Pos(disabledElements[i], node.Text) > 0 then begin
           node.StateIndex := csUnChecked;
+          e.singleEntity := false;
+          e.preserveDeletions := false;
         end;
     end
     // else disable records that match a string in the
@@ -645,6 +647,8 @@ begin
       for i := Low(disabledRecords) to High(disabledRecords) do
         if Pos(disabledRecords[i], node.Text) = 1 then begin
           node.StateIndex := csUnChecked;
+          e.singleEntity := false;
+          e.preserveDeletions := false;
         end;
     end;
 
