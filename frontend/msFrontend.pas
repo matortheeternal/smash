@@ -434,7 +434,7 @@ const
   // MERGE STATUSES
   StatusArray: array[0..10] of TPatchStatus = (
     ( id: psUnknown; color: $808080; desc: 'Unknown'; ),
-    ( id: psNoPlugins; color: $0000FF; desc: 'No plugins to patch'; ),
+    ( id: psNoPlugins; color: $0000FF; desc: 'Need two or more plugins to patch'; ),
     ( id: psDirInvalid; color: $0000FF; desc: 'Directories invalid'; ),
     ( id: psUnloaded; color: $0000FF; desc: 'Plugins not loaded'; ),
     ( id: psErrors; color: $0000FF; desc: 'Errors in plugins'; ),
@@ -4375,7 +4375,7 @@ begin
   Logger.Write('MERGE', 'Status', name + ' -> Getting status');
   status := psUnknown;
 
-  // don't patch if no plugins to patch
+  // don't patch if there aren't two or more plugins to patch
   if (plugins.Count < 2) then begin
     Logger.Write('MERGE', 'Status', name + ' -> Need two or more plugins to patch');
     status := psNoPlugins;
