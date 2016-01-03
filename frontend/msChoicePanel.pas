@@ -88,6 +88,7 @@ begin
   cbChoices.Width := Width - cbChoices.Left - 6;
   cbChoices.Style := csDropDownList;
   cbChoices.Items.Text := '';
+  cbChoices.Items.Add('Merge');
   cbChoices.ItemIndex := 0;
   cbChoices.Align := alCustom;
   cbChoices.Anchors := [akLeft, akTop, akRight];
@@ -146,7 +147,10 @@ end;
 
 function TChoicePanel.GetSetting: TSmashSetting;
 begin
-  Result := TSmashSetting(lstChoices[cbChoices.ItemIndex]);
+  Result := nil;
+  if cbChoices.ItemIndex = 0 then
+    exit;
+  Result := TSmashSetting(lstChoices[cbChoices.ItemIndex - 1]);
 end;
 
 function TChoicePanel.GetLabel: string;

@@ -88,6 +88,7 @@ type
     procedure LoadDump(dump: ISuperObject);
     function Dump: ISuperObject;
     procedure UpdateHash;
+    procedure UpdateRecords;
     procedure Save;
     procedure Delete;
     procedure Rename(newName: string);
@@ -369,9 +370,11 @@ type
   function SettingByHash(hash: string): TSmashSetting;
   function GetSmashSetting(setting: string): TSmashSetting;
   function GetRecordObject(tree: ISuperObject; sig: string): ISuperObject;
+  function GetChild(obj: ISuperObject; name: string): ISuperObject;
+  procedure MergeChildren(srcObj, dstObj: ISuperObject);
   function CreateCombinedSetting(var sl: TStringList; name: string;
     bVirtual: boolean = false): TSmashSetting;
-  function CombineRecords(var lst: TList; var slRecords: TStringList): boolean;
+  function CombineSettingTrees(var lst: TList; var slSettings: TStringList): boolean;
   function PluginByFilename(filename: string): TPlugin;
   function PatchByName(patches: TList; name: string): TPatch;
   function PatchByFilename(patches: TList; filename: string): TPatch;
@@ -3131,12 +3134,59 @@ begin
   end;
 end;
 
+function GetChild(obj: ISuperObject; name: string): ISuperObject;
+var
+  child: ISuperObject;
+begin
+  Result := nil;
+  for child in obj['c'] do begin
+    if child.S['n'] = name then begin
+      Result := child;
+      exit;
+    end;
+  end;
+end;
+
+procedure MergeChildren(srcObj, dstObj: ISuperObject);
+var
+  srcChild, dstChild: ISuperObject;
+begin
+  for srcChild in srcObj['c'] do begin
+    dstChild := GetChild(dstObj, srcChild.S['n']);
+    if not Assigned(dstChild) then
+      dstObj.A['c'].Add(srcChild.Clone)
+    else begin
+      // merge treat as single
+      if srcChild.I['s'] = 1 then
+        dstChild.I['s'] := 1;
+      // merge preserve deletions
+      if srcChild.I['d'] = 1 then
+        dstChild.I['d'] := 1;
+      // merge process
+      if srcChild.I['p'] = 1 then
+        dstChild.I['p'] := 1;
+      // merge links
+      if srcChild.S['lt'] <> '' then
+        dstChild.S['lt'] := srcChild.S['lt'];
+      if srcChild.S['lf'] <> '' then
+        dstChild.S['lf'] := srcChild.S['lf'];
+      // recurse into children if present
+      if Assigned(srcChild.A['c']) then begin
+        if Assigned(dstChild.A['c']) then
+          MergeChildren(srcChild, dstChild)
+        else
+          dstChild.O['c'] := srcChild.O['c'].Clone;
+      end;
+    end;
+  end;
+end;
+
 function CreateCombinedSetting(var sl: TStringList; name: string;
   bVirtual: boolean = false): TSmashSetting;
 var
   i: Integer;
   newSetting, aSetting: TSmashSetting;
-  recordObj: ISuperObject;
+  recordObj, existingRecordObj: ISuperObject;
 begin
   newSetting := TSmashSetting.Create;
   newSetting.tree := SO;
@@ -3145,9 +3195,16 @@ begin
   for i := 0 to Pred(sl.Count) do begin
     aSetting := TSmashSetting(sl.Objects[i]);
     recordObj := GetRecordObject(aSetting.tree, sl[i]);
-    newSetting.tree.A['records'].Add(recordObj);
+    existingRecordObj := GetRecordObject(newSetting.tree, sl[i]);
+    // if record object matching record signature already exists
+    // merge the record objects
+    if Assigned(existingRecordObj) then
+      MergeChildren(recordObj, existingRecordObj)
+    // else just add it to the tree
+    else
+      newSetting.tree.A['records'].Add(recordObj);
   end;
-  newSetting.records := sl.CommaText;
+  newSetting.UpdateRecords;
 
   // set other attributes
   newSetting.UpdateHash;
@@ -3162,7 +3219,7 @@ begin
   Result := newSetting;
 end;
 
-function CombineRecords(var lst: TList; var slRecords: TStringList): boolean;
+function CombineSettingTrees(var lst: TList; var slSettings: TStringList): boolean;
 var
   setting: TSmashSetting;
   sl: TStringList;
@@ -3174,9 +3231,9 @@ begin
     setting := TSmashSetting(lst[i]);
     sl.CommaText := setting.records;
     for j := 0 to Pred(sl.Count) do begin
-      if slRecords.IndexOf(sl[j]) > -1 then
+      if slSettings.IndexOf(sl[j]) > -1 then
         Result := true;
-      slRecords.AddObject(sl[j], TObject(setting));
+      slSettings.AddObject(sl[j], TObject(setting));
     end;
   end;
 
@@ -4173,7 +4230,7 @@ begin
       else begin
         Logger.Write('PLUGIN', 'Settings', 'Building combined setting');
         slRecords := TStringList.Create;
-        CombineRecords(settingsToCombine, slRecords);
+        CombineSettingTrees(settingsToCombine, slRecords);
         aSetting := CreateCombinedSetting(slRecords, sl.DelimitedText, true);
         SetSmashSetting(aSetting);
       end;
@@ -4543,6 +4600,32 @@ end;
 procedure TSmashSetting.UpdateHash;
 begin
   hash := StrCRC32(tree.AsJSon);
+end;
+
+procedure TSmashSetting.UpdateRecords;
+var
+  item: ISuperObject;
+  sl: TStringList;
+begin
+  // prepare comma delimited stringlist
+  sl := TStringList.Create;
+  sl.Delimiter := ',';
+  sl.StrictDelimiter := true;
+
+  try
+    // loop through records and add their signatures
+    // to the stringlist if they are set to be processed
+    for item in tree['records'] do begin
+      if item.I['p'] = 1 then
+        sl.Add(Copy(item.S['n'], 1, 4));
+    end;
+
+    // assign records the delimited signatures
+    records := sl.DelimitedText;
+  finally
+    // free memory
+    sl.Free;
+  end;
 end;
 
 procedure TSmashSetting.Save;

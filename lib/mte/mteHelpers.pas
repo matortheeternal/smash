@@ -33,6 +33,7 @@ type
   function Wordwrap(s: string; charCount: integer): string;
   function ExtractPath(path: string; levels: integer): string;
   function ContainsMatch(var sl: TStringList; const s: string): boolean;
+  procedure DeleteMatchingItems(item: string; var sl: TStringList);
   function IsURL(s: string): boolean;
   function IsDotFile(fn: string): boolean;
   procedure SaveStringToFile(s: string; fn: string);
@@ -462,6 +463,17 @@ begin
       Result := true;
       break;
     end;
+end;
+
+{ Deletes items from @sl that match the input string @item }
+procedure DeleteMatchingItems(item: string; var sl: TStringList);
+var
+  i: Integer;
+begin
+  for i := Pred(sl.Count) downto 0 do begin
+    if sl[i] = item then
+      sl.Delete(i);
+  end;
 end;
 
 { Returns true if the string is an http:// or https:// url }

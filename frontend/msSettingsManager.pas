@@ -753,7 +753,6 @@ var
   i: Integer;
   obj: ISuperObject;
   node, rootNode: TTreeNode;
-  sl: TStringList;
 begin
   obj := SO;
   obj.O['records'] := SA([]);
@@ -762,18 +761,14 @@ begin
   // loop through records
   node := rootNode.getFirstChild;
   i := 0;
-  sl := TStringList.Create;
   while Assigned(node) do begin
     obj.A['records'].O[i] := DumpElement(node);
-    if node.StateIndex <> csUnChecked then
-      sl.Add(Copy(node.Text, 1, 4));
     Inc(i);
     node := node.getNextSibling;
   end;
 
   currentSetting.tree := obj;
-  currentSetting.records := sl.CommaText;
-  sl.Free;
+  currentSetting.UpdateRecords;
 end;
 
 procedure TSettingsManager.edNameChange(Sender: TObject);
@@ -1085,7 +1080,7 @@ begin
 
     // build a list of the record objects in the settings
     // if conflicts found, have user resolve them
-    if CombineRecords(settingsToCombine, slRecords) then begin
+    if CombineSettingTrees(settingsToCombine, slRecords) then begin
       cForm := TConflictForm.Create(self);
       cForm.slConflicts := slRecords;
       if cForm.ShowModal = mrOK then

@@ -130,7 +130,7 @@ var
 begin
   rootNode := tvRecords.Items[0];
   for item in aSetting.tree['records'] do
-    if item.S['n'] = sig then begin
+    if Copy(item.S['n'], 1, 4) = sig then begin
       LoadElement(tvRecords, rootNode, item, false);
       break;
     end;
@@ -141,22 +141,16 @@ var
   i: Integer;
   aChoicePanel: TChoicePanel;
   aSetting: TSmashSetting;
-  lst: TList;
 begin
-  // remove record conflicts from the slConflicts list
-  // so we don't duplicate them with the user's selection
-  for i := Pred(slConflicts.Count) downto 0 do begin
-    lst := TList(slConflicts.Objects[i]);
-    if lst.Count > 1 then
-      slConflicts.Delete(i);
-  end;
-
   // get user selection from choice panels, add it to slConflicts
   // to be handled later
   for i := 0 to Pred(ChoicePanels.Count) do begin
     aChoicePanel := TChoicePanel(ChoicePanels[i]);
     aSetting := aChoicePanel.GetSetting;
-    slConflicts.AddObject(aChoicePanel.GetLabel, TObject(aSetting))
+    if Assigned(aSetting) then begin
+      DeleteMatchingItems(aChoicePanel.GetLabel, slConflicts);
+      slConflicts.AddObject(aChoicePanel.GetLabel, TObject(aSetting));
+    end;
   end;
 
   // close form with ModalResult = mrOK
@@ -180,7 +174,8 @@ begin
       continue;
     sig := aChoicePanel.GetLabel;
     aSetting := aChoicePanel.GetSetting;
-    PopulateTree(sig, aSetting);
+    if Assigned(aSetting) then
+      PopulateTree(sig, aSetting);
   end;
 end;
 
