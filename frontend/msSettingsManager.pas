@@ -94,6 +94,7 @@ type
     // SETTINGS MANAGER EVENTS
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure SelectSetting(index: Integer);
     procedure lvSettingsChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
     procedure lvSettingsData(Sender: TObject; Item: TListItem);
@@ -887,6 +888,14 @@ begin
   lvSettings.Width := lvSettings.Width + 1;
 end;
 
+// selects the setting specified by @index
+procedure TSettingsManager.SelectSetting(index: Integer);
+begin
+  lvSettings.ClearSelection;
+  lvSettings.Selected := lvSettings.Items[index];
+  lvSettingsChange(nil, nil, TItemChange(nil));
+end;
+
 // update setting data whenever user changes their selection
 procedure TSettingsManager.lvSettingsChange(Sender: TObject; Item: TListItem;
   Change: TItemChange);
@@ -1016,10 +1025,14 @@ procedure TSettingsManager.NewSettingItemClick(Sender: TObject);
 var
   newSetting: TSmashSetting;
 begin
+  // create new setting
   newSetting := TSmashSetting.Create;
   NewSettings.Add(newSetting);
   SmashSettings.Add(newSetting);
   lvSettings.Items.Count := lvSettings.Items.Count + 1;
+
+  // set selected item to the new setting
+  SelectSetting(lvSettings.Items.Count - 1);
 end;
 
 procedure TSettingsManager.DeleteSettingItemClick(Sender: TObject);
@@ -1053,6 +1066,9 @@ begin
   clonedSetting.Clone(setting);
   SmashSettings.Add(clonedSetting);
   lvSettings.Items.Count := lvSettings.Items.Count + 1;
+
+  // set selected item to the new setting
+  SelectSetting(lvSettings.Items.Count - 1);
 end;
 
 procedure TSettingsManager.CombineSettingsItemClick(Sender: TObject);
@@ -1095,8 +1111,12 @@ begin
       CreateCombinedSetting(slRecords, sl.DelimitedText);
     end;
   finally
-    // update lvSettings
-    lvSettings.Items.Count := SmashSettings.Count;
+    // update lvSettings if we created a new setting
+    if SmashSettings.Count > lvSettings.Items.Count then begin
+      lvSettings.Items.Count := SmashSettings.Count;
+      // set selected item to the new setting
+      SelectSetting(lvSettings.Items.Count - 1);
+    end;
 
     // free memory
     settingsToCombine.Free;
