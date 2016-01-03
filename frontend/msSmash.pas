@@ -359,6 +359,7 @@ var
   i, j, CountITPO: Integer;
   e, m, prevovr, ovr: IwbMainRecord;
   container: IwbContainer;
+  ITPOs: TDynMainRecords;
 begin
   Tracker.Write(' ');
   Tracker.Write('Removing ITPO records from patch');
@@ -377,9 +378,8 @@ begin
     if Assigned(e.ChildGroup) and (e.ChildGroup.ElementCount <> 0) then
       continue;
 
-    m := e.MasterOrSelf;
-
     // find previous override record in a list of overrides for master record
+    m := e.MasterOrSelf;
     prevovr := m;
     for j := 0 to Pred(m.OverrideCount) do begin
       ovr := m.Overrides[j];
@@ -392,18 +392,23 @@ begin
     if ConflictAllForElements(prevovr, e, False, False) <= caNoConflict then begin
       Tracker.Write('    Removing ITPO: ' + e.Name);
 
-      // remove ITPO and empty containers
-      container := e.Container;
-      e.Remove;
-      try
-        RemoveEmptyContainers(container);
-      except
-        on x: Exception do
-          Tracker.Write('      Exception removing empty containers: '+x.Message);
-      end;
-
-      // increment our ITPO counter
+      // add ITPO to list of records to remove
+      SetLength(ITPOs, CountITPO + 1);
+      ITPOs[CountITPO] := e;
       Inc(CountITPO);
+    end;
+  end;
+
+  // remove the records
+  for i := Pred(Length(ITPOs)) downto 0 do begin
+    e := ITPOs[i];
+    container := e.Container;
+    e.Remove;
+    try
+      RemoveEmptyContainers(container);
+    except
+      on x: Exception do
+        Tracker.Write('      Exception removing empty containers: '+x.Message);
     end;
   end;
 
@@ -417,7 +422,12 @@ var
 begin
   patchFile := patch.plugin._File;
   patchFile.CleanMasters;
-  RemoveITPOs(patchFile);
+  try
+    RemoveITPOs(patchFile);
+  except
+    on x: Exception do
+      Tracker.Write('    Exception removing ITPOs: '+x.Message);
+  end;
 end;
 
 procedure SavePatchFiles(var patch: TPatch);
