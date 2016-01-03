@@ -262,7 +262,7 @@ begin
             exit;
           // remove element from destination
           if settings.debugArrays then
-            Tracker.Write('        > Removing element at '+dst.Path+' with values: '+slMst[i]);
+            Tracker.Write('        > Removing element at '+dst.Path+' with key: '+slMst[i]);
           dstCont.RemoveElement(d_ndx);
           slDst.Delete(d_ndx);
         end;
@@ -284,7 +284,7 @@ begin
           exit;
         // add element to destination
         if settings.debugArrays then
-          Tracker.Write('        > Adding element at '+dst.Path+' with values: '+slSrc[i]);
+          Tracker.Write('        > Adding element at '+dst.Path+' with key: '+slSrc[i]);
         de := dstCont.Assign(dstCont.ElementCount, se, false);
         if bSorted then
           slDst.Insert(dstCont.IndexOf(de), slSrc[i])

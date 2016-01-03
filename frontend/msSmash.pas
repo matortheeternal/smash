@@ -285,13 +285,11 @@ begin
 
       // finally, recursively copy overridden elements
       try
-        Tracker.Write(Format('    Smashing override from: %s',
-          [f.FileName]));
         bDeletions := recObj.I['d'] = 1;
-        // conflict resolve with winning override in masters
-        mst := WinningOverrideInFiles(rec, patch.masters);
-        if not Assigned(mst) then
-          mst := rec;
+        // use winning override in masters as master record
+        mst := WinningOverrideInFiles(rec, plugin.masters);
+        Tracker.Write(Format('    Smashing override from: %s, master: %s',
+          [f.FileName, mst._File.FileName]));
         rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
           recObj, false, bDeletions);
       except
