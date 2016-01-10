@@ -715,7 +715,10 @@ begin
   rec := container.Add(sName);
   // exit if we couldn't add record
   if not Assigned(rec) then begin
-    ShowMessage('Couldn''t add '+sName+' to '+container.Path);
+    if Supports(container.Container, IwbGroupRecord) then
+      Result := BuildRecordDef(container.Container, sName, mrDef, recObj)
+    else
+      ShowMessage('Couldn''t add '+sName+' to '+container.Path);
     exit;
   end;
 
