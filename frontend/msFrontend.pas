@@ -1908,7 +1908,7 @@ begin
   GroupFilters.Add(TFilter.Create('GENERAL', true));
   GroupFilters.Add(TFilter.Create('LOAD', true));
   GroupFilters.Add(TFilter.Create('CLIENT', true));
-  GroupFilters.Add(TFilter.Create('MERGE', true));
+  GroupFilters.Add(TFilter.Create('PATCH', true));
   GroupFilters.Add(TFilter.Create('PLUGIN', true));
   GroupFilters.Add(TFilter.Create('ERROR', true));
   // INITIALIZE LABEL FILTERS
@@ -1927,14 +1927,14 @@ begin
   LabelFilters.Add(TFilter.Create('CLIENT', 'Response', true));
   LabelFilters.Add(TFilter.Create('CLIENT', 'Update', true));
   LabelFilters.Add(TFilter.Create('CLIENT', 'Report', true));
-  LabelFilters.Add(TFilter.Create('MERGE', 'Status', false));
-  LabelFilters.Add(TFilter.Create('MERGE', 'Create', true));
-  LabelFilters.Add(TFilter.Create('MERGE', 'Edit', true));
-  LabelFilters.Add(TFilter.Create('MERGE', 'Check', true));
-  LabelFilters.Add(TFilter.Create('MERGE', 'Clean', true));
-  LabelFilters.Add(TFilter.Create('MERGE', 'Delete', true));
-  LabelFilters.Add(TFilter.Create('MERGE', 'Build', true));
-  LabelFilters.Add(TFilter.Create('MERGE', 'Report', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Status', false));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Create', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Edit', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Check', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Clean', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Delete', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Build', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Report', true));
   LabelFilters.Add(TFilter.Create('PLUGIN', 'Report', true));
   LabelFilters.Add(TFilter.Create('PLUGIN', 'Check', true));
   LabelFilters.Add(TFilter.Create('PLUGIN', 'Tags', false));
@@ -4348,7 +4348,7 @@ begin
   Result := false;
   // true if number of hashes not equal to number of plugins
   if plugins.Count <> hashes.Count then begin
-    Logger.Write('MERGE', 'Status', name + ' -> Plugin count changed');
+    Logger.Write('PATCH', 'Status', name + ' -> Plugin count changed');
     Result := true;
     exit;
   end;
@@ -4357,7 +4357,7 @@ begin
     plugin := PluginByFilename(plugins[i]);
     if Assigned(plugin) then begin
       if plugin.hash <> hashes[i] then begin
-        Logger.Write('MERGE', 'Status', name + ' -> '+plugin.filename + ' hash changed.');
+        Logger.Write('PATCH', 'Status', name + ' -> '+plugin.filename + ' hash changed.');
         Result := true;
       end;
     end;
@@ -4375,33 +4375,33 @@ var
   i: Integer;
   plugin: TPlugin;
 begin
-  Logger.Write('MERGE', 'Status', name + ' -> Getting status');
+  Logger.Write('PATCH', 'Status', name + ' -> Getting status');
   status := psUnknown;
 
   // don't patch if there aren't two or more plugins to patch
   if (plugins.Count < 2) then begin
-    Logger.Write('MERGE', 'Status', name + ' -> Need two or more plugins to patch');
+    Logger.Write('PATCH', 'Status', name + ' -> Need two or more plugins to patch');
     status := psNoPlugins;
     exit;
   end;
 
   // don't patch if mod destination directory is blank
   if (settings.patchDirectory = '') then begin
-    Logger.Write('MERGE', 'Status', name + ' -> Patch directory blank');
+    Logger.Write('PATCH', 'Status', name + ' -> Patch directory blank');
     status := psDirInvalid;
     exit;
   end;
 
   // don't patch if usingMO is true and MODirectory is blank
   if settings.usingMO and (settings.MOPath = '') then begin
-    Logger.Write('MERGE', 'Status', name + ' -> Mod Organizer Directory blank');
+    Logger.Write('PATCH', 'Status', name + ' -> Mod Organizer Directory blank');
     status := psDirInvalid;
     exit;
   end;
 
   // don't patch if usingMO is true and MODirectory is invalid
   if settings.usingMO and not DirectoryExists(settings.MOPath) then begin
-     Logger.Write('MERGE', 'Status', name + ' -> Mod Organizer Directory invalid');
+     Logger.Write('PATCH', 'Status', name + ' -> Mod Organizer Directory invalid');
      status := psDirInvalid;
      exit;
   end;
@@ -4412,7 +4412,7 @@ begin
 
     // see if plugin is loaded
     if not Assigned(plugin) then begin
-      Logger.Write('MERGE', 'Status', name + ' -> Plugin '+plugins[i]+' is missing');
+      Logger.Write('PATCH', 'Status', name + ' -> Plugin '+plugins[i]+' is missing');
       if status = psUnknown then status := psUnloaded;
       continue;
     end;
@@ -4420,13 +4420,13 @@ begin
 
   dataPath := settings.patchDirectory + name + '\';
   if (not PluginsModified) and FilesExist and (status = psUnknown) then begin
-    Logger.Write('MERGE', 'Status', name + ' -> Up to date');
+    Logger.Write('PATCH', 'Status', name + ' -> Up to date');
     status := psUpToDate;
   end;
 
   // status green, ready to go
   if status = psUnknown then begin
-    Logger.Write('MERGE', 'Status', name + ' -> Ready to be patchd');
+    Logger.Write('PATCH', 'Status', name + ' -> Ready to be patchd');
     if dateBuilt = 0 then
       status := psBuildReady
     else
