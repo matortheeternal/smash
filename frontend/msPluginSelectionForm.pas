@@ -81,6 +81,9 @@ begin
     if index > -1 then
       CheckListBox.Checked[index] := true;
   end;
+
+  // reset OK button enabled state
+  CheckListBoxClick(nil);
 end;
 
 procedure TPluginSelectionForm.InvertSelectionItemClick(Sender: TObject);
@@ -89,16 +92,25 @@ var
 begin
   for i := 0 to Pred(CheckListBox.GetCount) do
     CheckListBox.Checked[i] := not CheckListBox.Checked[i];
+
+  // reset OK button enabled state
+  CheckListBoxClick(nil);
 end;
 
 procedure TPluginSelectionForm.SelectAllItemClick(Sender: TObject);
 begin
   CheckListBox.CheckAll(cbChecked);
+
+  // reset OK button enabled state
+  CheckListBoxClick(nil);
 end;
 
 procedure TPluginSelectionForm.SelectNoneItemClick(Sender: TObject);
 begin
   CheckListBox.CheckAll(cbUnChecked);
+
+  // reset OK button enabled state
+  CheckListBoxClick(nil);
 end;
 
 end.
