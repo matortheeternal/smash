@@ -93,6 +93,7 @@ type
     procedure AutosetItemClick(Sender: TObject);
     // SETTINGS MANAGER EVENTS
     function GetGroup(name: string; var group: TListGroup): Boolean;
+    procedure AddSettingItem(aSetting: TSmashSetting; bSelect: Boolean = true);
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure SelectSetting(index: Integer);
@@ -877,13 +878,42 @@ begin
   end;
 end;
 
-procedure TSettingsManager.FormCreate(Sender: TObject);
+procedure TSettingsManager.AddSettingItem(aSetting: TSmashSetting;
+  bSelect: Boolean = true);
 var
-  i, index: Integer;
-  aSetting: TSmashSetting;
-  group: TListGroup;
+  index: Integer;
   item: TListItem;
   sGroupName: string;
+  group: TListGroup;
+begin
+  // add item to list view
+  item := lvSettings.Items.Add;
+  item.Caption := aSetting.name;
+  item.SubItems.Add(aSetting.records);
+
+  // get group
+  sGroupName := 'Ungrouped';
+  index := Pos('.', aSetting.name);
+  if index > 0 then
+    sGroupName := Copy(aSetting.name, 1, index - 1);
+  if not GetGroup(sGroupName, group) then begin
+    group := lvSettings.Groups.Add;
+    group.Header := sGroupName;
+    group.State := [lgsCollapsible];
+  end;
+
+  // assign group
+  item.GroupID := group.ID;
+
+  // set selected item to the new setting
+  if bSelect then
+    SelectSetting(item.Index);
+end;
+
+procedure TSettingsManager.FormCreate(Sender: TObject);
+var
+  i: Integer;
+  aSetting: TSmashSetting;
 begin
   // do a translation dump?
   if bTranslationDump then
@@ -900,25 +930,7 @@ begin
   // prepare groups and load items
   for i := 0 to Pred(SmashSettings.Count) do begin
     aSetting := TSmashSetting(SmashSettings[i]);
-
-    // add item
-    item := lvSettings.Items.Add;
-    item.Caption := aSetting.name;
-    item.SubItems.Add(aSetting.records);
-
-    // get group
-    sGroupName := 'Ungrouped';
-    index := Pos('.', aSetting.name);
-    if index > 0 then
-      sGroupName := Copy(aSetting.name, 1, index - 1);
-    if not GetGroup(sGroupName, group) then begin
-      group := lvSettings.Groups.Add;
-      group.Header := sGroupName;
-      group.State := [lgsCollapsible];
-    end;
-
-    // assign group
-    item.GroupID := group.ID;
+    AddSettingItem(aSetting, false);
   end;
 end;
 
@@ -1081,10 +1093,7 @@ begin
   newSetting := TSmashSetting.Create;
   NewSettings.Add(newSetting);
   SmashSettings.Add(newSetting);
-  lvSettings.Items.Count := lvSettings.Items.Count + 1;
-
-  // set selected item to the new setting
-  SelectSetting(lvSettings.Items.Count - 1);
+  AddSettingItem(newSetting);
 end;
 
 procedure TSettingsManager.DeleteSettingItemClick(Sender: TObject);
@@ -1095,7 +1104,7 @@ begin
   for i := Pred(lvSettings.Items.Count) downto 0 do begin
     if not lvSettings.Items[i].Selected then
       continue;
-    lvSettings.Items.Count := lvSettings.Items.Count - 1;
+    lvSettings.Items.Delete(i);
     setting := TSmashSetting(SmashSettings[i]);
     RemoveSettingFromPlugins(setting);
     SmashSettings.Delete(i);
@@ -1117,10 +1126,8 @@ begin
   setting := TSmashSetting(SmashSettings[lvSettings.Selected.Index]);
   clonedSetting.Clone(setting);
   SmashSettings.Add(clonedSetting);
-  lvSettings.Items.Count := lvSettings.Items.Count + 1;
-
-  // set selected item to the new setting
-  SelectSetting(lvSettings.Items.Count - 1);
+  // add setting to list view
+  AddSettingItem(clonedSetting);
 end;
 
 procedure TSettingsManager.CombineSettingsItemClick(Sender: TObject);
@@ -1165,9 +1172,8 @@ begin
   finally
     // update lvSettings if we created a new setting
     if SmashSettings.Count > lvSettings.Items.Count then begin
-      lvSettings.Items.Count := SmashSettings.Count;
-      // set selected item to the new setting
-      SelectSetting(lvSettings.Items.Count - 1);
+      setting := TSmashSetting(SmashSettings[Pred(SmashSettings.Count)]);
+      AddSettingItem(setting);
     end;
 
     // free memory
