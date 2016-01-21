@@ -106,6 +106,7 @@ type
         ImageConnected: TImage;
         bhLoader: TBalloonHint;
         bhLoadException: TBalloonHint;
+    ags1: TMenuItem;
 
     // SMASH FORM EVENTS
     procedure UpdateLog;
@@ -996,8 +997,8 @@ begin
   AddDetailsItem(GetString('msMain_Hash'), plugin.hash);
   AddDetailsItem(GetString('msMain_FileSize'), FormatByteSize(plugin.fileSize));
   AddDetailsItem(GetString('msMain_DateModified'), plugin.dateModified);
-  AddDetailsItem(GetString('msMain_NumRecords'), plugin.numRecords);
-  AddDetailsItem(GetString('msMain_NumOverrides'), plugin.numOverrides);
+  AddDetailsItem(GetString('msMain_NumRecords'), IntToStr(plugin.numRecords));
+  AddDetailsItem(GetString('msMain_NumOverrides'), IntToStr(plugin.numOverrides));
   AddDetailsItem(GetString('msMain_Author'), plugin.author);
   AddDetailsList(GetString('msMain_Description'), plugin.description);
   AddDetailsList(GetString('msMain_Masters'), plugin.masters);

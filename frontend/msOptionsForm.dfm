@@ -287,15 +287,11 @@ object OptionsForm: TOptionsForm
     object PatchingTabSheet: TTabSheet
       Caption = 'Patching'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbGeneral: TGroupBox
         Left = 3
         Top = 3
         Width = 554
-        Height = 54
+        Height = 75
         Caption = 'General'
         TabOrder = 0
         object lblDestinationDirectory: TLabel
@@ -323,10 +319,19 @@ object OptionsForm: TOptionsForm
           Height = 21
           TabOrder = 0
         end
+        object kbMergeRedundant: TCheckBox
+          Left = 12
+          Top = 44
+          Width = 200
+          Height = 17
+          Align = alCustom
+          Caption = 'Merge redundant plugins'
+          TabOrder = 1
+        end
       end
       object gbDebug: TGroupBox
         Left = 3
-        Top = 63
+        Top = 87
         Width = 554
         Height = 146
         Caption = 'Debug'
@@ -426,10 +431,6 @@ object OptionsForm: TOptionsForm
     object AdvancedTabSheet: TTabSheet
       Caption = 'Advanced'
       ImageIndex = 2
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbBackend: TGroupBox
         Left = 6
         Top = 72
@@ -710,10 +711,6 @@ object OptionsForm: TOptionsForm
     object IntegrationsTabSheet: TTabSheet
       Caption = 'Integrations'
       ImageIndex = 3
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object gbModOrganizer: TGroupBox
         Left = 6
         Top = 6
@@ -826,7 +823,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C010101000800400110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010101000800440110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

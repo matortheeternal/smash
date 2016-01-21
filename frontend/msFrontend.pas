@@ -131,8 +131,8 @@ type
     dateModified: string;
     filename: string;
     patch: string;
-    numRecords: string;
-    numOverrides: string;
+    numRecords: integer;
+    numOverrides: integer;
     author: string;
     dataPath: string;
     description: TStringList;
@@ -218,6 +218,7 @@ type
     preserveTempPath: boolean;
     [IniSection('Patching')]
     patchDirectory: string;
+    mergeRedundantPlugins: boolean;
     debugPatchStatus: boolean;
     debugMasters: boolean;
     debugArrays: boolean;
@@ -4061,6 +4062,8 @@ begin
   hasData := false;
   patch := ' ';
   setting := '';
+  numRecords := 0;
+  numOverrides := 0;
   smashSetting := SettingByName(setting);
   description := TStringList.Create;
   masters := TStringList.Create;
@@ -4087,7 +4090,7 @@ begin
   Container := _File as IwbContainer;
   Container := Container.Elements[0] as IwbContainer;
   author := Container.GetElementEditValue('CNAM - Author');
-  numRecords := Container.GetElementEditValue('HEDR - Header\Number of Records');
+  numRecords := Container.GetElementNativeValue('HEDR - Header\Number of Records') - 1;
 
   // get masters, flags
   GetMasters(_File, masters);
@@ -4106,8 +4109,8 @@ begin
   dateModified := DateTimeToStr(GetLastModified(wbDataPath + filename));
 
   // get numOverrides if not blacklisted
-  if (StrToInt(numRecords) < 10000) then
-    numOverrides := IntToStr(CountOverrides(_File));
+  if (numRecords < 10000) then
+    numOverrides := CountOverrides(_File);
 end;
 
 procedure TPlugin.GetHash;

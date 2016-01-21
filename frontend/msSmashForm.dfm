@@ -148,14 +148,12 @@ object SmashForm: TSmashForm
       Anchors = [akLeft, akTop, akRight, akBottom]
       TabOrder = 0
       OnChange = PageControlChange
-      ExplicitWidth = 654
       object PluginsTabSheet: TTabSheet
         Margins.Left = 4
         Margins.Top = 4
         Margins.Right = 4
         Margins.Bottom = 4
         Caption = 'Plugins'
-        ExplicitWidth = 646
         object PluginsListView: TListView
           Left = 3
           Top = 3
@@ -202,7 +200,6 @@ object SmashForm: TSmashForm
       object PatchesTabSheet: TTabSheet
         Caption = 'Patches'
         ImageIndex = 1
-        ExplicitWidth = 646
         object PatchesListView: TListView
           Left = 3
           Top = 3
@@ -247,13 +244,11 @@ object SmashForm: TSmashForm
           OnDblClick = PatchesListViewDblClick
           OnDrawItem = PatchesListViewDrawItem
           OnKeyDown = PatchesListViewKeyDown
-          ExplicitWidth = 640
         end
       end
       object LogTabSheet: TTabSheet
         Caption = 'Log'
         ImageIndex = 2
-        ExplicitWidth = 646
         object LogListView: TListView
           Left = 3
           Top = 3
@@ -296,7 +291,6 @@ object SmashForm: TSmashForm
           ViewStyle = vsReport
           OnData = LogListViewData
           OnDrawItem = LogListViewDrawItem
-          ExplicitWidth = 640
         end
       end
     end
@@ -310,8 +304,6 @@ object SmashForm: TSmashForm
     BevelOuter = bvNone
     Constraints.MinWidth = 200
     TabOrder = 2
-    ExplicitLeft = 663
-    ExplicitWidth = 601
     object DetailsLabel: TLabel
       Left = 6
       Top = 10
@@ -339,7 +331,6 @@ object SmashForm: TSmashForm
       OnDrawCell = DetailsGridDrawCell
       OnMouseMove = DetailsGridMouseMove
       OnMouseUp = DetailsGridMouseUp
-      ExplicitWidth = 591
     end
   end
   object StatusPanel: TPanel
@@ -784,8 +775,9 @@ object SmashForm: TSmashForm
     end
     object SmashSettingItem: TMenuItem
       Caption = 'Smash setting'
-      object TMenuItem
-      end
+    end
+    object ags1: TMenuItem
+      Caption = 'Manage tags'
     end
     object RemoveFromPatchItem: TMenuItem
       Caption = 'Remove from patch'
@@ -850,7 +842,7 @@ object SmashForm: TSmashForm
     Left = 1008
     Top = 8
     Bitmap = {
-      494C010108001400600240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010108001400640240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000000100006000000001002000000000000080
       0100000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

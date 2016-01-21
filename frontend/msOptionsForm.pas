@@ -95,6 +95,7 @@ type
         [FormSection('DontTranslate')]
           btnBrowseMO: TSpeedButton;
           btnBrowseMOMods: TSpeedButton;
+    kbMergeRedundant: TCheckBox;
 
     procedure FormCreate(Sender: TObject);
     procedure LoadLanguageOptions;
@@ -232,6 +233,7 @@ begin
 
   // Patching > General
   settings.patchDirectory := edPatchDirectory.Text;
+  settings.mergeRedundantPlugins := kbMergeRedundant.Checked;
   // Patching > Debug
   settings.debugPatchStatus := kbDebugPatchStatus.Checked;
   settings.debugMasters := kbDebugMasters.Checked;
@@ -450,6 +452,7 @@ begin
 
   // Patching > General
   edPatchDirectory.Text := settings.patchDirectory;
+  kbMergeRedundant.Checked := settings.mergeRedundantPlugins;
   // Patching > Debug
   kbDebugPatchStatus.Checked := settings.debugPatchStatus;
   kbDebugMasters.Checked := settings.debugMasters;
