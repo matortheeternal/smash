@@ -4341,8 +4341,13 @@ begin
     plugins.Add(item.AsString);
   for item in obj['pluginHashes'] do
     hashes.Add(item.AsString);
-  for item in obj['pluginSettings'] do
-    smashSettings.Add(item.AsString);
+  try
+    for item in obj['pluginSettings'] do
+      smashSettings.Add(item.AsString);
+  except
+    on x: Exception do
+      // nothing
+  end;
   for item in obj['masters'] do
     masters.Add(item.AsString);
   for item in obj['fails'] do
@@ -4371,7 +4376,8 @@ var
 begin
   Result := false;
   // true if number of hashes not equal to number of plugins
-  if plugins.Count <> hashes.Count then begin
+  if (plugins.Count <> hashes.Count)
+  or (plugins.Count <> smashSettings.Count) then begin
     Logger.Write('PATCH', 'Status', name + ' -> Plugin count changed');
     Result := true;
     exit;
