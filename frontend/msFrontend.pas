@@ -160,6 +160,7 @@ type
     plugin: TPlugin;
     plugins: TStringList;
     hashes: TStringList;
+    smashSettings: TStringList;
     masters: TStringList;
     fails: TStringList;
     constructor Create; virtual;
@@ -168,6 +169,7 @@ type
     procedure LoadDump(obj: ISuperObject);
     function GetTimeCost: integer;
     procedure UpdateHashes;
+    procedure UpdateSettings;
     procedure UpdateDataPath;
     procedure GetStatus;
     procedure GetLoadOrders;
@@ -4254,6 +4256,7 @@ begin
   dateBuilt := 0;
   plugins := TStringList.Create;
   hashes := TStringList.Create;
+  smashSettings := TStringList.Create;
   masters := TStringList.Create;
   fails := TStringList.Create;
 end;
@@ -4262,6 +4265,7 @@ destructor TPatch.Destroy;
 begin
   plugins.Free;
   hashes.Free;
+  smashSettings.Free;
   masters.Free;
   fails.Free;
   inherited;
@@ -4280,13 +4284,16 @@ begin
   obj.S['filename'] := filename;
   obj.S['dateBuilt'] := DateTimeToStr(dateBuilt);
 
-  // plugins, pluginSizes, pluginDates, masters
+  // plugins, pluginHashes, pluginSettings, masters
   obj.O['plugins'] := SA([]);
   for i := 0 to Pred(plugins.Count) do
     obj.A['plugins'].S[i] := plugins[i];
   obj.O['pluginHashes'] := SA([]);
   for i := 0 to Pred(hashes.Count) do
     obj.A['pluginHashes'].S[i] := hashes[i];
+  obj.O['pluginSettings'] := SA([]);
+  for i := 0 to Pred(smashSettings.Count) do
+    obj.A['pluginSettings'].S[i] := smashSettings[i];
   obj.O['masters'] := SA([]);
   for i := 0 to Pred(masters.Count) do
     obj.A['masters'].S[i] := masters[i];
@@ -4320,6 +4327,8 @@ begin
     plugins.Add(item.AsString);
   for item in obj['pluginHashes'] do
     hashes.Add(item.AsString);
+  for item in obj['pluginSettings'] do
+    smashSettings.Add(item.AsString);
   for item in obj['masters'] do
     masters.Add(item.AsString);
   for item in obj['fails'] do
@@ -4359,6 +4368,16 @@ begin
     if Assigned(plugin) then begin
       if plugin.hash <> hashes[i] then begin
         Logger.Write('PATCH', 'Status', name + ' -> '+plugin.filename + ' hash changed.');
+        Result := true;
+      end;
+    end;
+  end;
+  // true if any plugin setting doesn't match
+  for i := 0 to Pred(plugins.count) do begin
+    plugin := PluginByFilename(plugins[i]);
+    if Assigned(plugin) then begin
+      if plugin.setting <> smashSettings[i] then begin
+        Logger.Write('PATCH', 'Status', name + ' -> '+plugin.filename + ' smash setting changed.');
         Result := true;
       end;
     end;
@@ -4455,6 +4474,20 @@ begin
     aPlugin := PluginByFilename(plugins[i]);
     if Assigned(aPlugin) then
       hashes.Add(aPlugin.hash);
+  end;
+end;
+
+// Update the settings list for the plugins in the patch
+procedure TPatch.UpdateSettings;
+var
+  i: Integer;
+  aPlugin: TPlugin;
+begin
+  smashSettings.Clear;
+  for i := 0 to Pred(plugins.Count) do begin
+    aPlugin := PluginByFilename(plugins[i]);
+    if Assigned(aPlugin) then
+      smashSettings.Add(aPlugin.setting);
   end;
 end;
 

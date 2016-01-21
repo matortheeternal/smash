@@ -436,8 +436,11 @@ var
   path, patchFilePrefix: string;
   patchFile: IwbFile;
 begin
-  // update patch plugin hashes
+  // update patch plugin hashes and settings
   patch.UpdateHashes;
+  patch.UpdateSettings;
+
+  // prepare local variables
   patchFile := patch.plugin._File;
   patchFilePrefix := patch.dataPath + 'smash\'+ChangeFileExt(patch.filename, '');
 
