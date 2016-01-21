@@ -239,7 +239,7 @@ begin
     exit;
   end;
 
-  // draw hint if on a node with the link parameter
+  // draw hint if on a node
   node := tvRecords.GetNodeAt(X, Y);
   if not Assigned(node) then
     exit;
@@ -249,6 +249,10 @@ begin
 
   // get hint
   sHint := node.Text + #13#10'Type: '+stToString(e.smashType);
+  if e.singleEntity then
+    sHint := sHint + #13#10'Treated as a single entity';
+  if e.preserveDeletions then
+    sHint := sHint + #13#10'Preserving deletions';
   if e.linkTo <> '' then
     sHint := sHint + #13#10'Linked to: '+e.linkTo;
   if e.linkFrom <> '' then
