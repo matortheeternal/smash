@@ -2630,6 +2630,7 @@ begin
   // or if not is set to be treated as a single entity
   if not Assigned(node) then exit;
   e := TElementData(node.Data);
+  if not Assigned(e) then exit;
   if e.singleEntity then exit;
 
   // parent state is checked if all siblings are checked
