@@ -57,7 +57,6 @@ __history/
 *.stat
 
 # Repository ignore
-*.json
 *.ini
 *.zip
 backend/logs/*.txt
@@ -67,3 +66,4 @@ frontend/__history/
 frontend/logs/
 frontend/patches/
 *.txaPackage
+frontend/profiles/
