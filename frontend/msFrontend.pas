@@ -4216,7 +4216,7 @@ begin
 
     // if tags are presented under a group, append the group name
     // and a . to the beginning of each setting name in the tag
-    if match.Groups.Item[1].Success then begin
+    if match.Groups.Item[1].Value <> '' then begin
       sTagGroup := TitleCase(match.Groups.Item[1].Value);
       SetLength(sTagGroup, Length(sTagGroup) - 1);
       Logger.Write('PLUGIN', 'Tags', 'Parsing as ' + sTagGroup + ' tags');

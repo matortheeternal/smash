@@ -241,7 +241,7 @@ var
   aSetting: TSmashSetting;
   recObj: ISuperObject;
   e, eCopy: IwbElement;
-  bDeletions, bForceCopy: boolean;
+  bDeletions: boolean;
 begin
   Tracker.Write(' ');
   Tracker.Write('Smashing records');
@@ -259,15 +259,14 @@ begin
     currentProgress := currentProgress + incProgress;
     Tracker.SetProgress(Round(currentProgress));
 
-    // handle bForceCopy
-    bForceCopy := false;
+    // handle merging of redundant plugins
     patchRec := nil;
     if settings.mergeRedundantPlugins then begin
       ovr := WinningOverrideInFiles(rec, patch.plugins);
       f := ovr._File;
       plugin := PluginByFileName(f.FileName);
       if plugin.numRecords = plugin.numOverrides then try
-        Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
+        Tracker.Write(Format('  [%d] Copying record %s', [i + 1, ovr.Name]));
         eCopy := wbCopyElementToFile(ovr, patchFile, false, true, '', '' ,'');
         patchRec := eCopy as IwbMainRecord;
       except
