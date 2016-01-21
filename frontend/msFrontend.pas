@@ -168,6 +168,7 @@ type
     procedure LoadDump(obj: ISuperObject);
     function GetTimeCost: integer;
     procedure UpdateHashes;
+    procedure UpdateDataPath;
     procedure GetStatus;
     procedure GetLoadOrders;
     procedure SortPlugins;
@@ -4392,6 +4393,9 @@ begin
     exit;
   end;
 
+  // update the patch's data path
+  UpdateDataPath;
+
   // don't patch if usingMO is true and MODirectory is blank
   if settings.usingMO and (settings.MOPath = '') then begin
     Logger.Write('PATCH', 'Status', name + ' -> Mod Organizer Directory blank');
@@ -4418,7 +4422,8 @@ begin
     end;
   end;
 
-  dataPath := settings.patchDirectory + name + '\';
+  // check plugins were modified or files were deleted before
+  // giving patch the up to date status
   if (not PluginsModified) and FilesExist and (status = psUnknown) then begin
     Logger.Write('PATCH', 'Status', name + ' -> Up to date');
     status := psUpToDate;
@@ -4451,6 +4456,17 @@ begin
     if Assigned(aPlugin) then
       hashes.Add(aPlugin.hash);
   end;
+end;
+
+// Updates the data path to be used by the merge
+procedure TPatch.UpdateDataPath;
+begin
+  // use the game's data path instead of using a subfolder
+  // if the merge directory is the game's data path,
+  if (settings.patchDirectory = wbDataPath) then
+    dataPath := wbDataPath
+  else
+    dataPath := settings.patchDirectory + name + '\';
 end;
 
 // Get load order for plugins in patch that don't have it
