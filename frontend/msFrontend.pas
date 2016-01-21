@@ -3215,8 +3215,9 @@ begin
   // set other attributes
   newSetting.UpdateHash;
   newSetting.bVirtual := bVirtual;
+  newSetting.description := 'Combined setting:'#13#10 + name;
   if Length(name) > 24 then
-    newSetting.name := 'cs'+newSetting.hash
+    newSetting.name := Copy(name, 1, 20) + Copy(newSetting.hash, 1, 5)
   else
     newSetting.name := name;
 
@@ -4183,13 +4184,14 @@ procedure TPlugin.GetSettingTag;
 var
   regex: TRegEx;
   match: TMatch;
+  sSettingName, sTagGroup: String;
   sl, slRecords: TStringList;
   aSetting: TSmashSetting;
   settingsToCombine: TList;
   i: Integer;
 begin
   // get setting tags from description
-  regex := TRegEx.Create('{{(BASH:){0,1}([^}]*)}}');
+  regex := TRegEx.Create('{{([a-zA-Z]{1,10}:){0,1}([^}]*)}}');
   match := regex.Match(description.Text);
 
   // set to skip setting if no tag is found
@@ -4201,12 +4203,23 @@ begin
   // else parse settings from tag
   else begin
     Logger.Write('PLUGIN', 'Tags', 'Found tag '+match.Value+' for '+filename);
+    sTagGroup := '';
 
     // split tag on commas
     sl := TStringList.Create;
     sl.Delimiter := ',';
     sl.StrictDelimiter := true;
     sl.DelimitedText := match.Groups.Item[2].Value;
+
+    // if tags are presented under a group, append the group name
+    // and a . to the beginning of each setting name in the tag
+    if match.Groups.Item[1].Success then begin
+      sTagGroup := TitleCase(match.Groups.Item[1].Value);
+      SetLength(sTagGroup, Length(sTagGroup) - 1);
+      Logger.Write('PLUGIN', 'Tags', 'Parsing as ' + sTagGroup + ' tags');
+      for i := 0 to Pred(sl.Count) do
+        sl[i] := Format('%s.%s', [sTagGroup, sl[i]]);
+    end;
 
     // if only one setting present, use it
     if sl.Count = 1 then begin
@@ -4237,7 +4250,8 @@ begin
         Logger.Write('PLUGIN', 'Settings', 'Building combined setting');
         slRecords := TStringList.Create;
         CombineSettingTrees(settingsToCombine, slRecords);
-        aSetting := CreateCombinedSetting(slRecords, sl.DelimitedText, true);
+        sSettingName := sTagGroup + '.' + match.Groups.Item[2].Value;
+        aSetting := CreateCombinedSetting(slRecords, sSettingName, true);
         SetSmashSetting(aSetting);
       end;
     end;

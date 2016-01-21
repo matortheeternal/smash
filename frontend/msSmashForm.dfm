@@ -18,7 +18,7 @@ object SmashForm: TSmashForm
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter: TSplitter
-    Left = 660
+    Left = 670
     Top = 45
     Height = 615
     Beveled = True
@@ -131,7 +131,7 @@ object SmashForm: TSmashForm
   object MainPanel: TPanel
     Left = 0
     Top = 45
-    Width = 660
+    Width = 670
     Height = 615
     Align = alLeft
     BevelOuter = bvNone
@@ -141,23 +141,25 @@ object SmashForm: TSmashForm
     object PageControl: TPageControl
       Left = 3
       Top = 7
-      Width = 654
+      Width = 664
       Height = 605
       ActivePage = PluginsTabSheet
       Align = alCustom
       Anchors = [akLeft, akTop, akRight, akBottom]
       TabOrder = 0
       OnChange = PageControlChange
+      ExplicitWidth = 654
       object PluginsTabSheet: TTabSheet
         Margins.Left = 4
         Margins.Top = 4
         Margins.Right = 4
         Margins.Bottom = 4
         Caption = 'Plugins'
+        ExplicitWidth = 646
         object PluginsListView: TListView
           Left = 3
           Top = 3
-          Width = 640
+          Width = 650
           Height = 571
           Align = alCustom
           Anchors = [akLeft, akTop, akRight, akBottom]
@@ -173,7 +175,7 @@ object SmashForm: TSmashForm
             item
               Caption = 'Setting'
               Tag = 300
-              Width = 140
+              Width = 161
             end
             item
               Caption = 'Patch'
@@ -200,10 +202,11 @@ object SmashForm: TSmashForm
       object PatchesTabSheet: TTabSheet
         Caption = 'Patches'
         ImageIndex = 1
+        ExplicitWidth = 646
         object PatchesListView: TListView
           Left = 3
           Top = 3
-          Width = 640
+          Width = 650
           Height = 571
           Align = alCustom
           Anchors = [akLeft, akTop, akRight, akBottom]
@@ -244,15 +247,17 @@ object SmashForm: TSmashForm
           OnDblClick = PatchesListViewDblClick
           OnDrawItem = PatchesListViewDrawItem
           OnKeyDown = PatchesListViewKeyDown
+          ExplicitWidth = 640
         end
       end
       object LogTabSheet: TTabSheet
         Caption = 'Log'
         ImageIndex = 2
+        ExplicitWidth = 646
         object LogListView: TListView
           Left = 3
           Top = 3
-          Width = 640
+          Width = 650
           Height = 571
           Align = alCustom
           Anchors = [akLeft, akTop, akRight, akBottom]
@@ -291,19 +296,22 @@ object SmashForm: TSmashForm
           ViewStyle = vsReport
           OnData = LogListViewData
           OnDrawItem = LogListViewDrawItem
+          ExplicitWidth = 640
         end
       end
     end
   end
   object DetailsPanel: TPanel
-    Left = 663
+    Left = 673
     Top = 45
-    Width = 601
+    Width = 591
     Height = 615
     Align = alClient
     BevelOuter = bvNone
     Constraints.MinWidth = 200
     TabOrder = 2
+    ExplicitLeft = 663
+    ExplicitWidth = 601
     object DetailsLabel: TLabel
       Left = 6
       Top = 10
@@ -314,7 +322,7 @@ object SmashForm: TSmashForm
     object DetailsGrid: TStringGrid
       Left = 3
       Top = 27
-      Width = 591
+      Width = 581
       Height = 584
       Align = alCustom
       Anchors = [akLeft, akTop, akRight, akBottom]
@@ -331,6 +339,7 @@ object SmashForm: TSmashForm
       OnDrawCell = DetailsGridDrawCell
       OnMouseMove = DetailsGridMouseMove
       OnMouseUp = DetailsGridMouseUp
+      ExplicitWidth = 591
     end
   end
   object StatusPanel: TPanel
