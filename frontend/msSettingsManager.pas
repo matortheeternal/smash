@@ -125,6 +125,7 @@ var
   SettingsManager: TSettingsManager;
   NewSettings: TList;
   currentSetting: TSmashSetting;
+  currentSettingItem: TListItem;
   pForm: TProgressForm;
   LastCollapseTime: TDateTime;
 
@@ -986,6 +987,7 @@ begin
   btnSave.Enabled := true;
   btnDiscard.Enabled := true;
   currentSetting := TSmashSetting(SmashSettings[lvSettings.ItemIndex]);
+  currentSettingItem := lvSettings.Items[lvSettings.ItemIndex];
   edName.Text := currentSetting.name;
   edHash.Text := currentSetting.hash;
   cbColor.Selected := TColor(currentSetting.color);
@@ -1027,6 +1029,10 @@ begin
 
   // update edHash
   edHash.Text := currentSetting.hash;
+
+  // adjust the current setting in the list view
+  currentSettingItem.Caption := currentSetting.name;
+  currentSettingItem.SubItems[0] := currentSetting.records;
 
   // repaint list view
   lvSettings.Repaint;
