@@ -92,12 +92,12 @@ type
     procedure Autoset(parentNode: TTreeNode);
     procedure AutosetItemClick(Sender: TObject);
     // SETTINGS MANAGER EVENTS
+    function GetGroup(name: string; var group: TListGroup): Boolean;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure SelectSetting(index: Integer);
     procedure lvSettingsChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
-    procedure lvSettingsData(Sender: TObject; Item: TListItem);
     procedure lvSettingsDrawItem(Sender: TCustomListView; Item: TListItem;
       Rect: TRect; State: TOwnerDrawState);
     procedure SplitterMoved(Sender: TObject);
@@ -857,7 +857,29 @@ end;
 { Settings Manager Events }
 {******************************************************************************}
 
+function TSettingsManager.GetGroup(name: string; var group: TListGroup): Boolean;
+var
+  i: Integer;
+begin
+  Result := false;
+
+  // get the group
+  for i := 0 to Pred(lvSettings.Groups.Count) do begin
+    group := lvSettings.Groups[i];
+    if group.Header = name then begin
+      Result := true;
+      break;
+    end;
+  end;
+end;
+
 procedure TSettingsManager.FormCreate(Sender: TObject);
+var
+  i, index: Integer;
+  aSetting: TSmashSetting;
+  group: TListGroup;
+  item: TListItem;
+  sGroupName: string;
 begin
   // do a translation dump?
   if bTranslationDump then
@@ -870,6 +892,30 @@ begin
   NewSettings := TList.Create;
   lvSettings.OwnerDraw := not settings.simpleDictionaryView;
   lvSettings.Items.Count := SmashSettings.Count;
+
+  // prepare groups and load items
+  for i := 0 to Pred(SmashSettings.Count) do begin
+    aSetting := TSmashSetting(SmashSettings[i]);
+
+    // add item
+    item := lvSettings.Items.Add;
+    item.Caption := aSetting.name;
+    item.SubItems.Add(aSetting.records);
+
+    // get group
+    sGroupName := 'Ungrouped';
+    index := Pos('.', aSetting.name);
+    if index > 0 then
+      sGroupName := Copy(aSetting.name, 1, index - 1);
+    if not GetGroup(sGroupName, group) then begin
+      group := lvSettings.Groups.Add;
+      group.Header := sGroupName;
+      group.State := [lgsCollapsible];
+    end;
+
+    // assign group
+    item.GroupID := group.ID;
+  end;
 end;
 
 procedure TSettingsManager.FormShow(Sender: TObject);
@@ -970,31 +1016,33 @@ begin
   lvSettings.Repaint;
 end;
 
-procedure TSettingsManager.lvSettingsData(Sender: TObject; Item: TListItem);
-var
-  aSetting: TSmashSetting;
-begin
-  aSetting := TSmashSetting(SmashSettings[Item.Index]);
-  Item.Caption := aSetting.name;
-  Item.SubItems.Add(aSetting.records);
-  lvSettings.Canvas.Font.Color := aSetting.color;
-  lvSettings.Canvas.Font.Style := [fsBold];
-end;
-
 procedure TSettingsManager.lvSettingsDrawItem(Sender: TCustomListView;
   Item: TListItem; Rect: TRect; State: TOwnerDrawState);
 var
   i, x, y: integer;
   lv: TListView;
+  aSetting: TSmashSetting;
 begin
   lv := TListView(Sender);
+
+  // get color
+  aSetting := TSmashSetting(SmashSettings[Item.Index]);
+  lv.Canvas.Font.Color := aSetting.color;
+  lv.Canvas.Font.Style := [fsBold];
+  lv.Canvas.Refresh;
+
+  // draw selected rect
   if Item.Selected then begin
     lv.Canvas.Brush.Color := $FFEEDD;
     lv.Canvas.FillRect(Rect);
   end;
+
+  // draw item
   x := Rect.Left;
   y := (Rect.Bottom - Rect.Top - lv.Canvas.TextHeight('Hg')) div 2 + Rect.Top;
   lv.Canvas.TextOut(x, y, ' '+Item.Caption);
+
+  // draw subitems
   for i := 0 to Item.SubItems.Count - 1 do begin
     Inc(x, ListView_GetColumnWidth(lv.Handle, lv.Columns[i].Index));
     lv.Canvas.TextOut(x, y, ' '+Item.SubItems[i]);
