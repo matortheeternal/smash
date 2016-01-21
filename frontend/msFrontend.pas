@@ -432,7 +432,7 @@ const
     stSortedArray, stSortedStructArray ];
   stValues = [ stString, stFloat, stInteger, stByteArray ];
 
-  // MERGE STATUSES
+  // PATCH STATUSES
   StatusArray: array[0..10] of TPatchStatus = (
     ( id: psUnknown; color: $808080; desc: 'Unknown'; ),
     ( id: psNoPlugins; color: $0000FF; desc: 'Need two or more plugins to patch'; ),
@@ -4458,11 +4458,11 @@ begin
   end;
 end;
 
-// Updates the data path to be used by the merge
+// Updates the data path to be used by the patch
 procedure TPatch.UpdateDataPath;
 begin
   // use the game's data path instead of using a subfolder
-  // if the merge directory is the game's data path,
+  // if the patch directory is the game's data path,
   if (settings.patchDirectory = wbDataPath) then
     dataPath := wbDataPath
   else
