@@ -4262,7 +4262,9 @@ begin
         Logger.Write('PLUGIN', 'Settings', 'Building combined setting');
         slRecords := TStringList.Create;
         CombineSettingTrees(settingsToCombine, slRecords);
-        sSettingName := sTagGroup + '.' + match.Groups.Item[2].Value;
+        sSettingName := match.Groups.Item[2].Value;
+        if sTagGroup <> '' then
+          sSettingName := sTagGroup + '.' + sSettingName;
         aSetting := CreateCombinedSetting(slRecords, sSettingName, true);
         SetSmashSetting(aSetting);
       end;
