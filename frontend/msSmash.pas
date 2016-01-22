@@ -555,7 +555,6 @@ begin
   msg := 'User cancelled smashing patches.';
   
   // set up directories
-  patch.DataPath := settings.patchDirectory + patch.name + '\';
   ForceDirectories(patch.dataPath + 'smash\');
 
   try

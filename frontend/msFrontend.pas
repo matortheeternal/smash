@@ -170,7 +170,6 @@ type
     function GetTimeCost: integer;
     procedure UpdateHashes;
     procedure UpdateSettings;
-    procedure UpdateDataPath;
     procedure GetStatus;
     procedure GetLoadOrders;
     procedure SortPlugins;
@@ -4447,7 +4446,7 @@ begin
   end;
 
   // update the patch's data path
-  UpdateDataPath;
+  dataPath := settings.patchDirectory;
 
   // don't patch if usingMO is true and MODirectory is blank
   if settings.usingMO and (settings.MOPath = '') then begin
@@ -4523,17 +4522,6 @@ begin
     if Assigned(aPlugin) then
       smashSettings.Add(aPlugin.setting);
   end;
-end;
-
-// Updates the data path to be used by the patch
-procedure TPatch.UpdateDataPath;
-begin
-  // use the game's data path instead of using a subfolder
-  // if the patch directory is the game's data path,
-  if (settings.patchDirectory = wbDataPath) then
-    dataPath := wbDataPath
-  else
-    dataPath := settings.patchDirectory + name + '\';
 end;
 
 // Get load order for plugins in patch that don't have it

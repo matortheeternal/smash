@@ -1991,7 +1991,7 @@ begin
     patch := TPatch(PatchesList[i]);
 
     // open in explorer
-    path := settings.patchDirectory + patch.name;
+    path := settings.patchDirectory;
     ForceDirectories(path);
     ShellExecute(0, 'open', PChar(path), '', '', SW_SHOWNORMAL);
   end;
