@@ -989,7 +989,7 @@ begin
   currentSetting := TSmashSetting(SmashSettings[lvSettings.ItemIndex]);
   currentSettingItem := lvSettings.Items[lvSettings.ItemIndex];
   edName.Text := currentSetting.name;
-  edHash.Text := currentSetting.hash;
+  edHash.Text := '$' + currentSetting.hash;
   cbColor.Selected := TColor(currentSetting.color);
   meDescription.Lines.Text := currentSetting.description;
 

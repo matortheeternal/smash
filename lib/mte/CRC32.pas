@@ -83,7 +83,7 @@ begin
   FreeMem(Buffer, SizeOf(B));
   CloseFile(F);
   CRC := Not CRC;
-  Result := '$' + HextL(CRC);
+  Result := HextL(CRC);
 end;
 
 function StrCRC32(input: string): string;
@@ -98,7 +98,7 @@ begin
   for i := 0 to Pred(Length(B)) do
     CRC := RecountCRC(B[i], CRC);
   CRC := Not CRC;
-  Result := '$' + HextL(CRC);
+  Result := HextL(CRC);
 end;
 
 end.

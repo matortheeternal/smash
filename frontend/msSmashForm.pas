@@ -994,7 +994,7 @@ begin
 
   // add details items
   AddDetailsItem(GetString('msMain_Filename'), plugin.filename);
-  AddDetailsItem(GetString('msMain_Hash'), plugin.hash);
+  AddDetailsItem(GetString('msMain_Hash'), '$' + plugin.hash);
   AddDetailsItem(GetString('msMain_FileSize'), FormatByteSize(plugin.fileSize));
   AddDetailsItem(GetString('msMain_DateModified'), plugin.dateModified);
   AddDetailsItem(GetString('msMain_NumRecords'), IntToStr(plugin.numRecords));
