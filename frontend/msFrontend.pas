@@ -3192,7 +3192,7 @@ end;
 function CreateCombinedSetting(var sl: TStringList; name: string;
   bVirtual: boolean = false): TSmashSetting;
 var
-  i: Integer;
+  i, index: Integer;
   newSetting, aSetting: TSmashSetting;
   recordObj, existingRecordObj: ISuperObject;
 begin
@@ -3218,14 +3218,22 @@ begin
   newSetting.UpdateHash;
   newSetting.bVirtual := bVirtual;
   newSetting.description := 'Combined setting:'#13#10 + name;
-  if Length(name) > 24 then
-    newSetting.name := Copy(name, 1, 20) + Copy(newSetting.hash, 1, 5)
+  index := Pos('.', name);
+  if (index > 0) and (index < 11) then
+    newSetting.name := Format('%sCombined-%s', [Copy(name, 1, index), newSetting.hash])
   else
-    newSetting.name := name;
+    newSetting.name := 'Combined-'+newSetting.hash;
 
   // add new setting to SmashSettings list
-  SmashSettings.Add(newSetting);
-  Result := newSetting;
+  aSetting := SettingByName(newSetting.name);
+  if not Assigned(aSetting) then begin
+    SmashSettings.Add(newSetting);
+    Result := newSetting;
+  end
+  else begin
+    newSetting.Free;
+    Result := aSetting;
+  end;
 end;
 
 function CombineSettingTrees(var lst: TList; var slSettings: TStringList): boolean;
