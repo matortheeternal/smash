@@ -323,7 +323,7 @@ type
   { Log methods }
   procedure InitLog;
   procedure RebuildLog;
-  procedure SaveLog(var Log: TList);
+  procedure SaveLog(var Log: TList; path: String);
   function MessageEnabled(msg: TLogMessage): boolean;
   { Loading and saving methods }
   procedure LoadLanguage;
@@ -365,8 +365,6 @@ type
   function ctToString(ct: TConflictThis): string;
   function GetSmashType(element: IwbElement): TSmashType;
   procedure HandleCanceled(msg: string);
-  procedure RenamePatches(var sl: TStringList);
-  procedure GetPatchesToRename(var sl: TStringList);
   procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
   procedure DeleteTempPath;
   procedure ShowProgressForm(parent: TForm; var pf: TProgressForm; s: string);
@@ -489,7 +487,7 @@ var
   dictionary, blacklist, PluginsList, PatchesList, BaseLog, Log,
   LabelFilters, GroupFilters, pluginsToHandle, patchesToBuild, SmashSettings: TList;
   TreeView: TTreeView;
-  timeCosts, language, ActiveMods: TStringList;
+  timeCosts, language, ActiveMods, SavedPluginPaths: TStringList;
   settings: TSettings;
   CurrentProfile: TProfile;
   statistics, sessionStatistics: TStatistics;
@@ -1965,7 +1963,7 @@ begin
   end;
 end;
 
-procedure SaveLog(var Log: TList);
+procedure SaveLog(var Log: TList; path: String);
 var
   sl: TStringList;
   i: Integer;
@@ -1978,8 +1976,8 @@ begin
     sl.Add(Format('[%s] (%s) %s: %s', [msg.time, msg.group, msg.&label, msg.text]));
   end;
   fdt := FormatDateTime('mmddyy_hhnnss', TDateTime(Now));
-  ForceDirectories(LogPath);
-  sl.SaveToFile(LogPath+'log_'+fdt+'.txt');
+  ForceDirectories(path);
+  sl.SaveToFile(path+'log_'+fdt+'.txt');
   sl.Free;
 end;
 
@@ -2247,27 +2245,24 @@ end;
 procedure RenameSavedPlugins;
 var
   i: Integer;
-  plugin: TPlugin;
   oldFileName, newFileName, bakFileName: string;
 begin
-  wbFileForceClosed;
-  for i := Pred(PluginsList.Count) downto 0 do begin
-    plugin := TPlugin(PluginsList[i]);
-    try
-      plugin._File._Release;
-      oldFileName := plugin.dataPath + plugin.filename;
-      newFileName := oldFileName + '.save';
-      if FileExists(newFileName) then begin
-        bakFileName := oldFileName + '.bak';
-        if FileExists(bakFileName) then
-          DeleteFile(bakFileName);
-        RenameFile(oldFileName, bakFileName);
-        RenameFile(newFileName, oldFileName);
-      end;
-    except
-      on x: Exception do
-        Tracker.Write('Failed to rename ' + plugin.filename + '.save');
-    end;
+  // tracker message
+  Tracker.Write(' ');
+  Tracker.Write('Renaming saved plugins');
+
+  for i := Pred(SavedPluginPaths.Count) downto 0 do try
+    oldFileName := SavedPluginPaths[i];
+    newFileName := oldFileName + '.save';
+    bakFileName := oldFileName + '.bak';
+    Tracker.Write(Format('    Renaming %s to %s', [ExtractFileName(newFileName), ExtractFileName(oldFileName)]));
+    if FileExists(bakFileName) then
+      DeleteFile(bakFileName);
+    RenameFile(oldFileName, bakFileName);
+    RenameFile(newFileName, oldFileName);
+  except
+    on x: Exception do
+      Tracker.Write('      Failed to rename ' + newFileName);
   end;
 end;
 
@@ -2945,35 +2940,6 @@ procedure HandleCanceled(msg: string);
 begin
   if Tracker.Cancel then
     raise Exception.Create(msg);
-end;
-
-procedure RenamePatches(var sl: TStringList);
-var
-  i: Integer;
-  oldPath, newPath: string;
-begin
-  for i := 0 to Pred(sl.Count) do begin
-    oldPath := sl[i];
-    newPath := RemoveFromEnd(oldPath, '.smash');
-    if FileExists(newPath + '.bak') then
-      DeleteFile(newPath + '.bak');
-    RenameFile(newPath, newPath + '.bak');
-    RenameFile(oldPath, newPath);
-  end;
-end;
-
-procedure GetPatchesToRename(var sl: TStringList);
-var
-  i: Integer;
-  patch: TPatch;
-  path: string;
-begin
-  for i := 0 to Pred(PatchesList.Count) do begin
-    patch := TPatch(PatchesList[i]);
-    path := patch.dataPath + patch.filename + '.smash';
-    if FileExists(path) then
-      sl.Add(path);
-  end;
 end;
 
 procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
@@ -4353,19 +4319,18 @@ var
   FileStream: TFileStream;
 begin
   // save plugin
-  path := dataPath + filename;
+  path := dataPath + filename + '.save';
   Tracker.Write(' ');
   Tracker.Write('Saving: ' + path);
+  Logger.Write('PLUGIN', 'Save', path);
   try
     FileStream := TFileStream.Create(path, fmCreate);
     _File.WriteToStream(FileStream, False);
+    if SavedPluginPaths.IndexOf(path) = -1 then
+      SavedPluginPaths.Add(dataPath + filename);
   except
-    on x: Exception do begin
-      path := path + '.smash';
-      FileStream := TFileStream.Create(path, fmCreate);
-      Tracker.Write('Failed to save, saving to: '+path);
-      _File.WriteToStream(FileStream, False);
-    end;
+    on x: Exception do
+      Tracker.Write('Failed to save: '+x.Message);
   end;
   TryToFree(FileStream);
 end;
@@ -4927,6 +4892,16 @@ begin
 
   // then change name in the object
   self.name := name;
+end;
+
+Initialization
+begin
+  SavedPluginPaths := TStringList.Create;
+end;
+
+Finalization
+begin
+  SavedPluginPaths.Free;
 end;
 
 

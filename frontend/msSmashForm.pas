@@ -343,13 +343,7 @@ begin
 end;
 
 procedure TSmashForm.FormDestroy(Sender: TObject);
-var
-  patchesToRename: TStringList;
 begin
-  // build list of patches to rename
-  patchesToRename := TStringList.Create;
-  GetPatchesToRename(patchesToRename);
-
   // free all lists
   FreeList(SmashSettings);
   FreeList(GroupFilters);
@@ -371,10 +365,6 @@ begin
   TryToFree(status);
   TryToFree(remoteStatus);
   TryToFree(TCPClient);
-
-  // rename patches
-  RenamePatches(patchesToRename);
-  patchesToRename.Free;
 end;
 
 procedure TSmashForm.ToggleFormState(bEnabled: boolean);
@@ -552,7 +542,7 @@ begin
 
     // show progress form
     pForm := TProgressForm.Create(Self);
-    pForm.LogPath := LogPath + 'main\';
+    pForm.LogPath := LogPath + 'save\';
     pForm.PopupParent := Self;
     pForm.Caption := GetLanguageString('msProg_Closing');
     pForm.SetMaxProgress(PluginsList.Count + PatchesList.Count + 2);
@@ -579,6 +569,7 @@ begin
     ShellExecute(Application.Handle, 'runas', PChar(ParamStr(0)), '', '', SW_SHOWNORMAL);
 
   // allow close and close
+  SaveLog(BaseLog, LogPath + 'main\');
   bAllowClose := true;
   Close;
 end;
@@ -1292,7 +1283,6 @@ begin
       if ListItem.Selected then begin
         plugin := TPlugin(PluginsList[i]);
         pluginsToClear.Add(plugin);
-        ListItem.Selected := false;
         pluginNames := pluginNames + #13#10'    - ' + plugin.filename;
       end;
     end;
@@ -1314,7 +1304,7 @@ begin
     // clear tags on plugins in the list
     for i := 0 to Pred(pluginsToClear.Count) do begin
       plugin := TPlugin(pluginsToClear[i]);
-      Logger.Write('PLUGIN', 'Tags', 'Clearning tags on '+plugin.filename);
+      Logger.Write('PLUGIN', 'Tags', 'Clearing tags on '+plugin.filename);
       plugin.description.Text := ClearTags(plugin.description.Text);
       plugin.Save;
     end;
@@ -1704,7 +1694,7 @@ end;
 
 procedure TSmashForm.SaveAndClearItemClick(Sender: TObject);
 begin
-  SaveLog(BaseLog);
+  SaveLog(BaseLog, LogPath + 'main\');
   LogListView.Items.Count := 0;
   BaseLog.Clear;
   Log.Clear;

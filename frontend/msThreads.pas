@@ -347,6 +347,10 @@ begin
     Tracker.Write(' ');
     // save patches
     SavePatches;
+
+    // force close files
+    wbFileForceClosed;
+
     // rename saved plugins
     RenameSavedPlugins;
   end;
