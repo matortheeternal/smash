@@ -15,8 +15,8 @@ uses
   mteHelpers, mteTracker, mteLogger, mteProgressForm, mteTaskHandler,
   RttiTranslation,
   // ms units
-  msFrontend, msThreads, msOptionsForm, msEditForm,
-  msSettingsManager, msSplashForm,
+  msFrontend, msThreads, msOptionsForm, msEditForm, msSettingsManager,
+  msTagManager, msSplashForm,
   // tes5edit units
   wbBSA, wbHelpers, wbInterface, wbImplementation;
 
@@ -61,6 +61,7 @@ type
             PluginsPopupMenu: TPopupMenu;
             AddToPatchItem: TMenuItem;
             RemoveFromPatchItem: TMenuItem;
+            ManageTagsItem: TMenuItem;
             OpenPluginLocationItem: TMenuItem;
             SmashSettingItem: TMenuItem;
         [FormSection('Patches Tab')]
@@ -106,7 +107,6 @@ type
         ImageConnected: TImage;
         bhLoader: TBalloonHint;
         bhLoadException: TBalloonHint;
-    ags1: TMenuItem;
 
     // SMASH FORM EVENTS
     procedure UpdateLog;
@@ -208,6 +208,7 @@ type
     procedure ToggleAutoScrollItemClick(Sender: TObject);
     procedure ImageDisconnectedClick(Sender: TObject);
     procedure DictionaryButtonClick(Sender: TObject);
+    procedure ManageTagsItemClick(Sender: TObject);
   protected
     procedure WMSize(var AMessage: TMessage); message WM_SIZE;
     procedure WMMove(var AMessage: TMessage); message WM_MOVE;
@@ -1218,6 +1219,37 @@ begin
   patch := NewPatch;
   if Assigned(patch) then
     AddPluginsToPatch(patch);
+end;
+
+procedure TSmashForm.ManageTagsItemClick(Sender: TObject);
+var
+  i: integer;
+  ListItem: TListItem;
+  tmForm: TTagManager;
+  plugin: TPlugin;
+begin
+  for i := 0 to Pred(PluginsListView.Items.Count) do begin
+    // only process selected list items
+    ListItem := PluginsListView.Items[i];
+    if not ListItem.Selected then
+      continue;
+
+    // create a tag manager instance for the plugin
+    plugin := TPlugin(PluginsList[i]);
+    tmForm := TTagManager.Create(self);
+    try
+      tmForm.plugin := plugin;
+      tmForm.ShowModal;
+    finally
+      tmForm.Free;
+    end;
+  end;
+
+  // update
+  UpdatePatches;
+  UpdateListViews;
+  UpdateQuickbar;
+  UpdateStatusBar;
 end;
 
 { Remove from Patch }

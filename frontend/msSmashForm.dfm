@@ -776,8 +776,9 @@ object SmashForm: TSmashForm
     object SmashSettingItem: TMenuItem
       Caption = 'Smash setting'
     end
-    object ags1: TMenuItem
+    object ManageTagsItem: TMenuItem
       Caption = 'Manage tags'
+      OnClick = ManageTagsItemClick
     end
     object RemoveFromPatchItem: TMenuItem
       Caption = 'Remove from patch'
@@ -842,7 +843,7 @@ object SmashForm: TSmashForm
     Left = 1008
     Top = 8
     Bitmap = {
-      494C010108001400640240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010108001400680240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000000100006000000001002000000000000080
       0100000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
