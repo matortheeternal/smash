@@ -31,6 +31,10 @@ object OptionsForm: TOptionsForm
     TabWidth = 80
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object gbStyle: TGroupBox
         Left = 6
         Top = 163
@@ -287,6 +291,10 @@ object OptionsForm: TOptionsForm
     object PatchingTabSheet: TTabSheet
       Caption = 'Patching'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object gbGeneral: TGroupBox
         Left = 3
         Top = 3
@@ -431,6 +439,10 @@ object OptionsForm: TOptionsForm
     object AdvancedTabSheet: TTabSheet
       Caption = 'Advanced'
       ImageIndex = 2
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object gbBackend: TGroupBox
         Left = 6
         Top = 72
@@ -711,6 +723,10 @@ object OptionsForm: TOptionsForm
     object IntegrationsTabSheet: TTabSheet
       Caption = 'Integrations'
       ImageIndex = 3
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object gbModOrganizer: TGroupBox
         Left = 6
         Top = 6
@@ -823,7 +839,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C010101000800440110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010101000800480110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

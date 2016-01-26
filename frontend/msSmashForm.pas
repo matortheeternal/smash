@@ -61,7 +61,10 @@ type
             PluginsPopupMenu: TPopupMenu;
             AddToPatchItem: TMenuItem;
             RemoveFromPatchItem: TMenuItem;
+            TagsItem: TMenuItem;
             ManageTagsItem: TMenuItem;
+            ApplySettingTagsItem: TMenuItem;
+            ClearTagsItem: TMenuItem;
             OpenPluginLocationItem: TMenuItem;
             SmashSettingItem: TMenuItem;
         [FormSection('Patches Tab')]
@@ -111,6 +114,7 @@ type
     // SMASH FORM EVENTS
     procedure UpdateLog;
     procedure LogMessage(const group, &label, text: string);
+    procedure ToggleFormState(bEnabled: boolean);
     procedure FormCreate(Sender: TObject);
     procedure InitDone;
     procedure FormShow(Sender: TObject);
@@ -209,6 +213,7 @@ type
     procedure ImageDisconnectedClick(Sender: TObject);
     procedure DictionaryButtonClick(Sender: TObject);
     procedure ManageTagsItemClick(Sender: TObject);
+    procedure ClearTagsItemClick(Sender: TObject);
   protected
     procedure WMSize(var AMessage: TMessage); message WM_SIZE;
     procedure WMMove(var AMessage: TMessage); message WM_MOVE;
@@ -370,6 +375,18 @@ begin
   // rename patches
   RenamePatches(patchesToRename);
   patchesToRename.Free;
+end;
+
+procedure TSmashForm.ToggleFormState(bEnabled: boolean);
+begin
+  // show/hide hints
+  if bEnabled then
+    DisplayHints
+  else
+    HideHints;
+
+  // disable/enable form
+  Enabled := bEnabled;
 end;
 
 procedure TSmashForm.WMSize(var AMessage: TMessage);
@@ -1250,6 +1267,57 @@ begin
   UpdateListViews;
   UpdateQuickbar;
   UpdateStatusBar;
+end;
+
+procedure TSmashForm.ClearTagsItemClick(Sender: TObject);
+var
+  i: integer;
+  ListItem: TListItem;
+  pluginNames: String;
+  plugin: TPlugin;
+  pluginsToClear: TList;
+  bApproved: Boolean;
+  frmDialog: TForm;
+begin
+  pluginsToClear := TList.Create;
+  try
+    // add selected list items to the list
+    for i := 0 to Pred(PluginsListView.Items.Count) do begin
+      ListItem := PluginsListView.Items[i];
+      if ListItem.Selected then begin
+        plugin := TPlugin(PluginsList[i]);
+        pluginsToClear.Add(plugin);
+        ListItem.Selected := false;
+        pluginNames := pluginNames + #13#10'    - ' + plugin.filename;
+      end;
+    end;
+
+    // prompt user if a merge was selected
+    if pluginsToClear.Count > 0 then begin
+      frmDialog := CreateMessageDialog(GetLanguageString('msMain_ClearTags') +
+        pluginNames, mtConfirmation, mbOKCancel, mbOk);
+      frmDialog.PopupParent := self;
+      ToggleFormState(false);
+      bApproved := frmDialog.ShowModal = mrOk;
+      ToggleFormState(true);
+    end;
+
+    // clear tags on plugins in the list
+    for i := 0 to Pred(pluginsToClear.Count) do begin
+      plugin := TPlugin(pluginsToClear[i]);
+      Logger.Write('PLUGIN', 'Tags', 'Clearning tags on '+plugin.filename);
+      plugin.description.Text := ClearTags(plugin.description.Text);
+      plugin.Save;
+    end;
+
+    // update
+    UpdatePatches;
+    UpdateListViews;
+    UpdateQuickbar;
+    UpdateStatusBar;
+  finally
+    pluginsToClear.Free;
+  end;
 end;
 
 { Remove from Patch }
