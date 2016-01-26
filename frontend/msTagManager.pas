@@ -1,0 +1,231 @@
+unit msTagManager;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, ExtCtrls, StdCtrls, RegularExpressions,
+  // mte units
+  RttiTranslation,
+  // smash units
+  msFrontend, msTagHelper;
+
+type
+  TTagManager = class(TForm)
+    Panel: TPanel;
+    lblDescription: TLabel;
+    meDescription: TMemo;
+    btnClear: TButton;
+    btnRemove: TButton;
+    btnAdd: TButton;
+    btnCancel: TButton;
+    btnApply: TButton;
+    btnReset: TButton;
+    kbCombine: TCheckBox;
+    procedure btnAddClick(Sender: TObject);
+    procedure btnRemoveClick(Sender: TObject);
+    procedure btnClearClick(Sender: TObject);
+    procedure btnResetClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure ClearTags;
+    procedure ReadTags;
+    procedure WriteTags;
+    procedure AddTags(var slTagsToAdd: TStringList);
+    procedure RemoveTags(var slTagsToRemove: TStringList);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    plugin: TPlugin;
+  end;
+
+var
+  TagManager: TTagManager;
+
+implementation
+
+var
+  slTags: TStringList;
+
+{$R *.dfm}
+
+procedure TTagManager.btnAddClick(Sender: TObject);
+var
+  thForm: TTagHelper;
+begin
+  thForm := TTagHelper.Create(self);
+  try
+    thForm.iMode := 1;
+    thForm.slTags := TStringList.Create;
+    GetMissingTags(slTags, thForm.slTags);
+    if thForm.ShowModal = mrOK then
+      AddTags(thForm.slTags);
+  finally
+    ReadTags;
+    thForm.Free;
+  end;
+end;
+
+procedure TTagManager.btnRemoveClick(Sender: TObject);
+var
+  thForm: TTagHelper;
+begin
+  thForm := TTagHelper.Create(self);
+  try
+    thForm.iMode := -1;
+    thForm.slTags := TStringList.Create;
+    thForm.slTags.Text := slTags.Text;
+    if thForm.ShowModal = mrOK then
+      RemoveTags(thForm.slTags);
+  finally
+    ReadTags;
+    thForm.Free;
+  end;
+end;
+
+procedure TTagManager.btnClearClick(Sender: TObject);
+begin
+  ClearTags;
+  ReadTags;
+end;
+
+procedure TTagManager.btnResetClick(Sender: TObject);
+begin
+  meDescription.Lines.Text := plugin.description.Text;
+  ReadTags;
+end;
+
+procedure TTagManager.FormShow(Sender: TObject);
+begin
+  // update description and tags
+  meDescription.Lines.Text := plugin.description.Text;
+  ReadTags;
+
+  // update the form's caption
+  Caption := Format(GetString('msTagM_Caption'), [plugin.filename]);
+end;
+
+procedure TTagManager.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  if ModalResult = mrOK then begin
+    plugin.description.Text := meDescription.Lines.Text;
+    if kbCombine.Checked then
+      plugin.GetSettingTag;
+    plugin.Save;
+  end;
+end;
+
+procedure TTagManager.FormCreate(Sender: TObject);
+begin
+  // do a translation dump?
+  if bTranslationDump then
+    TRttiTranslation.Save('lang\english.lang', self);
+
+  // load translation
+  TRttiTranslation.Load(language, self);
+
+  // create tags stringlist
+  slTags := TStringList.Create;
+end;
+
+procedure TTagManager.FormDestroy(Sender: TObject);
+begin
+  slTags.Free;
+end;
+
+procedure TTagManager.ClearTags;
+var
+  sDescription: String;
+  regex: TRegex;
+  match: TMatch;
+begin
+  sDescription := meDescription.Lines.Text;
+  // find tags
+  regex := TRegex.Create('{{([^}]*)}}');
+  match := regex.Match(sDescription);
+
+  // delete tags
+  while match.Success do begin
+    sDescription := StringReplace(sDescription, match.Value, '', []);
+    match := match.NextMatch;
+  end;
+
+  // set description to the memo
+  meDescription.Lines.Text := Trim(sDescription);
+end;
+
+procedure TTagManager.ReadTags;
+var
+  bHasTags: Boolean;
+begin
+  slTags.Clear;
+  GetTags(meDescription.Lines.Text, slTags);
+  bHasTags := slTags.Count > 0;
+  btnClear.Enabled := bHasTags;
+  btnRemove.Enabled := bHasTags;
+end;
+
+procedure TTagManager.WriteTags;
+var
+  i, index: Integer;
+  sGroup, sTagGroup, sTags, tag: String;
+begin
+  // clear tags
+  ClearTags;
+
+  // if no tags to write, exit
+  if slTags.Count = 0 then
+    exit;
+
+  // see if all of the tags belong to the same group
+  for i := 0 to Pred(slTags.Count) do begin
+    tag := slTags[i];
+    index := Pos('.', tag);
+    sTagGroup := Copy(tag, 1, index - 1);
+    if (index > 0) and (index < 10) and (SameText(sGroup, sTagGroup) or (i = 0)) then
+      sGroup := sTagGroup
+    else
+      sGroup := '';
+  end;
+
+  // generate the string of tags
+  if sGroup <> '' then begin
+    sTags := StringReplace(slTags.CommaText, sGroup + '.', '', [rfReplaceAll, rfIgnoreCase]);
+    sTags := Format('{{%s:%s}}', [UpperCase(sGroup), sTags])
+  end
+  else
+    sTags := Format('{{%s}}', [slTags.CommaText]);
+
+  // write the tags to the description
+  meDescription.Lines.Add(' ');
+  meDescription.Lines.Add(sTags);
+end;
+
+procedure TTagManager.AddTags(var slTagsToAdd: TStringList);
+var
+  tag: string;
+begin
+  // add the tags to slTags
+  for tag in slTagsToAdd do
+    slTags.Add(tag);
+
+  // write tags to the description
+  WriteTags;
+end;
+
+procedure TTagManager.RemoveTags(var slTagsToRemove: TStringList);
+var
+  tag: string;
+begin
+  // remove the tags from slTags
+  for tag in slTagsToRemove do
+    slTags.Delete(slTags.IndexOf(tag));
+
+  // write tags to the description
+  WriteTags;
+end;
+
+end.
