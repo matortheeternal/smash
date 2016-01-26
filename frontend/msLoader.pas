@@ -78,7 +78,7 @@ begin
   ForceDirectories(PathList.Values['TempPath']);
   ForceDirectories(LogPath);
   ForceDirectories(PathList.Values['ProfilePath']);
-  //LocalStatus := TmpStatus.Create;
+  LocalStatus := TmsStatus.Create;
   LastStatusTime := 0;
 
   // SET GAME VARS
@@ -128,7 +128,11 @@ begin
   Logger.Write('GENERAL', 'Definitions', 'Using '+wbAppName+'Edit Definitions');
   LoadDefinitions;
 
-  // LOAD MERGES
+  // LOAD SMASH SETTINGS
+  Tracker.Write('Loading smash settings');
+  LoadSmashSettings;
+
+  // LOAD PATCHES
   Tracker.Write('Loading patches');
   LoadPatches;
 
@@ -139,7 +143,7 @@ begin
       Logger.Write('GENERAL', 'Load Order', 'Couldn''t find MO profile folder '+sLoadPath);
     sLoadPath := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA) + wbGameName+'\';
   end;
-  Logger.Write('GENERAL', 'Load Order', 'Using '+sLoadPath);
+  Logger.Write('GENERAL', 'Load Order', 'Using '+sLoadPath+'loadorder.txt');
 
   // LOAD LIST OF ACTIVE PLUGINS (plugins.txt)
   slPlugins := TStringList.Create;

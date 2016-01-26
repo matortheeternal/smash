@@ -118,6 +118,7 @@ begin
     Tracker.Write('Loading plugin information');
     TPatchHelpers.AssignPatchesToPlugins;
     LoadPluginInfo;
+    LoadSettingTags;
 
     // CLEAN UP
     slPlugins.Free;

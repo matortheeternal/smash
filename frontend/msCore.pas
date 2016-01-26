@@ -135,8 +135,11 @@ type
   procedure RenameSavedPlugins;
   procedure SavePatches;
   procedure LoadPatches;
+  procedure SaveSmashSettings;
+  procedure LoadSmashSettings;
   procedure SavePluginInfo;
   procedure LoadPluginInfo;
+  procedure LoadSettingTags;
   // Helper Functions
   procedure HandleCanceled(msg: string);
   function GetModContainingFile(var modlist: TStringList; filename: string): string;
@@ -1101,22 +1104,6 @@ begin
   sl.Free;
 end;
 
-procedure AssignPatchesToPlugins;
-var
-  i, j: Integer;
-  patch: TPatch;
-  plugin: TPlugin;
-begin
-  for i := 0 to Pred(PatchesList.Count) do begin
-    patch := TPatch(PatchesList[i]);
-    for j := 0 to Pred(patch.plugins.Count) do begin
-      plugin := PluginByFilename(patch.plugins[j]);
-      if Assigned(plugin) then
-        plugin.patch := patch.name;
-    end;
-  end;
-end;
-
 function IndexOfDump(a: TSuperArray; plugin: TPlugin): Integer;
 var
   i: Integer;
@@ -1234,6 +1221,8 @@ begin
   for i := 0 to Pred(PluginsList.Count) do try
     plugin := PluginsList[i];
     Tracker.UpdateProgress(1);
+    if not Assigned(plugin.smashSetting) then
+      continue;
     if plugin.smashSetting.bVirtual or (plugin.setting = 'Skip') then
       continue;
     Tracker.Write('  Dumping '+plugin.filename);

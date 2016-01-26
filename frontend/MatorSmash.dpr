@@ -60,7 +60,7 @@ begin
   // set important vars
   SysUtils.FormatSettings.DecimalSeparator := '.';
   Application.HintHidePause := 8000;
-  ReportMemoryLeaksOnShutdown := true;
+  //ReportMemoryLeaksOnShutdown := true;
   PathList.Values['ProgramPath'] := ExtractFilePath(ParamStr(0));
 
   // get current profile if profile switch provided
@@ -83,6 +83,8 @@ begin
   // initialize application
   Application.Initialize;
   ForceDirectories(ProgramPath + 'profiles');
+  LoadSettings;
+  LoadStatistics;
 
   // have user select game mode
   if not bProfileProvided then begin

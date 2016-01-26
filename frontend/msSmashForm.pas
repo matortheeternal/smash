@@ -299,12 +299,56 @@ begin
   Logger.Write(xEditLogGroup, xEditLogLabel, s);
 end;
 
+procedure InitLog;
+begin
+  BaseLog := TList.Create;
+  Log := TList.Create;
+  LabelFilters := TList.Create;
+  GroupFilters := TList.Create;
+  // INITIALIZE GROUP FILTERS
+  GroupFilters.Add(TFilter.Create('GENERAL', true));
+  GroupFilters.Add(TFilter.Create('LOAD', true));
+  GroupFilters.Add(TFilter.Create('CLIENT', true));
+  GroupFilters.Add(TFilter.Create('PATCH', true));
+  GroupFilters.Add(TFilter.Create('PLUGIN', true));
+  GroupFilters.Add(TFilter.Create('ERROR', true));
+  // INITIALIZE LABEL FILTERS
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Game', true));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Status', true));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Path', true));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Definitions', true));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Dictionary', true));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Load Order', true));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Log', true));
+  LabelFilters.Add(TFilter.Create('LOAD', 'Order', false));
+  LabelFilters.Add(TFilter.Create('LOAD', 'Plugins', false));
+  LabelFilters.Add(TFilter.Create('LOAD', 'Background', true));
+  LabelFilters.Add(TFilter.Create('CLIENT', 'Connect', true));
+  LabelFilters.Add(TFilter.Create('CLIENT', 'Login', true));
+  LabelFilters.Add(TFilter.Create('CLIENT', 'Response', true));
+  LabelFilters.Add(TFilter.Create('CLIENT', 'Update', true));
+  LabelFilters.Add(TFilter.Create('CLIENT', 'Report', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Status', false));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Create', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Edit', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Check', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Clean', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Delete', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Build', true));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Report', true));
+  LabelFilters.Add(TFilter.Create('PLUGIN', 'Report', true));
+  LabelFilters.Add(TFilter.Create('PLUGIN', 'Check', true));
+  LabelFilters.Add(TFilter.Create('PLUGIN', 'Tags', false));
+  LabelFilters.Add(TFilter.Create('PLUGIN', 'Settings', true));
+end;
+
 { Initialize form, initialize TES5Edit API, and load plugins }
 procedure TSmashForm.FormCreate(Sender: TObject);
 begin
   // INITIALIAZE BASE
   bCreated := false;
   AppStartTime := Now;
+  InitLog;
   Logger.OnLogEvent := LogMessage;
   //bAutoScroll := true;
   InitializeTaskbarAPI;
@@ -313,17 +357,17 @@ begin
   xEditLogLabel := 'Plugins';
   wbProgressCallback := ProgressMessage;
   StatusCallback := LoaderStatus;
+  UpdateCallback := AutoUpdate;
 
-  // load settings
-  PathList.Values['ProfilePath'] := PathList.Values['ProgramPath'] + 'profiles\' + CurrentProfile.name + '\';
-  ForceDirectories(PathList.Values['ProfilePath']);
-  LoadSettings;
+  if not InitBase then begin
+    ProgramStatus.bClose := true;
+    exit;
+  end;
 
   // CREATE SPLASH
   splash := TSplashForm.Create(nil);
   try
     InitCallback := InitDone;
-    UpdateCallback := AutoUpdate;
     TInitThread.Create;
     splash.ShowModal;
   finally
@@ -343,28 +387,11 @@ end;
 
 procedure TSmashForm.FormDestroy(Sender: TObject);
 begin
-  // free all lists
-  FreeList(SmashSettings);
+  // free lists
   FreeList(GroupFilters);
   FreeList(LabelFilters);
-  FreeList(BaseLog);
-  FreeList(PatchesList);
-  FreeList(PluginsList);
 
-  // free final items
-  //TryToFree(dictionary);
-  //TryToFree(blacklist);
-  TryToFree(language);
-  TryToFree(timeCosts);
-  TryToFree(Log);
-  TryToFree(BaseLog);
-  TryToFree(settings);
-  TryToFree(CurrentProfile);
-  TryToFree(ActiveMods);
-  TryToFree(statistics);
-  TryToFree(sessionStatistics);
-  TryToFree(LocalStatus);
-  TryToFree(RemoteStatus);
+  // free other items
   TryToFree(TCPClient);
   TryToFree(TaskHandler);
   TryToFree(slDetails);
