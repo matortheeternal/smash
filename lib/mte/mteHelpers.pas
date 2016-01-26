@@ -3,7 +3,7 @@ unit mteHelpers;
 interface
 
 uses
-  Windows, Forms, Classes, ComCtrls, Grids, StdCtrls, Types;
+  Windows, SysUtils, Forms, Classes, ComCtrls, Grids, StdCtrls, Types;
 
 type
   TCallback = procedure of object;
@@ -89,11 +89,12 @@ const
 
 var
   bAllowHelp: boolean;
+  enFormatSettings: TFormatSettings;
 
 implementation
 
 uses
-  SysUtils, Controls, Masks, Dialogs, StrUtils, FileCtrl, ShellApi,
+  Controls, Masks, Dialogs, StrUtils, FileCtrl, ShellApi,
   Messages, CommCtrl, DateUtils, shlObj, IOUtils, Registry;
 
 
@@ -1323,6 +1324,9 @@ end;
 initialization
 begin
   bAllowHelp := false;
+  enFormatSettings := TFormatSettings.Create('en-us');
+  enFormatSettings.DecimalSeparator := '.';
+  enFormatSettings.ThousandSeparator := ',';
 end;
 
 end.

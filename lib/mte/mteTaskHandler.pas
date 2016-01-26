@@ -23,6 +23,7 @@ type
   TTaskHandler = class(TObject)
   public
     TaskList: TList;
+    bExecutingTasks: boolean;
     procedure RemoveTask(taskName: string);
     procedure AddTask(task: TTask);
     procedure ExecTasks;
@@ -61,16 +62,24 @@ var
   i: Integer;
   task: TTask;
 begin
+  // exit if we're currently executing tasks
+  if bExecutingTasks then
+    exit;
+  bExecutingTasks := true;
+
   // loop through task list, executing tasks that are ready to be executed
   for i := Pred(TaskList.Count) downto 0 do begin
     task := TTask(TaskList[i]);
     if (Now - task.lastExecuted >= task.rate) then begin
       if bLogTasks and (task.rate > 60.0 * seconds) then
         Logger.Write('TASK', 'Execute', task.name);
-      task.Execute;
       task.lastExecuted := Now;
+      task.Execute;
     end;
   end;
+
+  // no longer executing tasks
+  bExecutingTasks := false;
 end;
 
 constructor TTaskHandler.Create;
