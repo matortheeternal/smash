@@ -42,6 +42,7 @@ msMain_Masters=Masters
 msMain_NewPatchItem_Caption=<New Patch>
 msMain_OpenPluginLocationItem_Caption=Open plugin location
 msMain_AddToPatchItem_Caption=Add to patch
+msMain_ManageTagsItem_Caption=Manage Tags
 msMain_SmashSettingItem_Caption=Smash setting
 { ## Patches Tab ## }
 msMain_PatchesTabSheet_Caption=Patches
@@ -182,6 +183,27 @@ msSet_IgnoreDeletionsItem_Caption=Toggle ignore deletions
 msSet_SingleEntityItem_Caption=Toggle treat as single entity
 msSet_PruneNodesItem_Caption=Prune nodes
 msSet_PreserveDeletionsItem_Caption=Toggle preserve deletions
+
+{ TTagManager }
+msTagM_Caption=Manage Tags - %s
+{ ## General ## }
+msTagM_lblDescription_Caption=Description
+msTagM_btnAdd_Caption=Add Tags
+msTagM_btnRemove_Caption=Remove Tags
+msTagM_btnClear_Caption=Clear Tags
+msTagM_btnReset_Caption=Reset Tags
+msTagM_btnApply_Caption=Apply
+msTagM_btnCancel_Caption=Cancel
+msTagM_kbCombine_Caption=Apply combined setting
+
+{ TTagHelper }
+msTagH_btnCancel_Caption=Cancel
+msTagH_btnOK_Caption=OK
+{ #### DYNAMIC #### }
+msTagH_AddTags=Add Tags
+msTagH_RemoveTags=Remove Tags
+msTagH_PromptAdd=Check the tags you want to add
+msTagH_PromptRemove=Check the tags you want to remove
 
 { TProgressForm }
 { #### DYNAMIC #### }
