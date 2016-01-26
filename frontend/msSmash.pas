@@ -505,36 +505,18 @@ end;
 
 procedure SavePatchFiles(var patch: TPatch);
 var
-  FileStream: TFileStream;
-  path, patchFilePrefix: string;
-  patchFile: IwbFile;
+  patchFilePrefix: string;
 begin
   // update patch plugin hashes and settings
   patch.UpdateHashes;
   patch.UpdateSettings;
 
-  // prepare local variables
-  patchFile := patch.plugin._File;
-  patchFilePrefix := patch.dataPath + 'smash\'+ChangeFileExt(patch.filename, '');
-
   // save patch plugin
-  path := patch.dataPath + patch.filename;
-  Tracker.Write(' ');
-  Tracker.Write('Saving: ' + path);
-  try
-    FileStream := TFileStream.Create(path, fmCreate);
-    patchFile.WriteToStream(FileStream, False);
-  except
-    on x: Exception do begin
-      path := path + '.smash';
-      FileStream := TFileStream.Create(path, fmCreate);
-      Tracker.Write('Failed to save, saving to: '+path);
-      patchFile.WriteToStream(FileStream, False);
-    end;
-  end;
-  TryToFree(FileStream);
+  patch.plugin.dataPath := patch.dataPath;
+  patch.plugin.Save;
 
   // save files, fails, plugins
+  patchFilePrefix := patch.dataPath + 'smash\'+ChangeFileExt(patch.filename, '');
   patch.fails.SaveToFile(patchFilePrefix+'_fails.txt');
   patch.plugins.SaveToFile(patchFilePrefix+'_plugins.txt');
 end;
