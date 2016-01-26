@@ -148,7 +148,10 @@ type
     procedure LoadInfoDump(obj: ISuperObject);
     function InfoDump: ISuperObject;
     procedure SetSmashSetting(aSetting: TSmashSetting);
+    procedure ApplyTags(sSettingName: String; var sl: TStringList;
+      var sTagGroup: String);
     procedure GetSettingTag;
+    procedure Save;
   end;
   TPatch = class(TObject)
   public
@@ -384,6 +387,9 @@ type
   function CreateNewPatch(patches: TList): TPatch;
   function CreateNewPlugin(filename: string): TPlugin;
   function PatchPluginsCompare(List: TStringList; Index1, Index2: Integer): Integer;
+  procedure GetMissingTags(var slPresent, slMissing: TStringList);
+  procedure ExtractTags(var match: TMatch; var sl: TStringList; var sTagGroup: String);
+  procedure GetTags(description: String; var sl: TStringList);
   { Client methods }
   procedure InitializeClient;
   procedure ConnectToServer;
@@ -3374,6 +3380,56 @@ begin
   Result := LO1 - LO2;
 end;
 
+procedure GetMissingTags(var slPresent, slMissing: TStringList);
+var
+  i: Integer;
+  aSetting: TSmashSetting;
+begin
+  for i := 0 to Pred(SmashSettings.Count) do begin
+    aSetting := TSmashSetting(SmashSettings[i]);
+    if slPresent.IndexOf(aSetting.name) = -1 then
+      slMissing.Add(aSetting.name);
+  end;
+end;
+
+procedure ExtractTags(var match: TMatch; var sl: TStringList;
+  var sTagGroup: String);
+var
+  i: Integer;
+begin
+  sTagGroup := '';
+
+  // split tag on commas
+  sl.Delimiter := ',';
+  sl.StrictDelimiter := true;
+  sl.DelimitedText := match.Groups.Item[2].Value;
+
+  // if tags are presented under a group, append the group name
+  // and a . to the beginning of each setting name in the tag
+  if match.Groups.Item[1].Value <> '' then begin
+    sTagGroup := TitleCase(match.Groups.Item[1].Value);
+    SetLength(sTagGroup, Length(sTagGroup) - 1);
+    Logger.Write('PLUGIN', 'Tags', 'Parsing as ' + sTagGroup + ' tags');
+    for i := 0 to Pred(sl.Count) do
+      sl[i] := Format('%s.%s', [sTagGroup, sl[i]]);
+  end;
+end;
+
+procedure GetTags(description: string; var sl: TStringList);
+var
+  regex: TRegEx;
+  match: TMatch;
+  sTagGroup: String;
+begin
+  // get setting tags from description
+  regex := TRegEx.Create('{{([a-zA-Z]{1,10}:){0,1}([^}]*)}}');
+  match := regex.Match(description);
+
+  // if match found, put the tags into the stringlist
+  if match.success then
+    ExtractTags(match, sl, sTagGroup);
+end;
+
 
 {******************************************************************************}
 { Client methods
@@ -4191,19 +4247,63 @@ begin
   end;
 end;
 
-procedure TPlugin.GetSettingTag;
+procedure TPlugin.ApplyTags(sSettingName: String; var sl: TStringList;
+  var sTagGroup: String);
 var
-  regex: TRegEx;
-  match: TMatch;
-  sSettingName, sTagGroup: String;
-  sl, slRecords: TStringList;
+  slRecords: TStringList;
   aSetting: TSmashSetting;
   settingsToCombine: TList;
   i: Integer;
 begin
+  // if only one setting present, use it
+  if sl.Count = 1 then begin
+    aSetting := GetSmashSetting(sl[0]);
+    SetSmashSetting(aSetting);
+  end
+  // else make a combined setting
+  else begin
+    settingsToCombine := TList.Create;
+
+    // loop through found settings
+    for i := Pred(sl.Count) downto 0 do begin
+      aSetting := GetSmashSetting(sl[i]);
+      if not Assigned(aSetting) then begin
+        sl.Delete(i);
+        continue;
+      end;
+      settingsToCombine.Add(aSetting);
+    end;
+
+    // if settingsToCombine has 0 settings, set to skip setting
+    if settingsToCombine.Count = 0 then
+      SetSmashSetting(nil)
+    // if settingToCombine has only 1 setting, use that setting
+    else if settingsToCombine.Count = 1 then
+      SetSmashSetting(settingsToCombine[0])
+    // else build a combined setting
+    else begin
+      Logger.Write('PLUGIN', 'Settings', 'Building combined setting');
+      slRecords := TStringList.Create;
+      CombineSettingTrees(settingsToCombine, slRecords);
+      if sTagGroup <> '' then
+        sSettingName := sTagGroup + '.' + sSettingName;
+      aSetting := CreateCombinedSetting(slRecords, sSettingName, true);
+      SetSmashSetting(aSetting);
+    end;
+  end;
+end;
+
+procedure TPlugin.GetSettingTag;
+var
+  regex: TRegEx;
+  match: TMatch;
+  sTagGroup: String;
+  sl: TStringList;
+begin
   // get setting tags from description
   regex := TRegEx.Create('{{([a-zA-Z]{1,10}:){0,1}([^}]*)}}');
   match := regex.Match(description.Text);
+  sl := TStringList.Create;
 
   // set to skip setting if no tag is found
   if not match.Success then begin
@@ -4214,64 +4314,35 @@ begin
   // else parse settings from tag
   else begin
     Logger.Write('PLUGIN', 'Tags', 'Found tag '+match.Value+' for '+filename);
-    sTagGroup := '';
-
-    // split tag on commas
-    sl := TStringList.Create;
-    sl.Delimiter := ',';
-    sl.StrictDelimiter := true;
-    sl.DelimitedText := match.Groups.Item[2].Value;
-
-    // if tags are presented under a group, append the group name
-    // and a . to the beginning of each setting name in the tag
-    if match.Groups.Item[1].Value <> '' then begin
-      sTagGroup := TitleCase(match.Groups.Item[1].Value);
-      SetLength(sTagGroup, Length(sTagGroup) - 1);
-      Logger.Write('PLUGIN', 'Tags', 'Parsing as ' + sTagGroup + ' tags');
-      for i := 0 to Pred(sl.Count) do
-        sl[i] := Format('%s.%s', [sTagGroup, sl[i]]);
-    end;
-
-    // if only one setting present, use it
-    if sl.Count = 1 then begin
-      aSetting := GetSmashSetting(sl[0]);
-      SetSmashSetting(aSetting);
-    end
-    // else make a combined setting
-    else begin
-      settingsToCombine := TList.Create;
-
-      // loop through found settings
-      for i := Pred(sl.Count) downto 0 do begin
-        aSetting := GetSmashSetting(sl[i]);
-        if not Assigned(aSetting) then begin
-          sl.Delete(i);
-          continue;
-        end;
-        settingsToCombine.Add(aSetting);
-      end;
-
-      // if settingToCombine has only 1 setting, just use that setting
-      if settingsToCombine.Count = 0 then
-        SetSmashSetting(nil)
-      else if settingsToCombine.Count = 1 then
-        SetSmashSetting(settingsToCombine[0])
-      // else build a combined setting
-      else begin
-        Logger.Write('PLUGIN', 'Settings', 'Building combined setting');
-        slRecords := TStringList.Create;
-        CombineSettingTrees(settingsToCombine, slRecords);
-        sSettingName := match.Groups.Item[2].Value;
-        if sTagGroup <> '' then
-          sSettingName := sTagGroup + '.' + sSettingName;
-        aSetting := CreateCombinedSetting(slRecords, sSettingName, true);
-        SetSmashSetting(aSetting);
-      end;
-    end;
-
-    // free memory
-    sl.Free;
+    ExtractTags(match, sl, sTagGroup);
+    ApplyTags(match.Groups.Item[2].Value, sl, sTagGroup);
   end;
+
+  // free memory
+  sl.Free;
+end;
+
+procedure TPlugin.Save;
+var
+  path: string;
+  FileStream: TFileStream;
+begin
+  // save plugin
+  path := dataPath + filename;
+  Tracker.Write(' ');
+  Tracker.Write('Saving: ' + path);
+  try
+    FileStream := TFileStream.Create(path, fmCreate);
+    _File.WriteToStream(FileStream, False);
+  except
+    on x: Exception do begin
+      path := path + '.smash';
+      FileStream := TFileStream.Create(path, fmCreate);
+      Tracker.Write('Failed to save, saving to: '+path);
+      _File.WriteToStream(FileStream, False);
+    end;
+  end;
+  TryToFree(FileStream);
 end;
 
 { TPatch Constructor }
