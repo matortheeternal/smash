@@ -30,7 +30,6 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure ClearTags;
     procedure ReadTags;
     procedure WriteTags;
     procedure AddTags(var slTagsToAdd: TStringList);
@@ -88,7 +87,7 @@ end;
 
 procedure TTagManager.btnClearClick(Sender: TObject);
 begin
-  ClearTags;
+  meDescription.Lines.Text := ClearTags(meDescription.Lines.Text);
   ReadTags;
 end;
 
@@ -136,27 +135,6 @@ begin
   slTags.Free;
 end;
 
-procedure TTagManager.ClearTags;
-var
-  sDescription: String;
-  regex: TRegex;
-  match: TMatch;
-begin
-  sDescription := meDescription.Lines.Text;
-  // find tags
-  regex := TRegex.Create('{{([^}]*)}}');
-  match := regex.Match(sDescription);
-
-  // delete tags
-  while match.Success do begin
-    sDescription := StringReplace(sDescription, match.Value, '', []);
-    match := match.NextMatch;
-  end;
-
-  // set description to the memo
-  meDescription.Lines.Text := Trim(sDescription);
-end;
-
 procedure TTagManager.ReadTags;
 var
   bHasTags: Boolean;
@@ -174,7 +152,7 @@ var
   sGroup, sTagGroup, sTags, tag: String;
 begin
   // clear tags
-  ClearTags;
+  meDescription.Lines.Text := ClearTags(meDescription.Lines.Text);
 
   // if no tags to write, exit
   if slTags.Count = 0 then

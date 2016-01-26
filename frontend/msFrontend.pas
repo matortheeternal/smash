@@ -388,6 +388,7 @@ type
   function CreateNewPatch(patches: TList): TPatch;
   function CreateNewPlugin(filename: string): TPlugin;
   function PatchPluginsCompare(List: TStringList; Index1, Index2: Integer): Integer;
+  function ClearTags(sDescription: String): String;
   procedure GetMissingTags(var slPresent, slMissing: TStringList);
   procedure ExtractTags(var match: TMatch; var sl: TStringList; var sTagGroup: String);
   procedure GetTags(description: String; var sl: TStringList);
@@ -3379,6 +3380,25 @@ begin
   LO1 := Integer(List.Objects[Index1]);
   LO2 := Integer(List.Objects[Index2]);
   Result := LO1 - LO2;
+end;
+
+function ClearTags(sDescription: String): String;
+var
+  regex: TRegex;
+  match: TMatch;
+begin
+  // find tags
+  regex := TRegex.Create('{{([^}]*)}}');
+  match := regex.Match(sDescription);
+
+  // delete tags
+  while match.Success do begin
+    sDescription := StringReplace(sDescription, match.Value, '', []);
+    match := match.NextMatch;
+  end;
+
+  // set description to the memo
+  Result := Trim(sDescription);
 end;
 
 procedure GetMissingTags(var slPresent, slMissing: TStringList);
