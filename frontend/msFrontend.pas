@@ -3404,6 +3404,10 @@ begin
   sl.StrictDelimiter := true;
   sl.DelimitedText := match.Groups.Item[2].Value;
 
+  // trim leading or trailing whitespace from tags
+  for i := 0 to Pred(sl.Count) do
+    sl[i] := Trim(sl[i]);
+
   // if tags are presented under a group, append the group name
   // and a . to the beginning of each setting name in the tag
   if match.Groups.Item[1].Value <> '' then begin
