@@ -310,6 +310,11 @@ begin
   wbProgressCallback := ProgressMessage;
   StatusCallback := LoaderStatus;
 
+  // load settings
+  ProfilePath := ProgramPath + 'profiles\' + CurrentProfile.name + '\';
+  ForceDirectories(ProfilePath);
+  LoadSettings;
+
   // CREATE SPLASH
   splash := TSplashForm.Create(nil);
   try
@@ -2018,7 +2023,7 @@ begin
     patch := TPatch(PatchesList[i]);
 
     // open in explorer
-    path := settings.patchDirectory;
+    path := patch.dataPath;
     ForceDirectories(path);
     ShellExecute(0, 'open', PChar(path), '', '', SW_SHOWNORMAL);
   end;

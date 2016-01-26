@@ -108,6 +108,12 @@
 			<DCCReference Include="msSmash.pas"/>
 			<DCCReference Include="msAlgorithm.pas"/>
 			<DCCReference Include="msConflict.pas"/>
+			<DCCReference Include="msTagManager.pas">
+				<Form>TagManager</Form>
+			</DCCReference>
+			<DCCReference Include="msTagHelper.pas">
+				<Form>TagHelper</Form>
+			</DCCReference>
 			<None Include="ModelSupport_MergePlugins\default.txvpck"/>
 			<None Include="ModelSupport_MatorSmash\default.txaPackage"/>
 			<None Include="ModelSupport_MatorSmash\default.txvpck"/>
@@ -161,7 +167,7 @@
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">2</VersionInfo>
 						<VersionInfo Name="Release">1</VersionInfo>
-						<VersionInfo Name="Build">13</VersionInfo>
+						<VersionInfo Name="Build">23</VersionInfo>
 						<VersionInfo Name="Debug">True</VersionInfo>
 						<VersionInfo Name="PreRelease">True</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -173,7 +179,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName"/>
 						<VersionInfoKeys Name="FileDescription"/>
-						<VersionInfoKeys Name="FileVersion">0.2.1.13</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.2.1.23</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName"/>
 						<VersionInfoKeys Name="LegalCopyright"/>
 						<VersionInfoKeys Name="LegalTrademarks"/>

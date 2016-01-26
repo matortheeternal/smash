@@ -5,7 +5,10 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls, ExtCtrls, pngimage,
-  mteTracker, mteHelpers;
+  // mte units
+  mteTracker, mteHelpers,
+  // smash units
+  msFrontend;
 
 type
   TSplashForm = class(TForm)
@@ -39,6 +42,9 @@ procedure TSplashForm.FormCreate(Sender: TObject);
 begin
   Tracker.OnLogEvent := ProgressMessage;
   lblVersion.Caption := 'v'+GetVersionMem;
+
+  if settings.simpleSplash then
+    lblProgress.GlowSize := 0;
 end;
 
 end.

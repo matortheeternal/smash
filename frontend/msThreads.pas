@@ -86,10 +86,8 @@ begin
     ProgramVersion := GetVersionMem;
     TempPath := ProgramPath + 'temp\';
     LogPath := ProgramPath + 'logs\';
-    ProfilePath := ProgramPath + 'profiles\' + CurrentProfile.name + '\';
     ForceDirectories(TempPath);
     ForceDirectories(LogPath);
-    ForceDirectories(ProfilePath);
     PatchesList := TList.Create;
     PluginsList := TList.Create;
     wbLoaderDone := false;
@@ -103,7 +101,6 @@ begin
     Logger.Write('GENERAL', 'Path', 'Using '+wbDataPath);
 
     // INITIALIZE SETTINGS FOR GAME
-    LoadSettings;
     LoadStatistics;
     LoadLanguage;
     if settings.usingMO then

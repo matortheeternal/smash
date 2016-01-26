@@ -35,7 +35,9 @@ uses
   msChoicePanel in 'msChoicePanel.pas',
   msSmash in 'msSmash.pas',
   msAlgorithm in 'msAlgorithm.pas',
-  msConflict in 'msConflict.pas';
+  msConflict in 'msConflict.pas',
+  msTagManager in 'msTagManager.pas' {TagManager},
+  msTagHelper in 'msTagHelper.pas' {TagHelper};
 
 {$R *.res}
 {$MAXSTACKSIZE 2097152}
@@ -97,5 +99,7 @@ begin
   Application.CreateForm(TSettingsManager, SettingsManager);
   Application.CreateForm(TPluginSelectionForm, PluginSelectionForm);
   Application.CreateForm(TConflictForm, ConflictForm);
+  Application.CreateForm(TTagManager, TagManager);
+  Application.CreateForm(TTagHelper, TagHelper);
   Application.Run;
 end.

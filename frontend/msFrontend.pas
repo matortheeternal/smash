@@ -204,6 +204,7 @@ type
     registered: boolean;
     simpleDictionaryView: boolean;
     simplePluginsView: boolean;
+    simpleSplash: boolean;
     updateDictionary: boolean;
     updateProgram: boolean;
     [IniSection('Advanced')]
