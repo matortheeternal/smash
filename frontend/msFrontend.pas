@@ -327,7 +327,7 @@ type
   function MessageEnabled(msg: TLogMessage): boolean;
   { Loading and saving methods }
   procedure LoadLanguage;
-  function GetString(name: string): string;
+  function GetLanguageString(name: string): string;
   procedure SaveProfile(var p: TProfile);
   procedure LoadRegistrationData(var s: TSettings);
   procedure LoadSettings; overload;
@@ -2077,7 +2077,7 @@ begin
     language.LoadFromFile(filename);
 end;
 
-function GetString(name: string): string;
+function GetLanguageString(name: string): string;
 begin
   if language.Values[name] <> '' then
     Result := StringReplace(language.Values[name], '#13#10', #13#10, [rfReplaceAll])
@@ -3900,7 +3900,7 @@ begin
     exit;
   filename := 'PatchPlugins.zip';
   if FileExists(filename) then begin
-    MessageDlg(GetString('mpOpt_PendingUpdate'), mtInformation, [mbOk], 0);
+    MessageDlg(GetLanguageString('mpOpt_PendingUpdate'), mtInformation, [mbOk], 0);
     Result := true;
     exit;
   end;

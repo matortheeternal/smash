@@ -61,12 +61,12 @@ begin
   // update lblPrompt
   case iMode of
     -1: begin
-      Caption := GetString('msTagH_RemoveTags');
-      lblPrompt.Caption := GetString('msTagH_PromptRemove');
+      Caption := GetLanguageString('msTagH_RemoveTags');
+      lblPrompt.Caption := GetLanguageString('msTagH_PromptRemove');
     end;
     1: begin
-      Caption := GetString('msTagH_AddTags');
-      lblPrompt.Caption := GetString('msTagH_PromptAdd');
+      Caption := GetLanguageString('msTagH_AddTags');
+      lblPrompt.Caption := GetLanguageString('msTagH_PromptAdd');
     end;
   end;
 

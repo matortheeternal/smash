@@ -105,7 +105,7 @@ begin
   ReadTags;
 
   // update the form's caption
-  Caption := Format(GetString('msTagM_Caption'), [plugin.filename]);
+  Caption := Format(GetLanguageString('msTagM_Caption'), [plugin.filename]);
 end;
 
 procedure TTagManager.FormClose(Sender: TObject; var Action: TCloseAction);

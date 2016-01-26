@@ -256,11 +256,11 @@ var
 begin
   FreeOnTerminate := true;
   StatusCallback(Format('%s (%d/%d)',
-    [GetString('msMain_LoaderInProgress'), 1, PluginsList.Count]));
+    [GetLanguageString('msMain_LoaderInProgress'), 1, PluginsList.Count]));
   try
     for i := 0 to Pred(PluginsList.Count) do begin
       StatusCallback(Format('%s (%d/%d)',
-        [GetString('msMain_LoaderInProgress'), i + 1, PluginsList.Count]));
+        [GetLanguageString('msMain_LoaderInProgress'), i + 1, PluginsList.Count]));
       plugin := TPlugin(PluginsList[i]);
       f := plugin._File;
       if SameText(plugin.filename, wbGameName + '.esm') then
@@ -280,7 +280,7 @@ begin
     end;
   end;
   LoaderProgress('finished');
-  StatusCallback(GetString('msMain_LoaderFinished'));
+  StatusCallback(GetLanguageString('msMain_LoaderFinished'));
   if Assigned(LoaderCallback) then
     Synchronize(nil, LoaderCallback);
 end;
@@ -297,7 +297,7 @@ begin
     if Tracker.Cancel then break;
     patch := TPatch(patchesToBuild[i]);
     StatusCallback(Format('%s "%s" (%d/%d)',
-      [GetString('msProg_Smashing'), patch.name, i + 1, patchesToBuild.Count]));
+      [GetLanguageString('msProg_Smashing'), patch.name, i + 1, patchesToBuild.Count]));
     try
       if (patch.status in RebuildStatuses) then
         RebuildPatch(patch)
@@ -319,7 +319,7 @@ begin
     Tracker.Write('All done!');
 
   // clean up, fire callback
-  StatusCallback(GetString('msProg_DoneBuilding'));
+  StatusCallback(GetLanguageString('msProg_DoneBuilding'));
   Tracker.Cancel := false;
   if Assigned(PatchCallback) then
     Synchronize(nil, PatchCallback);

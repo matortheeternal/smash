@@ -487,11 +487,11 @@ begin
 
     // LOAD AND DISPLAY HINTS
     if settings.buildRefs then
-      StatusPanelMessage.Caption := GetString('msMain_LoaderInProgress');
-    bhLoader.Title := GetString('msMain_LoaderInProgress');
-    bhLoader.Description := GetString('msMain_LoaderLimitations');
-    bhLoadException.Title := GetString('msMain_LoadException');
-    bhLoadException.Description := GetString('msMain_PluginsNotLoaded');
+      StatusPanelMessage.Caption := GetLanguageString('msMain_LoaderInProgress');
+    bhLoader.Title := GetLanguageString('msMain_LoaderInProgress');
+    bhLoader.Description := GetLanguageString('msMain_LoaderLimitations');
+    bhLoadException.Title := GetLanguageString('msMain_LoadException');
+    bhLoadException.Description := GetLanguageString('msMain_PluginsNotLoaded');
     DisplayHints;
 
     // initialize task handler
@@ -537,7 +537,7 @@ begin
     pForm := TProgressForm.Create(Self);
     pForm.LogPath := LogPath + 'main\';
     pForm.PopupParent := Self;
-    pForm.Caption := GetString('msProg_Closing');
+    pForm.Caption := GetLanguageString('msProg_Closing');
     pForm.SetMaxProgress(PluginsList.Count + PatchesList.Count + 2);
     pForm.Show;
 
@@ -777,29 +777,29 @@ procedure TSmashForm.UpdateApplicationDetails;
 begin
   // prepare list view for application information
   slDetails.Clear;
-  DetailsLabel.Caption := GetString('msMain_AppDetails');
+  DetailsLabel.Caption := GetLanguageString('msMain_AppDetails');
 
   // add details items
-  AddDetailsItem(GetString('msMain_Application'), 'Mator Smash');
-  AddDetailsItem(GetString('msMain_Author'), 'matortheeternal');
-  AddDetailsItem(GetString('msMain_Version'), ProgramVersion);
-  AddDetailsItem(GetString('msMain_DateBuilt'), DateTimeToStr(GetLastModified(ParamStr(0))));
+  AddDetailsItem(GetLanguageString('msMain_Application'), 'Mator Smash');
+  AddDetailsItem(GetLanguageString('msMain_Author'), 'matortheeternal');
+  AddDetailsItem(GetLanguageString('msMain_Version'), ProgramVersion);
+  AddDetailsItem(GetLanguageString('msMain_DateBuilt'), DateTimeToStr(GetLastModified(ParamStr(0))));
   AddDetailsItem(' ', ' ');
-  AddDetailsItem(GetString('msMain_GameMode'), wbGameName);
-  AddDetailsItem(GetString('msMain_Language'), settings.language);
+  AddDetailsItem(GetLanguageString('msMain_GameMode'), wbGameName);
+  AddDetailsItem(GetLanguageString('msMain_Language'), settings.language);
   AddDetailsItem(' ', ' ');
-  AddDetailsItem(GetString('msMain_TimesRun'), IntToStr(statistics.timesRun + sessionStatistics.timesRun));
-  AddDetailsItem(GetString('msMain_PatchesBuilt'), IntToStr(statistics.patchesBuilt + sessionStatistics.patchesBuilt));
-  AddDetailsItem(GetString('msMain_PluginsSmashed'), IntToStr(statistics.pluginsPatched + sessionStatistics.pluginsPatched));
-  AddDetailsItem(GetString('msMain_SettingsSubmitted'), IntToStr(statistics.settingsSubmitted + sessionStatistics.settingsSubmitted));
-  AddDetailsItem(GetString('msMain_RecsSubmitted'), IntToStr(statistics.recsSubmitted + sessionStatistics.recsSubmitted));
+  AddDetailsItem(GetLanguageString('msMain_TimesRun'), IntToStr(statistics.timesRun + sessionStatistics.timesRun));
+  AddDetailsItem(GetLanguageString('msMain_PatchesBuilt'), IntToStr(statistics.patchesBuilt + sessionStatistics.patchesBuilt));
+  AddDetailsItem(GetLanguageString('msMain_PluginsSmashed'), IntToStr(statistics.pluginsPatched + sessionStatistics.pluginsPatched));
+  AddDetailsItem(GetLanguageString('msMain_SettingsSubmitted'), IntToStr(statistics.settingsSubmitted + sessionStatistics.settingsSubmitted));
+  AddDetailsItem(GetLanguageString('msMain_RecsSubmitted'), IntToStr(statistics.recsSubmitted + sessionStatistics.recsSubmitted));
   AddDetailsItem(' ', ' ');
-  AddDetailsItem(GetString('msMain_Website'), '-');
-  AddDetailsItem(GetString('msMain_ApiCredits'), 'superobject, TurboPower Abbrevia, xEdit');
-  AddDetailsItem(GetString('msMain_xEditVersion'), xEditVersion);
-  AddDetailsItem(GetString('msMain_xEditCredits'), 'zilav, hlp, Sharlikran, ElminsterAU');
-  AddDetailsItem(GetString('msMain_Testers'), ProgramTesters);
-  AddDetailsItem(GetString('msMain_Translators'), ProgramTranslators);
+  AddDetailsItem(GetLanguageString('msMain_Website'), '-');
+  AddDetailsItem(GetLanguageString('msMain_ApiCredits'), 'superobject, TurboPower Abbrevia, xEdit');
+  AddDetailsItem(GetLanguageString('msMain_xEditVersion'), xEditVersion);
+  AddDetailsItem(GetLanguageString('msMain_xEditCredits'), 'zilav, hlp, Sharlikran, ElminsterAU');
+  AddDetailsItem(GetLanguageString('msMain_Testers'), ProgramTesters);
+  AddDetailsItem(GetLanguageString('msMain_Translators'), ProgramTranslators);
 
   // update gui
   StringGrid_CorrectWidth(DetailsGrid);
@@ -986,7 +986,7 @@ begin
 
   // prepare list view for plugin information
   slDetails.Clear;
-  DetailsLabel.Caption := GetString('msMain_PluginDetails');
+  DetailsLabel.Caption := GetLanguageString('msMain_PluginDetails');
 
   // get plugin information
   index := PluginsListView.ItemIndex;
@@ -994,15 +994,15 @@ begin
   if not plugin.hasData then plugin.GetData;
 
   // add details items
-  AddDetailsItem(GetString('msMain_Filename'), plugin.filename);
-  AddDetailsItem(GetString('msMain_Hash'), '$' + plugin.hash);
-  AddDetailsItem(GetString('msMain_FileSize'), FormatByteSize(plugin.fileSize));
-  AddDetailsItem(GetString('msMain_DateModified'), plugin.dateModified);
-  AddDetailsItem(GetString('msMain_NumRecords'), IntToStr(plugin.numRecords));
-  AddDetailsItem(GetString('msMain_NumOverrides'), IntToStr(plugin.numOverrides));
-  AddDetailsItem(GetString('msMain_Author'), plugin.author);
-  AddDetailsList(GetString('msMain_Description'), plugin.description);
-  AddDetailsList(GetString('msMain_Masters'), plugin.masters);
+  AddDetailsItem(GetLanguageString('msMain_Filename'), plugin.filename);
+  AddDetailsItem(GetLanguageString('msMain_Hash'), '$' + plugin.hash);
+  AddDetailsItem(GetLanguageString('msMain_FileSize'), FormatByteSize(plugin.fileSize));
+  AddDetailsItem(GetLanguageString('msMain_DateModified'), plugin.dateModified);
+  AddDetailsItem(GetLanguageString('msMain_NumRecords'), IntToStr(plugin.numRecords));
+  AddDetailsItem(GetLanguageString('msMain_NumOverrides'), IntToStr(plugin.numOverrides));
+  AddDetailsItem(GetLanguageString('msMain_Author'), plugin.author);
+  AddDetailsList(GetLanguageString('msMain_Description'), plugin.description);
+  AddDetailsList(GetLanguageString('msMain_Masters'), plugin.masters);
 
   // update gui
   StringGrid_CorrectWidth(DetailsGrid);
@@ -1169,7 +1169,7 @@ begin
 
   // add <New Patch> option to Plugins popup menu
   MenuItem := TMenuItem.Create(AddToPatchItem);
-  MenuItem.Caption := GetString('msMain_NewPatchItem_Caption');
+  MenuItem.Caption := GetLanguageString('msMain_NewPatchItem_Caption');
   MenuItem.OnClick := AddToNewPatchClick;
   AddToPatchItem.Add(MenuItem);
 
@@ -1329,21 +1329,21 @@ begin
 
   // prepare list view for patch information
   slDetails.Clear;
-  DetailsLabel.Caption := GetString('msMain_PatchDetails');
+  DetailsLabel.Caption := GetLanguageString('msMain_PatchDetails');
 
   // get patch information
   patch := PatchesList[PatchesListView.ItemIndex];
-  AddDetailsItem(GetString('msMain_Status'), StatusArray[Ord(patch.status)].desc);
-  AddDetailsItem(GetString('msMain_PatchName'), patch.name);
-  AddDetailsItem(GetString('msMain_Filename'), patch.filename);
-  AddDetailsItem(GetString('msMain_PluginCount'), IntToStr(patch.plugins.Count));
-  AddDetailsItem(GetString('msMain_DateBuilt'), DateBuiltString(patch.dateBuilt));
-  AddDetailsList(GetString('msMain_Plugins'), patch.plugins);
+  AddDetailsItem(GetLanguageString('msMain_Status'), StatusArray[Ord(patch.status)].desc);
+  AddDetailsItem(GetLanguageString('msMain_PatchName'), patch.name);
+  AddDetailsItem(GetLanguageString('msMain_Filename'), patch.filename);
+  AddDetailsItem(GetLanguageString('msMain_PluginCount'), IntToStr(patch.plugins.Count));
+  AddDetailsItem(GetLanguageString('msMain_DateBuilt'), DateBuiltString(patch.dateBuilt));
+  AddDetailsList(GetLanguageString('msMain_Plugins'), patch.plugins);
   AddDetailsItem(' ', ' ');
   if patch.fails.Count < 250 then
-    AddDetailsList(GetString('msMain_Fails'), patch.fails)
+    AddDetailsList(GetLanguageString('msMain_Fails'), patch.fails)
   else
-    AddDetailsItem(GetString('msMain_Fails'), GetString('msMain_TooManyFails'));
+    AddDetailsItem(GetLanguageString('msMain_Fails'), GetLanguageString('msMain_TooManyFails'));
 
   // update gui
   StringGrid_CorrectWidth(DetailsGrid);
@@ -1531,7 +1531,7 @@ end;
 
 function EnableStr(var b: boolean): string;
 begin
-  Result := IfThen(not b, GetString('msMain_Enable'), GetString('msMain_Disable'));
+  Result := IfThen(not b, GetLanguageString('msMain_Enable'), GetLanguageString('msMain_Disable'));
 end;
 
 procedure TSmashForm.LogPopupMenuPopup(Sender: TObject);
@@ -1564,7 +1564,7 @@ begin
   CopyToClipboardItem.Enabled := Assigned(LogListView.Selected);
 
   // rename toggle auto scroll item based on whether or not auto scroll is enabled
-  ToggleAutoScrollItem.Caption := Format('%s %s', [EnableStr(bAutoScroll), GetString('msMain_AutoScroll')]);
+  ToggleAutoScrollItem.Caption := Format('%s %s', [EnableStr(bAutoScroll), GetLanguageString('msMain_AutoScroll')]);
 end;
 
 // toggles a group filter for the LogListView
@@ -1707,12 +1707,12 @@ begin
   end;
   // handle build patchs menu item
   if bNeverBuilt then
-    BuildPatchItem.Caption := GetString(sBuild)
+    BuildPatchItem.Caption := GetLanguageString(sBuild)
   else if bHasBuildStatus then
-    BuildPatchItem.Caption := GetString(sRebuild)
+    BuildPatchItem.Caption := GetLanguageString(sRebuild)
   else begin
     BuildPatchItem.Enabled := false;
-    BuildPatchItem.Caption := GetString(sRebuild);
+    BuildPatchItem.Caption := GetLanguageString(sRebuild);
   end;
 end;
 
@@ -1929,7 +1929,7 @@ begin
 
   // show multi-patch prompt if multiple patches selected
   if patchesToDelete.Count > 0 then
-    bApproved := MessageDlg(GetString('msMain_DeletePatches') + patchNames, mtConfirmation,
+    bApproved := MessageDlg(GetLanguageString('msMain_DeletePatches') + patchNames, mtConfirmation,
       mbOKCancel, 0) = mrOk;
 
   // exit if user didn't approve deletion
@@ -2001,7 +2001,7 @@ begin
   pForm := TProgressForm.Create(Self);
   pForm.LogPath := LogPath + 'patch\';
   pForm.PopupParent := Self;
-  pForm.Caption := GetString('msProg_Smashing');
+  pForm.Caption := GetLanguageString('msProg_Smashing');
   pForm.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
   pForm.Show;
 
@@ -2127,27 +2127,27 @@ begin
   // enable build button if there are patches to build
   BuildButton.Enabled := bPatchesToBuild and wbLoaderDone;
   // swap hints
-  sTitle := GetString('msMain_BuildButton_Hint');
+  sTitle := GetLanguageString('msMain_BuildButton_Hint');
   if not wbLoaderDone then
-    BuildButton.Hint := sTitle + GetString('msMain_BuildPatches_Loader')
+    BuildButton.Hint := sTitle + GetLanguageString('msMain_BuildPatches_Loader')
   else if not bPatchesToBuild then
-    BuildButton.Hint := sTitle + GetString('msMain_NoPatches')
+    BuildButton.Hint := sTitle + GetLanguageString('msMain_NoPatches')
   else if bPatchesToCheck then
-    BuildButton.Hint := sTitle + GetString('msMain_CheckPatches')
+    BuildButton.Hint := sTitle + GetLanguageString('msMain_CheckPatches')
   else
-    BuildButton.Hint := sTitle + GetString('msMain_BuildAllPatches');
+    BuildButton.Hint := sTitle + GetLanguageString('msMain_BuildAllPatches');
 
   // UPDATE BUTTON
   UpdateButton.Enabled := bProgramUpdate or bDictionaryUpdate;
-  sTitle := GetString('msMain_UpdateButton_Hint');
+  sTitle := GetLanguageString('msMain_UpdateButton_Hint');
   if bProgramUpdate and bDictionaryUpdate then
-    UpdateButton.Hint := sTitle + GetString('msMain_UpdateBoth')
+    UpdateButton.Hint := sTitle + GetLanguageString('msMain_UpdateBoth')
   else if bProgramUpdate then
-    UpdateButton.Hint := sTitle + GetString('msMain_UpdateProgram')
+    UpdateButton.Hint := sTitle + GetLanguageString('msMain_UpdateProgram')
   else if bDictionaryUpdate then
-    UpdateButton.Hint := sTitle + GetString('msMain_UpdateDictionary')
+    UpdateButton.Hint := sTitle + GetLanguageString('msMain_UpdateDictionary')
   else
-    UpdateButton.Hint := sTitle + GetString('msMain_NoUpdates');
+    UpdateButton.Hint := sTitle + GetLanguageString('msMain_NoUpdates');
 
   // HELP BUTTON
   HelpButton.Enabled := false; // TODO: help file integration
@@ -2203,7 +2203,7 @@ begin
   pForm.LogPath := LogPath + 'patch\';
   pForm.bDetailsVisible := false;
   pForm.PopupParent := Self;
-  pForm.Caption := GetString('msProg_Smashing');
+  pForm.Caption := GetLanguageString('msProg_Smashing');
   pForm.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
   pForm.Show;
 
