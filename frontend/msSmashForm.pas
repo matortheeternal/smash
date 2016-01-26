@@ -1279,7 +1279,12 @@ var
   bApproved: Boolean;
   frmDialog: TForm;
 begin
+  // initialize variables
+  bApproved := false;
   pluginsToClear := TList.Create;
+  pluginNames := '';
+
+  // use a try-finally to make certain the list is freed
   try
     // add selected list items to the list
     for i := 0 to Pred(PluginsListView.Items.Count) do begin
@@ -1301,6 +1306,10 @@ begin
       bApproved := frmDialog.ShowModal = mrOk;
       ToggleFormState(true);
     end;
+
+    // exit if user didn't approve clearing tags
+    if not bApproved then
+      exit;
 
     // clear tags on plugins in the list
     for i := 0 to Pred(pluginsToClear.Count) do begin
