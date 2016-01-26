@@ -872,7 +872,7 @@ begin
   // get the group
   for i := 0 to Pred(lvSettings.Groups.Count) do begin
     group := lvSettings.Groups[i];
-    if group.Header = name then begin
+    if SameText(group.Header, name) then begin
       Result := true;
       break;
     end;
@@ -1007,6 +1007,7 @@ end;
 procedure TSettingsManager.btnSaveClick(Sender: TObject);
 var
   index: Integer;
+  group: TListGroup;
 begin
   // adjust the current setting's attributes
   currentSetting.Rename(edName.Text);
@@ -1031,6 +1032,8 @@ begin
   edHash.Text := currentSetting.hash;
 
   // adjust the current setting in the list view
+  GetGroup(currentSetting.name, group);
+  currentSettingItem.GroupID := group.ID;
   currentSettingItem.Caption := currentSetting.name;
   currentSettingItem.SubItems[0] := currentSetting.records;
 

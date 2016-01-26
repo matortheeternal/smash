@@ -1256,7 +1256,7 @@ end;
 procedure TSmashForm.RemoveFromPatchItemClick(Sender: TObject);
 var
   i: integer;
-  listItem: TListItem;
+  ListItem: TListItem;
   pluginName, patchName: string;
   patch: TPatch;
   plugin: TPlugin;
