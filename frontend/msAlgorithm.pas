@@ -7,9 +7,9 @@ uses
   // superobject
   superobject,
   // mte units
-  mteHelpers, mteTracker,
+  mteHelpers, mteTracker, mteBase,
   // ms units
-  msFrontend,
+  msCore, msConfiguration,
   // xEdit components
   wbInterface, wbImplementation;
 

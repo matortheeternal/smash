@@ -7,7 +7,7 @@ uses
   Dialogs, StdCtrls, CheckLst, Menus, ComCtrls;
 
 type
-  TPluginSelectionForm = class(TForm)
+  TMiniPluginSelectionForm = class(TForm)
     CheckListBox: TCheckListBox;
     btnOK: TButton;
     lblPrompt: TLabel;
@@ -33,13 +33,13 @@ type
   end;
 
 var
-  PluginSelectionForm: TPluginSelectionForm;
+  MiniPluginSelectionForm: TMiniPluginSelectionForm;
 
 implementation
 
 {$R *.dfm}
 
-procedure TPluginSelectionForm.btnOKClick(Sender: TObject);
+procedure TMiniPluginSelectionForm.btnOKClick(Sender: TObject);
 var
   i: Integer;
 begin
@@ -52,7 +52,7 @@ begin
     ModalResult := mrOK;
 end;
 
-procedure TPluginSelectionForm.CheckListBoxClick(Sender: TObject);
+procedure TMiniPluginSelectionForm.CheckListBoxClick(Sender: TObject);
 var
   i: Integer;
 begin
@@ -65,13 +65,13 @@ begin
   end;
 end;
 
-procedure TPluginSelectionForm.CheckListBoxKeyUp(Sender: TObject; var Key: Word;
+procedure TMiniPluginSelectionForm.CheckListBoxKeyUp(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   CheckListBoxClick(nil);
 end;
 
-procedure TPluginSelectionForm.FormShow(Sender: TObject);
+procedure TMiniPluginSelectionForm.FormShow(Sender: TObject);
 var
   i, index: Integer;
 begin
@@ -86,7 +86,7 @@ begin
   CheckListBoxClick(nil);
 end;
 
-procedure TPluginSelectionForm.InvertSelectionItemClick(Sender: TObject);
+procedure TMiniPluginSelectionForm.InvertSelectionItemClick(Sender: TObject);
 var
   i: Integer;
 begin
@@ -97,7 +97,7 @@ begin
   CheckListBoxClick(nil);
 end;
 
-procedure TPluginSelectionForm.SelectAllItemClick(Sender: TObject);
+procedure TMiniPluginSelectionForm.SelectAllItemClick(Sender: TObject);
 begin
   CheckListBox.CheckAll(cbChecked);
 
@@ -105,7 +105,7 @@ begin
   CheckListBoxClick(nil);
 end;
 
-procedure TPluginSelectionForm.SelectNoneItemClick(Sender: TObject);
+procedure TMiniPluginSelectionForm.SelectNoneItemClick(Sender: TObject);
 begin
   CheckListBox.CheckAll(cbUnChecked);
 

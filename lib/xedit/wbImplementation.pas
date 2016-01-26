@@ -45,7 +45,7 @@ var
 
 procedure wbMastersForFile(const aFileName: string; aMasters: TStrings);
 function wbFile(const aFileName: string; aLoadOrder: Integer = -1; aCompareTo: string = '';
-  IsTemporary: Boolean = False): IwbFile;
+  aOnlyHeader: Boolean = False; IsTemporary: Boolean = False): IwbFile;
 function wbNewFile(const aFileName: string; aLoadOrder: Integer): IwbFile;
 procedure wbFileForceClosed;
 
@@ -14347,7 +14347,7 @@ begin
 end;
 
 function wbFile(const aFileName: string; aLoadOrder: Integer = -1; aCompareTo: string = '';
-  IsTemporary: Boolean = False): IwbFile;
+  aOnlyHeader: Boolean = False; IsTemporary: Boolean = False): IwbFile;
 var
   FileName: string;
   i: Integer;
@@ -14361,9 +14361,9 @@ begin
     Result := IwbFile(Pointer(FilesMap.Objects[i]))
   else begin
     if not wbIsPlugin(FileName) then
-      Result := TwbFileSource.Create(FileName, aLoadOrder, aCompareTo, False, IsTemporary)
+      Result := TwbFileSource.Create(FileName, aLoadOrder, aCompareTo, aOnlyHeader, IsTemporary)
     else
-      Result := TwbFile.Create(FileName, aLoadOrder, aCompareTo, False, IsTemporary);
+      Result := TwbFile.Create(FileName, aLoadOrder, aCompareTo, aOnlyHeader, IsTemporary);
     SetLength(Files, Succ(Length(Files)));
     Files[High(Files)] := Result;
     FilesMap.AddObject(FileName, Pointer(Result));

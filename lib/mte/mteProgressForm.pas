@@ -33,7 +33,7 @@ type
     { Private declarations }
   public
     bDetailsVisible: boolean;
-    LogPath: string;
+    pfLogPath: string;
   end;
 
 implementation
@@ -151,9 +151,9 @@ var
   fdt: string;
 begin
   try
-    ForceDirectories(LogPath);
+    ForceDirectories(pfLogPath);
     fdt := FormatDateTime('mmddyy_hhnnss', TDateTime(Now));
-    DetailsMemo.Lines.SaveToFile(LogPath + 'log_'+fdt+'.txt');
+    DetailsMemo.Lines.SaveToFile(pfLogPath + 'log_'+fdt+'.txt');
   except on Exception do
     // nothing to do
   end;

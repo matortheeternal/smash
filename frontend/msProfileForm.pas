@@ -4,11 +4,11 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Controls, Forms, StdCtrls, Graphics,
-  ImgList, Menus, Dialogs, ExtCtrls,
+  ImgList, Menus, Dialogs, ExtCtrls, pngimage,
   // mte components
   RttiIni, mteHelpers,
   // mp components
-  msFrontend, msProfilePanel, pngimage;
+  msConfiguration, msLoader, msProfilePanel;
 
 type
   TProfileForm = class(TForm)
@@ -54,6 +54,7 @@ var
   ProfileForm: TProfileForm;
   SelectCallback, DeleteCallback: TNotifyEvent;
   MouseOverProfile: TProfilePanel;
+  ProgramPath: String;
 
 implementation
 

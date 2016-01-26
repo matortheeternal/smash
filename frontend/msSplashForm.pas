@@ -8,7 +8,7 @@ uses
   // mte units
   mteTracker, mteHelpers,
   // smash units
-  msFrontend;
+  msConfiguration;
 
 type
   TSplashForm = class(TForm)

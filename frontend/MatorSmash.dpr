@@ -21,21 +21,24 @@ uses
   SysUtils,
   mteHelpers,
   RttiIni,
+  msConfiguration in 'msConfiguration.pas',
+  msCore in 'msCore.pas',
+  msLoader in 'msLoader.pas',
+  msClient in 'msClient.pas',
+  msConflict in 'msConflict.pas',
+  msChoicePanel in 'msChoicePanel.pas',
+  msSmash in 'msSmash.pas',
+  msAlgorithm in 'msAlgorithm.pas',
   msProfileForm in 'msProfileForm.pas' {ProfileForm},
   msProfilePanel in 'msProfilePanel.pas',
   msSmashForm in 'msSmashForm.pas' {SmashForm},
-  msFrontend in 'msFrontend.pas',
   msThreads in 'msThreads.pas',
   msOptionsForm in 'msOptionsForm.pas' {OptionsForm},
   msSplashForm in 'msSplashForm.pas' {SplashForm},
   msEditForm in 'msEditForm.pas' {EditForm},
   msSettingsManager in 'msSettingsManager.pas' {SettingsManager},
-  msPluginSelectionForm in 'msPluginSelectionForm.pas' {PluginSelectionForm},
+  msPluginSelectionForm in 'msPluginSelectionForm.pas' {MiniPluginSelectionForm},
   msConflictForm in 'msConflictForm.pas' {ConflictForm},
-  msChoicePanel in 'msChoicePanel.pas',
-  msSmash in 'msSmash.pas',
-  msAlgorithm in 'msAlgorithm.pas',
-  msConflict in 'msConflict.pas',
   msTagManager in 'msTagManager.pas' {TagManager},
   msTagHelper in 'msTagHelper.pas' {TagHelper};
 
@@ -57,8 +60,8 @@ begin
   // set important vars
   SysUtils.FormatSettings.DecimalSeparator := '.';
   Application.HintHidePause := 8000;
-  //ReportMemoryLeaksOnShutdown := true;
-  ProgramPath := ExtractFilePath(ParamStr(0));
+  ReportMemoryLeaksOnShutdown := true;
+  PathList.Values['ProgramPath'] := ExtractFilePath(ParamStr(0));
 
   // get current profile if profile switch provided
   for i := 1 to ParamCount do begin
@@ -97,7 +100,7 @@ begin
   Application.CreateForm(TSplashForm, SplashForm);
   Application.CreateForm(TEditForm, EditForm);
   Application.CreateForm(TSettingsManager, SettingsManager);
-  Application.CreateForm(TPluginSelectionForm, PluginSelectionForm);
+  Application.CreateForm(TMiniPluginSelectionForm, MiniPluginSelectionForm);
   Application.CreateForm(TConflictForm, ConflictForm);
   Application.CreateForm(TTagManager, TagManager);
   Application.CreateForm(TTagHelper, TagHelper);

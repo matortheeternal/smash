@@ -4,8 +4,10 @@ interface
 
 uses
   Classes, SysUtils,
+  // mte units
+  mteBase,
   // ms units
-  msFrontend,
+  msCore,
   // xEdit units
   wbInterface, wbImplementation, wbHelpers;
 

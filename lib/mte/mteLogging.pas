@@ -167,7 +167,7 @@ begin
   pf.pfLogPath := LogPath + sLogSubPath + '\';
   pf.PopupParent := parent;
   pf.Caption := sCaption;
-  pf.MaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
+  pf.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
   pf.Show;
 end;
 

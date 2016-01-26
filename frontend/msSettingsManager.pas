@@ -9,9 +9,9 @@ uses
   // superobject
   superobject,
   // mte units
-  mteHelpers, mteLogger, mteProgressForm, RttiTranslation,
+  mteHelpers, mteLogger, mteProgressForm, mteBase, RttiTranslation,
   // ms units
-  msFrontend, msPluginSelectionForm, msConflictForm, msThreads;
+  msCore, msConfiguration, msPluginSelectionForm, msConflictForm, msThreads;
 
 type
   TSettingsManager = class(TForm)
@@ -466,7 +466,7 @@ var
   slPlugins, slSelection: TStringList;
   i, mr: Integer;
   plugin: TPlugin;
-  selectionForm: TPluginSelectionForm;
+  selectionForm: TMiniPluginSelectionForm;
 begin
   // build list of plugin filenames
   slPlugins := TStringList.Create;
@@ -477,7 +477,7 @@ begin
   end;
 
   // prompt user for plugin selectcion
-  selectionForm := TPluginSelectionForm.Create(self);
+  selectionForm := TMiniPluginSelectionForm.Create(self);
   selectionForm.pluginsList := slPlugins;
   selectionForm.selectionList := slSelection;
   mr := selectionForm.ShowModal;
@@ -786,7 +786,7 @@ procedure TSettingsManager.edNameChange(Sender: TObject);
 begin
   if Assigned(currentSetting) then
     btnSave.Enabled := (currentSetting.name = edName.Text) or
-      not Assigned(SettingByName(edName.Text));
+      not Assigned(TSettingHelpers.SettingByName(edName.Text));
 end;
 
 procedure TSettingsManager.DeleteNodes(var aList: TList);

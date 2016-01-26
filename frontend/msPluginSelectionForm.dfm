@@ -1,4 +1,4 @@
-object PluginSelectionForm: TPluginSelectionForm
+object MiniPluginSelectionForm: TMiniPluginSelectionForm
   Left = 0
   Top = 0
   Caption = 'Plugin selection'
@@ -45,7 +45,6 @@ object PluginSelectionForm: TPluginSelectionForm
     TabOrder = 0
     OnClick = CheckListBoxClick
     OnKeyUp = CheckListBoxKeyUp
-    ExplicitHeight = 364
   end
   object btnOK: TButton
     Left = 170
@@ -57,7 +56,6 @@ object PluginSelectionForm: TPluginSelectionForm
     Caption = 'OK'
     TabOrder = 1
     OnClick = btnOKClick
-    ExplicitTop = 420
   end
   object btnCancel: TButton
     Left = 251
@@ -69,7 +67,6 @@ object PluginSelectionForm: TPluginSelectionForm
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 2
-    ExplicitTop = 420
   end
   object CheckListPopupMenu: TPopupMenu
     Left = 64

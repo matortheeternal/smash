@@ -12,11 +12,11 @@ uses
   // third party libraries
   superobject, W7Taskbar,
   // mte components
-  mteHelpers, mteTracker, mteLogger, mteProgressForm, mteTaskHandler,
-  RttiTranslation,
+  mteHelpers, mteTracker, mteLogger, mteLogging, mteProgressForm,
+  mteBase, mteTaskHandler, RttiTranslation,
   // ms units
-  msFrontend, msThreads, msOptionsForm, msEditForm, msSettingsManager,
-  msTagManager, msSplashForm,
+  msCore, msConfiguration, msClient, msLoader, msThreads, msOptionsForm,
+  msEditForm, msSettingsManager, msTagManager, msSplashForm,
   // tes5edit units
   wbBSA, wbHelpers, wbInterface, wbImplementation;
 
@@ -305,7 +305,6 @@ begin
   // INITIALIAZE BASE
   bCreated := false;
   AppStartTime := Now;
-  InitLog;
   Logger.OnLogEvent := LogMessage;
   //bAutoScroll := true;
   InitializeTaskbarAPI;
@@ -316,8 +315,8 @@ begin
   StatusCallback := LoaderStatus;
 
   // load settings
-  ProfilePath := ProgramPath + 'profiles\' + CurrentProfile.name + '\';
-  ForceDirectories(ProfilePath);
+  PathList.Values['ProfilePath'] := PathList.Values['ProgramPath'] + 'profiles\' + CurrentProfile.name + '\';
+  ForceDirectories(PathList.Values['ProfilePath']);
   LoadSettings;
 
   // CREATE SPLASH
@@ -353,18 +352,22 @@ begin
   FreeList(PluginsList);
 
   // free final items
-  TryToFree(dictionary);
-  TryToFree(blacklist);
+  //TryToFree(dictionary);
+  //TryToFree(blacklist);
   TryToFree(language);
+  TryToFree(timeCosts);
   TryToFree(Log);
+  TryToFree(BaseLog);
   TryToFree(settings);
   TryToFree(CurrentProfile);
   TryToFree(ActiveMods);
   TryToFree(statistics);
   TryToFree(sessionStatistics);
-  TryToFree(status);
-  TryToFree(remoteStatus);
+  TryToFree(LocalStatus);
+  TryToFree(RemoteStatus);
   TryToFree(TCPClient);
+  TryToFree(TaskHandler);
+  TryToFree(slDetails);
 end;
 
 procedure TSmashForm.ToggleFormState(bEnabled: boolean);
@@ -420,10 +423,10 @@ end;
 procedure TSmashForm.FormShow(Sender: TObject);
 begin
   // HANDLE AUTO-UPDATE
-  if bInstallUpdate then begin
+  if ProgramStatus.bInstallUpdate then begin
     Logger.Write('CLIENT', 'Disconnect', 'Disconnecting...');
     TCPClient.Disconnect;
-    bAllowClose := true;
+    ProgramStatus.bClose := true;
     bClosing := true;
     Logger.Write('GENERAL', 'Update', 'Restarting.');
     ShellExecute(Application.Handle, 'runas', PChar(ParamStr(0)), '', '', SW_SHOWNORMAL);
@@ -431,7 +434,7 @@ begin
   end;
 
   // DISABLE GUI IF INITIALIZATION EXCEPTION
-  if bInitException then begin
+  if ProgramStatus.bInitException then begin
     StatusPanelMessage.Caption := 'The application failed to initialize';
     Logger.Write('ERROR', 'Load', 'There was an exception initializing the application');
     Logger.Write('ERROR', 'Load', 'Review your log messages to resolve the issue');
@@ -464,7 +467,7 @@ begin
 
   // STATUSBAR VALUES
   StatusPanelLanguage.Caption := settings.language;
-  StatusPanelVersion.Caption := 'v'+ProgramVersion;
+  StatusPanelVersion.Caption := 'v'+LocalStatus.ProgramVersion;
 
   // UPDATE GUI
   slDetails := TStringList.Create;
@@ -476,7 +479,7 @@ begin
   UpdateStatusBar;
   UpdateQuickBar;
 
-  if not bInitException then begin
+  if not ProgramStatus.bInitException then begin
     // ATTEMPT TO CONNECT TO SERVER
     {ConnectCallback := ConnectDone;
     if (not bConnecting) and (not TCPClient.Connected) then
@@ -535,20 +538,21 @@ end;
 
 procedure TSmashForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
-  CanClose := bAllowClose;
+  CanClose := ProgramStatus.bClose;
   if not bClosing then begin
     bClosing := true;
     Enabled := false;
 
     // show progress form
     pForm := TProgressForm.Create(Self);
-    pForm.LogPath := LogPath + 'save\';
+    pForm.pfLogPath := LogPath + 'save\';
     pForm.PopupParent := Self;
     pForm.Caption := GetLanguageString('msProg_Closing');
     pForm.SetMaxProgress(PluginsList.Count + PatchesList.Count + 2);
     pForm.Show;
 
     // start save thread
+    TaskTimer.Enabled := false;
     SaveCallback := SaveDone;
     TSaveThread.Create;
   end;
@@ -562,15 +566,15 @@ begin
   pForm.Free;
 
   // restart program if update applied
-  if bInstallUpdate then
+  if ProgramStatus.bInstallUpdate then
     ShellExecute(Application.Handle, 'runas', PChar(ParamStr(0)), '', '', SW_SHOWNORMAL);
   // restart program if user wants patch profile change
-  if bChangeProfile then
+  if ProgramStatus.bChangeProfile then
     ShellExecute(Application.Handle, 'runas', PChar(ParamStr(0)), '', '', SW_SHOWNORMAL);
 
   // allow close and close
-  SaveLog(BaseLog, LogPath + 'main\');
-  bAllowClose := true;
+  SaveLog(BaseLog);
+  ProgramStatus.bClose := true;
   Close;
 end;
 
@@ -608,15 +612,15 @@ procedure TSmashForm.AutoUpdate;
 begin
   if settings.updateDictionary then begin
     // update dictionary
-    if bDictionaryUpdate and UpdateDictionary then begin
-      status := TmsStatus.Create;
+    if ProgramStatus.bDictionaryUpdate and UpdateDictionary then begin
+      LocalStatus := TmsStatus.Create;
       CompareStatuses;
     end;
   end;
   if settings.updateProgram then begin
     // update program
-    if bProgramUpdate and DownloadProgram then
-      bInstallUpdate := UpdateProgram;
+    if ProgramStatus.bProgramUpdate and DownloadProgram then
+      ProgramStatus.bInstallUpdate := UpdateProgram;
   end;
 end;
 
@@ -641,7 +645,7 @@ procedure TSmashForm.DisplayHints;
 var
   pt: TPoint;
 begin
-  if bLoadException and ShouldDisplay(bhLoadException) then begin
+  if ProgramStatus.bLoadException and ShouldDisplay(bhLoadException) then begin
     pt.X := 126;
     pt.Y := 16;
     pt := MainPanel.ClientToScreen(pt);
@@ -658,7 +662,7 @@ end;
 
 procedure TSmashForm.Reconnect;
 begin
-  if not (TCPClient.Connected or bConnecting or bClosing) then
+  if not (TCPClient.Connected or ProgramStatus.bConnecting or bClosing) then
     TConnectThread.Create;
 end;
 
@@ -671,7 +675,7 @@ procedure TSmashForm.Heartbeat;
 begin
   try
     if TCPClient.IOHandler.Opened and
-    not (bConnecting or bClosing or ServerAvailable) then
+    not (ProgramStatus.bConnecting or bClosing or ServerAvailable) then
       raise Exception.Create('Connection unavailable');
   except
     on x : Exception do begin
@@ -685,12 +689,13 @@ end;
 
 procedure TSmashForm.OnTaskTimer(Sender: TObject);
 begin
-  TaskHandler.ExecTasks;
+  if not bClosing then
+    TaskHandler.ExecTasks;
 end;
 
 procedure TSmashForm.ShowAuthorizationMessage;
 begin
-  if bAuthorized then begin
+  if ProgramStatus.bAuthorized then begin
     Logger.Write('CLIENT', 'Login', 'Authorized');
   end
   else begin
@@ -700,12 +705,12 @@ end;
 
 procedure TSmashForm.UpdateStatusBar;
 begin
-  ImageBlocked.Visible := not (wbLoaderDone or bInitException);
+  ImageBlocked.Visible := not (wbLoaderDone or ProgramStatus.bInitException);
   ImageConnected.Visible := TCPClient.Connected;
   ImageDisconnected.Visible := not TCPClient.Connected;
   ImageBuild.Visible := wbLoaderDone and bPatchesToBuild;
-  ImageDictionaryUpdate.Visible := bDictionaryUpdate;
-  ImageProgramUpdate.Visible := bProgramUpdate;
+  ImageDictionaryUpdate.Visible := ProgramStatus.bDictionaryUpdate;
+  ImageProgramUpdate.Visible := ProgramStatus.bProgramUpdate;
   StatusPanelLanguage.Caption := settings.language;
 end;
 
@@ -790,7 +795,7 @@ begin
   // add details items
   AddDetailsItem(GetLanguageString('msMain_Application'), 'Mator Smash');
   AddDetailsItem(GetLanguageString('msMain_Author'), 'matortheeternal');
-  AddDetailsItem(GetLanguageString('msMain_Version'), ProgramVersion);
+  AddDetailsItem(GetLanguageString('msMain_Version'), LocalStatus.ProgramVersion);
   AddDetailsItem(GetLanguageString('msMain_DateBuilt'), DateTimeToStr(GetLastModified(ParamStr(0))));
   AddDetailsItem(' ', ' ');
   AddDetailsItem(GetLanguageString('msMain_GameMode'), wbGameName);
@@ -999,7 +1004,7 @@ begin
   // get plugin information
   index := PluginsListView.ItemIndex;
   plugin := TPlugin(PluginsList[index]);
-  if not plugin.hasData then plugin.GetData;
+  if not plugin.hasData then plugin.GetData(PluginsList);
 
   // add details items
   AddDetailsItem(GetLanguageString('msMain_Filename'), plugin.filename);
@@ -1058,7 +1063,7 @@ begin
     // add plugin to patch
     Logger.Write('PLUGIN', 'Patch', 'Added '+plugin.filename+' to patch '+patch.name);
     if not plugin.hasData then
-      plugin.GetData;
+      plugin.GetData(PluginsList);
     patch.plugins.AddObject(plugin.filename, TObject(i));
     plugin.patch := patch.name;
   end;
@@ -1306,8 +1311,9 @@ begin
       plugin := TPlugin(pluginsToClear[i]);
       Logger.Write('PLUGIN', 'Tags', 'Clearing tags on '+plugin.filename);
       plugin.description.Text := ClearTags(plugin.description.Text);
+      plugin.GetSettingTag;
       plugin.WriteDescription;
-      plugin.Save;
+      // plugin.Save;
     end;
 
     // update
@@ -1340,7 +1346,7 @@ begin
     pluginName := plugin.filename;
     patchName := plugin.patch;
     if patchName <> ' ' then begin
-      patch := PatchByName(PatchesList, patchName);
+      patch := TPatchHelpers.PatchByName(PatchesList, patchName);
       if Assigned(patch) then
         patch.plugins.Delete(patch.plugins.IndexOf(pluginName));
     end;
@@ -1444,7 +1450,7 @@ var
   EditPatch: TEditForm;
 begin
   Result := nil;
-  patch := CreateNewPatch(PatchesList);
+  patch := TPatchHelpers.CreateNewPatch(PatchesList);
 
   // edit patch immediately after its creation
   EditPatch := TEditForm.Create(Self);
@@ -1695,7 +1701,7 @@ end;
 
 procedure TSmashForm.SaveAndClearItemClick(Sender: TObject);
 begin
-  SaveLog(BaseLog, LogPath + 'main\');
+  SaveLog(BaseLog);
   LogListView.Items.Count := 0;
   BaseLog.Clear;
   Log.Clear;
@@ -2067,7 +2073,7 @@ begin
   self.Enabled := false;
   xEditLogGroup := 'PATCH';
   pForm := TProgressForm.Create(Self);
-  pForm.LogPath := LogPath + 'patch\';
+  pForm.pfLogPath := LogPath + 'patch\';
   pForm.PopupParent := Self;
   pForm.Caption := GetLanguageString('msProg_Smashing');
   pForm.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
@@ -2171,7 +2177,7 @@ var
   sTitle: string;
 begin
   // DISABLE ALL BUTTONS IF INITIALIZATION EXCEPTION
-  if bInitException then begin
+  if ProgramStatus.bInitException then begin
     NewButton.Enabled := false;
     BuildButton.Enabled := false;
     SubmitButton.Enabled := false;
@@ -2206,13 +2212,13 @@ begin
     BuildButton.Hint := sTitle + GetLanguageString('msMain_BuildAllPatches');
 
   // UPDATE BUTTON
-  UpdateButton.Enabled := bProgramUpdate or bDictionaryUpdate;
+  UpdateButton.Enabled := ProgramStatus.bProgramUpdate or ProgramStatus.bDictionaryUpdate;
   sTitle := GetLanguageString('msMain_UpdateButton_Hint');
-  if bProgramUpdate and bDictionaryUpdate then
+  if ProgramStatus.bProgramUpdate and ProgramStatus.bDictionaryUpdate then
     UpdateButton.Hint := sTitle + GetLanguageString('msMain_UpdateBoth')
-  else if bProgramUpdate then
+  else if ProgramStatus.bProgramUpdate then
     UpdateButton.Hint := sTitle + GetLanguageString('msMain_UpdateProgram')
-  else if bDictionaryUpdate then
+  else if ProgramStatus.bDictionaryUpdate then
     UpdateButton.Hint := sTitle + GetLanguageString('msMain_UpdateDictionary')
   else
     UpdateButton.Hint := sTitle + GetLanguageString('msMain_NoUpdates');
@@ -2268,7 +2274,7 @@ begin
   self.Enabled := false;
   xEditLogGroup := 'PATCH';
   pForm := TProgressForm.Create(Self);
-  pForm.LogPath := LogPath + 'patch\';
+  pForm.pfLogPath := LogPath + 'patch\';
   pForm.bDetailsVisible := false;
   pForm.PopupParent := Self;
   pForm.Caption := GetLanguageString('msProg_Smashing');
@@ -2344,13 +2350,13 @@ begin
   UpdateStatusBar;
 
   // if user selected to change game mode, close application
-  if bChangeProfile then
+  if ProgramStatus.bChangeProfile then
     Close;
 
   // if user selected to update program, close application
-  if bInstallUpdate then begin
-    bInstallUpdate := UpdateProgram;
-    if bInstallUpdate then
+  if ProgramStatus.bInstallUpdate then begin
+    ProgramStatus.bInstallUpdate := UpdateProgram;
+    if ProgramStatus.bInstallUpdate then
       Close;
   end;
 end;

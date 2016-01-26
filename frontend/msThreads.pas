@@ -7,9 +7,9 @@ uses
   // superobject
   superobject,
   // mte units
-  mteHelpers, mteLogger, mteTracker,
+  mteHelpers, mteLogger, mteLogging, mteTracker, mteBase,
   // ms units
-  msFrontend, msSmash,
+  msCore, msConfiguration, msLoader, msClient, msSmash,
   // xedit units
   wbBSA, wbInterface, wbImplementation;
 
@@ -74,135 +74,35 @@ end;
 { TInitThread }
 procedure TInitThread.Execute;
 var
-  wbPluginsFileName: string;
-  sl: TStringList;
   i: integer;
   plugin: TPlugin;
   aFile: IwbFile;
 begin
-  FreeOnTerminate := true;
   try
-    // INITIALIZE VARIABLES
-    ProgramVersion := GetVersionMem;
-    TempPath := ProgramPath + 'temp\';
-    LogPath := ProgramPath + 'logs\';
-    ForceDirectories(TempPath);
-    ForceDirectories(LogPath);
-    PatchesList := TList.Create;
-    PluginsList := TList.Create;
-    wbLoaderDone := false;
-    LastStatusTime := 0;
-    Status := TmsStatus.Create;
-
-    // SET GAME VARS
-    SetGame(CurrentProfile.gameMode);
-    wbVWDInTemporary := wbGameMode in [gmTES5, gmFO3, gmFNV];
-    Logger.Write('GENERAL', 'Game', 'Using '+wbGameName);
-    Logger.Write('GENERAL', 'Path', 'Using '+wbDataPath);
-
-    // INITIALIZE SETTINGS FOR GAME
-    LoadStatistics;
-    LoadLanguage;
-    if settings.usingMO then
-      ModOrganizerInit;
-
-    // INITIALIZE TES5EDIT API
-    wbDisplayLoadOrderFormID := True;
-    wbSortSubRecords := True;
-    wbDisplayShorterNames := True;
-    wbHideUnused := True;
-    wbFlagsAsArray := True;
-    wbRequireLoadOrder := True;
-    wbLanguage := settings.language;
-    wbEditAllowed := True;
-    wbContainerHandler := wbCreateContainerHandler;
-    wbContainerHandler.AddFolder(wbDataPath);
-
-    // IF AUTOMATIC UPDATING IS ENABLED, CHECK FOR UPDATE
-    InitializeClient;
-    {if settings.updateDictionary or settings.updateProgram then try
-      Tracker.Write('Checking for updates');
-      ConnectToServer;
-      if TCPClient.Connected then begin
-        UpdateCallback;
-        if bInstallUpdate then begin
-          InitCallback;
-          exit;
-        end;
-      end;
-    except
-      on x: Exception do
-        Logger.Write('CLIENT', 'Update', 'Failed to get automatic update '+x.Message);
-    end;  }
-
-    // INITIALIZE DICTIONARY
-    dictionaryFilename := wbAppName+'Dictionary.txt';
-    Logger.Write('GENERAL', 'Dictionary', 'Using '+dictionaryFilename);
-    LoadDictionary;
-
-    // INITIALIZE TES5EDIT DEFINITIONS
-    Logger.Write('GENERAL', 'Definitions', 'Using '+wbAppName+'Edit Definitions');
-    LoadDefinitions;
-
-    // LOAD SMASH SETTINGS
-    Tracker.Write('Loading smash settings');
-    LoadSmashSettings;
-
-    // LOAD PATCHES
-    Tracker.Write('Loading patches');
-    LoadPatches;
-
-    // PREPARE TO LOAD PLUGINS
-    if settings.usingMO then
-      wbPluginsFileName := settings.MOPath + 'profiles\'+ActiveModProfile+'\plugins.txt'
-    else
-      wbPluginsFileName := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA) + wbGameName + '\Plugins.txt';
-    Logger.Write('GENERAL', 'Load Order', 'Using '+wbPluginsFileName);
-    sl := TStringList.Create;
-    sl.LoadFromFile(wbPluginsFileName);
-    RemoveCommentsAndEmpty(sl);
-    RemoveMissingFiles(sl);
-    // if GameMode is not Skyrim sort by date modified
-    // else add Update.esm and Skyrim.esm to load order
-    if wbGameMode <> gmTES5 then begin
-      GetPluginDates(sl);
-      sl.CustomSort(PluginListCompare);
-    end
-    else begin
-      if sl.IndexOf('Update.esm') = -1 then
-        sl.Insert(0, 'Update.esm');
-      if sl.IndexOf('Skyrim.esm') = -1 then
-        sl.Insert(0, 'Skyrim.esm');
-    end;
-
     // PRINT LOAD ORDER TO LOG
-    for i := 0 to Pred(sl.Count) do
-      Logger.Write('LOAD', 'Order', '['+IntToHex(i, 2)+'] '+sl[i]);
+    for i := 0 to Pred(slPlugins.Count) do
+      Logger.Write('LOAD', 'Order', '['+IntToHex(i, 2)+'] '+slPlugins[i]);
 
     // LOAD PLUGINS
-    for i := 0 to Pred(sl.Count) do begin
-      Tracker.Write('Loading '+sl[i]);
+    for i := 0 to Pred(slPlugins.Count) do begin
+      Tracker.Write('Loading '+slPlugins[i]);
       try
-        // load plugin and add to pluginslist
         plugin := TPlugin.Create;
-        plugin.filename := sl[i];
-        plugin._File := wbFile(wbDataPath + sl[i], i);
+        plugin.filename := slPlugins[i];
+        plugin._File := wbFile(wbDataPath + slPlugins[i], i, '', false, false);
         plugin._File._AddRef;
-        plugin.GetData;
+        plugin.GetMsData;
         PluginsList.Add(Pointer(plugin));
-        LoadBSA(sl[i]);
       except
         on x: Exception do begin
-          Logger.Write('ERROR', 'Load', 'Exception loading '+sl[i]);
+          Logger.Write('ERROR', 'Load', 'Exception loading '+slPlugins[i]);
           Logger.Write('ERROR', 'Load', x.Message);
-          bLoadException := true;
+          ProgramStatus.bLoadException := true;
         end;
       end;
 
       // load hardcoded dat
       if i = 0 then try
-        if not FileExists(wbProgramPath + wbGameName + wbHardcodedDat) then
-          raise Exception.Create('Hardcoded dat file missing!');
         aFile := wbFile(wbProgramPath + wbGameName + wbHardcodedDat, 0);
         aFile._AddRef;
       except
@@ -214,27 +114,22 @@ begin
       end;
     end;
 
-    // ASSIGN PATCHES TO PLUGINS
-    AssignPatchesToPlugins;
-
     // LOAD PLUGIN INFORMATION
     Tracker.Write('Loading plugin information');
+    TPatchHelpers.AssignPatchesToPlugins;
     LoadPluginInfo;
-    LoadSettingTags;
 
     // CLEAN UP
-    sl.Free;
+    slPlugins.Free;
   except
     on x: Exception do begin
-      if Assigned(sl) then
-        sl.Free;
-      bInitException := true;
+      if Assigned(slPlugins) then
+        slPlugins.Free;
+      ProgramStatus.bInitException := true;
       Logger.Write('ERROR', 'Load', x.Message);
     end;
   end;
 
-  // increment times run and call the callback
-  Inc(sessionStatistics.timesRun);
   if Assigned(InitCallback) then
     Synchronize(nil, InitCallback);
 end;
@@ -244,7 +139,7 @@ procedure LoaderProgress(const s: string);
 begin
   if s <> '' then
     Logger.Write('LOAD', 'Background', s);
-  if bForceTerminate then
+  if ProgramStatus.bForceTerminate then
     Abort;
 end;
 
@@ -267,7 +162,7 @@ begin
         continue;
       LoaderProgress('[' + plugin.filename + '] Building reference info.');
       f.BuildRef;
-      if bForceTerminate then begin
+      if ProgramStatus.bForceTerminate then begin
         LoaderProgress('Aborted.');
         break;
       end;
@@ -276,7 +171,7 @@ begin
     on E: Exception do begin
       LoaderProgress('Fatal: <' + e.ClassName + ': ' + e.Message + '>');
       wbLoaderError := true;
-      bInitException := true;
+      ProgramStatus.bInitException := true;
     end;
   end;
   LoaderProgress('finished');
@@ -335,7 +230,7 @@ begin
   TCPClient.Disconnect;
 
   // save ESPs only if it's safe to do so
-  if not bInitException then begin
+  if not ProgramStatus.bInitException then begin
     // Save plugin errors
     try
       SavePluginInfo;

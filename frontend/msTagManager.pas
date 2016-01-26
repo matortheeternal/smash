@@ -8,7 +8,7 @@ uses
   // mte units
   RttiTranslation,
   // smash units
-  msFrontend, msTagHelper;
+  msCore, msConfiguration, msTagHelper;
 
 type
   TTagManager = class(TForm)
@@ -114,7 +114,7 @@ begin
     if kbCombine.Checked then
       plugin.GetSettingTag;
     plugin.WriteDescription;
-    plugin.Save;
+    //plugin.Save;
   end;
 end;
 
@@ -181,6 +181,7 @@ begin
   // write the tags to the description
   meDescription.Lines.Add(' ');
   meDescription.Lines.Add(sTags);
+  meDescription.Lines.Text := Trim(meDescription.Lines.Text);
 end;
 
 procedure TTagManager.AddTags(var slTagsToAdd: TStringList);

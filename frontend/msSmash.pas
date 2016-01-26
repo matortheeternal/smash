@@ -7,9 +7,9 @@ uses
   // superobject
   superobject,
   // mte units
-  mteHelpers, mteLogger, mteTracker,
+  mteHelpers, mteLogger, mteTracker, mteBase,
   // ms units
-  msFrontend, msConflict, msAlgorithm,
+  msCore, msConfiguration, msConflict, msAlgorithm, msClient,
   // xEdit units
   wbInterface, wbImplementation;
 
@@ -39,7 +39,7 @@ begin
   patchFile := patch.plugin._File;
   fileHeader := patchFile.Elements[0] as IwbContainer;
   // set author
-  fileHeader.ElementEditValues['CNAM'] := 'Mator Smash v'+ProgramVersion;
+  fileHeader.ElementEditValues['CNAM'] := 'Mator Smash v'+LocalStatus.ProgramVersion;
   // set description
   fileHeader.ElementEditValues['SNAM'] := 'Smashed patch:'#13#10 + patch.plugins.Text;
 end;
@@ -106,7 +106,7 @@ begin
       slMasters.AddObject(plugin.filename, patch.plugins.Objects[i]);
     end;
     try
-      slMasters.CustomSort(PatchPluginsCompare);
+      slMasters.CustomSort(LoadOrderCompare);
       AddMasters(patch.plugin._File, slMasters);
       if settings.debugMasters then begin
         Tracker.Write('Masters added:');
@@ -513,7 +513,7 @@ begin
 
   // save patch plugin
   patch.plugin.dataPath := patch.dataPath;
-  patch.plugin.Save;
+  //patch.plugin.Save;
 
   // save files, fails, plugins
   patchFilePrefix := patch.dataPath + 'smash\'+ChangeFileExt(patch.filename, '');

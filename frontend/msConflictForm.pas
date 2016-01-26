@@ -4,13 +4,13 @@ interface
 
 uses
   Windows, Types, Messages, SysUtils, Variants, Classes, Graphics, Controls,
-  Forms, Dialogs, StdCtrls, ComCtrls,
+  Forms, Dialogs, StdCtrls, ComCtrls, ImgList,
   // superobject
   superobject,
   // mte units
-  mteHelpers,
+  mteHelpers, mteBase,
   // ms units
-  msFrontend, msChoicePanel, ImgList;
+  msCore, msChoicePanel;
 
 type
   TConflictForm = class(TForm)
