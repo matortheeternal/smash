@@ -1306,6 +1306,7 @@ begin
       plugin := TPlugin(pluginsToClear[i]);
       Logger.Write('PLUGIN', 'Tags', 'Clearing tags on '+plugin.filename);
       plugin.description.Text := ClearTags(plugin.description.Text);
+      plugin.WriteDescription;
       plugin.Save;
     end;
 

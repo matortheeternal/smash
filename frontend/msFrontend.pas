@@ -151,6 +151,7 @@ type
     procedure ApplyTags(sSettingName: String; var sl: TStringList;
       var sTagGroup: String);
     procedure GetSettingTag;
+    procedure WriteDescription;
     procedure Save;
   end;
   TPatch = class(TObject)
@@ -4311,6 +4312,15 @@ begin
 
   // free memory
   sl.Free;
+end;
+
+procedure TPlugin.WriteDescription;
+var
+  Container: IwbContainer;
+begin
+  Container := _File as IwbContainer;
+  Container := Container.Elements[0] as IwbContainer;
+  Container.SetElementEditValue('SNAM - Description', description.Text);
 end;
 
 procedure TPlugin.Save;

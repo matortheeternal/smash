@@ -113,6 +113,7 @@ begin
     plugin.description.Text := meDescription.Lines.Text;
     if kbCombine.Checked then
       plugin.GetSettingTag;
+    plugin.WriteDescription;
     plugin.Save;
   end;
 end;
