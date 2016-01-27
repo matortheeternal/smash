@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ComCtrls, StdCtrls, Buttons, ImgList, FileCtrl, ExtCtrls,
+  Dialogs, ComCtrls, StdCtrls, Buttons, ImgList, FileCtrl, ExtCtrls, Types,
   // mte units
   mteHelpers, RttiTranslation,
   // mp units
@@ -159,45 +159,30 @@ const
   validModOrganizerFilenames: array[1..1] of string = ('ModOrganizer.exe');
   ignore: array[1..1] of string = ('data');
 var
-  i: integer;
-  modOrganizerPath, paths: string;
-  pathList: TStringList;
-  info: TSearchRec;
+  DrivesArray: TStringDynArray;
+  modOrganizerPath, sPaths, sDrive: string;
 begin
   // search for installations in GamePath
-  if (modOrganizerPath = '') then
-    modOrganizerPath := RecursiveFileSearch(PathList.Values['GamePath'], validModOrganizerFilenames, ignore, 2);
+  modOrganizerPath := RecursiveFileSearch(PathList.Values['GamePath'],
+    validModOrganizerFilenames, ignore, 2);
 
   // search for installations in ?:\Program Files and ?:\Program Files (x86)
-  for i := 65 to 90 do begin
-    if DirectoryExists(chr(i) + ':\Program Files') then
-      paths := paths + chr(i) + ':\Program Files;';
-    if DirectoryExists(chr(i) + ':\Program Files (x86)') then
-      paths := paths + chr(i) + ':\Program Files (x86);';
+  DrivesArray := GetDriveList;
+  for sDrive in DrivesArray do begin
+    if not DriveReady(sDrive) then
+      continue;
+    if DirectoryExists(sDrive + 'Program Files') then
+      sPaths := sPaths + sDrive + 'Program Files;';
+    if DirectoryExists(sDrive + 'Program Files (x86)') then
+      sPaths := sPaths + sDrive + 'Program Files (x86);';
   end;
 
-  modOrganizerPath := FileSearch('Mod Organizer\ModOrganizer.exe', paths);
+  if (modOrganizerPath = '') then
+    modOrganizerPath := FileSearch('Mod Organizer\ModOrganizer.exe', sPaths);
 
   // search each folder in each valid Program Files directory for ModOrganizer.exe
-  if (modOrganizerPath = '') then begin
-    pathList := TStringList.Create;
-    while (Pos(';', paths) > 0) do begin
-      pathList.Add(Copy(paths, 1, Pos(';', paths) - 1));
-      paths := Copy(paths, Pos(';', paths) + 1, Length(paths));
-    end;
-    for i := 0 to pathList.Count - 1 do begin
-      if FindFirst(pathList[i] + '\*', faDirectory, info) = 0 then begin
-        repeat
-          modOrganizerPath := FileSearch('ModOrganizer.exe', pathList[i] + '\' + info.Name);
-          if (modOrganizerPath <> '') then
-            break;
-        until FindNext(info) <> 0;
-        FindClose(info);
-        // break if we found it
-        if (modOrganizerPath <> '') then break;
-      end;
-    end;
-  end;
+  if (modOrganizerPath = '') then
+    modOrganizerPath := SearchPathsForFile(sPaths, 'ModOrganizer.exe');
 
   // if found, set TEdit captions, else alert user
   if (modOrganizerPath <> '') then begin
