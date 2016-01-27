@@ -1159,8 +1159,7 @@ var
   aSetting: TSmashSetting;
   path: String;
 begin
-  SmashSettings := TList.Create;
-  path := Format('%s\settings\%s\', [PathList.Values['ProgramPath'], ProgramStatus.GameMode.gameName]);
+  path := Format('%ssettings\%s\', [PathList.Values['ProgramPath'], ProgramStatus.GameMode.gameName]);
   ForceDirectories(path);
 
   // load setting files from settings path
