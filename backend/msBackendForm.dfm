@@ -1,7 +1,7 @@
 object BackendForm: TBackendForm
   Left = 310
   Top = 125
-  Caption = 'Merge Plugins Backend'
+  Caption = 'Mator Smash Backend'
   ClientHeight = 682
   ClientWidth = 1264
   Color = clBtnFace
@@ -113,10 +113,10 @@ object BackendForm: TBackendForm
     TabOrder = 1
     object PageControl: TPageControl
       Left = 3
-      Top = 7
+      Top = 6
       Width = 654
       Height = 605
-      ActivePage = UnapprovedTabSheet
+      ActivePage = SettingsTabSheet
       Align = alCustom
       Anchors = [akLeft, akTop, akRight, akBottom]
       TabOrder = 0
@@ -173,10 +173,6 @@ object BackendForm: TBackendForm
       object ApprovedTabSheet: TTabSheet
         Caption = 'Approved Reports'
         ImageIndex = 1
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object ApprovedListView: TListView
           Left = 3
           Top = 3
@@ -220,13 +216,54 @@ object BackendForm: TBackendForm
           OnDrawItem = ApprovedListViewDrawItem
         end
       end
+      object SettingsTabSheet: TTabSheet
+        Caption = 'Smash Settings'
+        ImageIndex = 3
+        object lvSettings: TListView
+          Left = 3
+          Top = 3
+          Width = 640
+          Height = 571
+          Align = alCustom
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          Columns = <
+            item
+              Caption = 'Game'
+            end
+            item
+              Caption = 'Name'
+              Width = 175
+            end
+            item
+              AutoSize = True
+              Caption = 'Records'
+            end
+            item
+              Caption = 'Author'
+              Width = 110
+            end
+            item
+              Caption = 'Date'
+              Width = 75
+            end>
+          DoubleBuffered = True
+          MultiSelect = True
+          OwnerData = True
+          OwnerDraw = True
+          GroupView = True
+          ReadOnly = True
+          RowSelect = True
+          ParentDoubleBuffered = False
+          TabOrder = 0
+          ViewStyle = vsReport
+          OnChange = lvSettingsChange
+          OnCustomDrawItem = lvSettingsCustomDrawItem
+          OnData = lvSettingsData
+        end
+      end
       object LogTabSheet: TTabSheet
         Caption = 'Log'
         ImageIndex = 2
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object LogListView: TListView
           Left = 3
           Top = 3
@@ -429,7 +466,7 @@ object BackendForm: TBackendForm
     Left = 1056
     Top = 8
     Bitmap = {
-      494C01010600F801380220002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C01010600F8013C0220002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000800000004000000001002000000000000080
       0000000000000000000000000000000000000000000000000000000000000000
       000000000000000000000000000000000000000000000000000000000000E7E7
@@ -1540,7 +1577,7 @@ object BackendForm: TBackendForm
   end
   object LogPopupMenu: TPopupMenu
     OnPopup = LogPopupMenuPopup
-    Left = 312
+    Left = 400
     Top = 112
     object FilterGroupItem: TMenuItem
       Caption = 'Filter group'
@@ -1571,6 +1608,19 @@ object BackendForm: TBackendForm
     object ForceRebuildItem: TMenuItem
       Caption = 'Force rebuild dictionaries'
       OnClick = ForceRebuildItemClick
+    end
+  end
+  object SettingsPopupMenu: TPopupMenu
+    Left = 304
+    Top = 112
+    object ApproveSetting1: TMenuItem
+      Caption = 'Approve Setting'
+    end
+    object UnapproveSetting1: TMenuItem
+      Caption = 'Unapprove Setting'
+    end
+    object DeleteSetting1: TMenuItem
+      Caption = 'Delete Setting'
     end
   end
 end

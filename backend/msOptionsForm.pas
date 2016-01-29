@@ -1,4 +1,4 @@
-unit mpOptionsForm;
+unit msOptionsForm;
 
 interface
 

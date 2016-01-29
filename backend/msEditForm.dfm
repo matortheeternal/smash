@@ -34,6 +34,10 @@ object EditForm: TEditForm
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Edit Report'
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object lblUsername: TLabel
         Left = 8
         Top = 13

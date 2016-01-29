@@ -12,20 +12,20 @@
 
 *******************************************************************************}
 
-program MergePluginsBackend;
+program MatorSmashBackend;
 
 uses
   Forms,
   Dialogs,
   Controls,
   SysUtils,
-  mpBackendForm in 'mpBackendForm.pas' {BackendForm},
-  mpBackend in 'mpBackend.pas',
-  mpDictionaryForm in 'mpDictionaryForm.pas' {DictionaryForm},
-  mpOptionsForm in 'mpOptionsForm.pas' {OptionsForm},
-  mpEditForm in 'mpEditForm.pas' {EditForm},
-  mpLoginForm in 'mpLoginForm.pas' {LoginForm},
-  mpUserForm in 'mpUserForm.pas' {UserForm};
+  msBackendForm in 'msBackendForm.pas' {BackendForm},
+  msBackend in 'msBackend.pas',
+  msDictionaryform in 'msDictionaryform.pas' {DictionaryForm},
+  msOptionsForm in 'msOptionsForm.pas' {OptionsForm},
+  msEditForm in 'msEditForm.pas' {EditForm},
+  msLoginForm in 'msLoginForm.pas' {LoginForm},
+  msUserForm in 'msUserForm.pas' {UserForm};
 
 {$R *.res}
 {$MAXSTACKSIZE 2097152}

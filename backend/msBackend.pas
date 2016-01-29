@@ -1,4 +1,4 @@
-unit mpBackend;
+unit msBackend;
 
 interface
 
@@ -77,7 +77,7 @@ type
     constructor Create(group: string; enabled: boolean); Overload;
     constructor Create(group, &label: string; enabled: boolean); Overload;
   end;
-  TmpMessage = class(TObject)
+  TmsMessage = class(TObject)
   public
     id: integer;
     username: string;
@@ -86,7 +86,7 @@ type
     constructor Create; Overload;
     constructor Create(id: integer; username, auth, data: string); Overload;
   end;
-  TmpStatus = class(TObject)
+  TmsStatus = class(TObject)
   public
     programVersion: string;
     tes5Hash: string;
@@ -157,6 +157,8 @@ type
     reportsRecieved: integer;
     reportsApproved: integer;
     reportsDenied: integer;
+    settingsRecieved: integer;
+    settingsDeleted: integer;
     totalBandwidth: Int64;
     totalUptime: TDateTime;
     tes5Reports: integer;
@@ -252,6 +254,7 @@ const
   MSG_STATUS = 5;
   MSG_REQUEST = 6;
   MSG_REPORT = 7;
+  MSG_SETTING = 8;
 
   // MSG Strings
   MSG_STRINGS: array[1..7] of string = (
@@ -261,7 +264,8 @@ const
     'MSG_STATISTICS',
     'MSG_STATUS',
     'MSG_REQUEST',
-    'MSG_REPORT'
+    'MSG_REPORT',
+    'MSG_SETTING'
   );
 
 var
@@ -272,7 +276,7 @@ var
   slConnectedIPs: TStringList;
   statistics: TServerStatistics;
   settings: TSettings;
-  status: TmpStatus;
+  status: TmsStatus;
   LogPath, ProgramPath, ProgramVersion: string;
   bLoginSuccess, bRebuildTES5, bRebuildTES4, bRebuildFNV,
   bRebuildFO3, bApprovedAscending, bUnapprovedAscending: boolean;
@@ -1494,12 +1498,12 @@ begin
 end;
 
 { TmpMessage }
-constructor TmpMessage.Create;
+constructor TmsMessage.Create;
 begin
   id := 0;
 end;
 
-constructor TmpMessage.Create(id: integer; username, auth, data: string);
+constructor TmsMessage.Create(id: integer; username, auth, data: string);
 begin
   self.id := id;
   self.username := username;
@@ -1508,7 +1512,7 @@ begin
 end;
 
 { TmpStatus }
-procedure TmpStatus.Refresh;
+procedure TmsStatus.Refresh;
 var
   NewVersion: string;
   Zipper: TAbZipper;

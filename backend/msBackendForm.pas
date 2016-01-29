@@ -1,4 +1,4 @@
-unit mpBackendForm;
+unit msBackendForm;
 
 interface
 
@@ -13,7 +13,7 @@ uses
   // mte components
   W7Taskbar, RttiJson, mteLogger, mteTracker, mteHelpers, mteTaskHandler,
   // mp units
-  mpBackend, mpDictionaryForm, mpOptionsForm, mpEditForm;
+  msBackend, msDictionaryForm, msOptionsForm, msEditForm;
 
 type
   TBackendForm = class(TForm)
@@ -72,6 +72,12 @@ type
     StatusPanelReports: TPanel;
     StatusPanelUptime: TPanel;
     ToggleAutoScrollItem: TMenuItem;
+    SettingsTabSheet: TTabSheet;
+    SettingsPopupMenu: TPopupMenu;
+    ApproveSetting1: TMenuItem;
+    UnapproveSetting1: TMenuItem;
+    DeleteSetting1: TMenuItem;
+    lvSettings: TListView;
 
     // MERGE FORM EVENTS
     procedure LogMessage(const group, &label, text: string);
@@ -104,6 +110,11 @@ type
     procedure ApprovedListViewData(Sender: TObject; Item: TListItem);
     procedure ApprovedListViewDrawItem(Sender: TCustomListView; Item: TListItem;
       Rect: TRect; State: TOwnerDrawState);
+    procedure lvSettingsChange(Sender: TObject; Item: TListItem;
+      Change: TItemChange);
+    procedure lvSettingsCustomDrawItem(Sender: TCustomListView; Item: TListItem;
+      State: TCustomDrawState; var DefaultDraw: Boolean);
+    procedure lvSettingsData(Sender: TObject; Item: TListItem);
     procedure LogListViewData(Sender: TObject; Item: TListItem);
     procedure LogListViewDrawItem(Sender: TCustomListView; Item: TListItem;
       Rect: TRect; State: TOwnerDrawState);
@@ -139,8 +150,21 @@ type
     procedure TCPServerException(AContext: TIdContext; AException: Exception);
     procedure SendResponse(var user: TUser; var AContext: TIdContext;
       id: integer; data: string; bLog: boolean = true);
-    procedure HandleMessage(msg: TmpMessage; size: integer; AContext: TIdContext);
-    procedure WriteMessage(msg: TmpMessage; ip: string);
+    procedure HandleNotify(var msg: TmsMessage; var user: TUser;
+      var bAuthorized: Boolean; var AContext: TIdContext);
+    procedure HandleRegister(var msg: TmsMessage; var user: TUser;
+      var ip: String; var bAuthorized: Boolean; var AContext: TIdContext);
+    procedure HandleAuthReset(var msg: TmsMessage; var user: Tuser;
+      var ip: String; var AContext: TIdContext);
+    procedure HandleStatistics(var msg: TmsMessage; var user: Tuser;
+      var bAuthorized: Boolean; var AContext: TIdContext);
+    procedure HandleStatus(var user: TUser; var AContext: TIdContext);
+    procedure HandleRequest(var msg: TmsMessage; var user: TUser;
+      var AContext: TIdContext);
+    procedure HandleReport(var msg: TmsMessage; var user: TUser;
+      var bAuthorized: Boolean; var AContext: TIdContext);
+    procedure HandleMessage(msg: TmsMessage; size: integer; AContext: TIdContext);
+    procedure WriteMessage(msg: TmsMessage; ip: string);
     procedure TCPServerExecute(AContext: TIdContext);
   private
     { Private declarations }
@@ -187,7 +211,7 @@ begin
       LogListView.Items[Pred(LogListView.Items.Count)].MakeVisible(false);
       SendMessage(LogListView.Handle, WM_VSCROLL, SB_LINEDOWN, 0);
     end;
-    CorrectListViewWidth(LogListView);
+    ListView_CorrectWidth(LogListView);
   end;
 end;
 
@@ -219,7 +243,7 @@ begin
     ProgramPath := ExtractFilePath(ParamStr(0));
     LogPath := ProgramPath + 'logs\';
     ForceDirectories(LogPath);
-    status := TmpStatus.Create;
+    status := TmsStatus.Create;
     status.Refresh;
     slConnectedIPs := TStringList.Create;
 
@@ -271,9 +295,9 @@ procedure TBackendForm.FormShow(Sender: TObject);
 begin
   // Correct list view widths
   PageControl.ActivePage := UnapprovedTabSheet;
-  CorrectListViewWidth(UnapprovedListView);
+  ListView_CorrectWidth(UnapprovedListView);
   PageControl.ActivePage := ApprovedTabSheet;
-  CorrectListViewWidth(ApprovedListView);
+  ListView_CorrectWidth(ApprovedListView);
   PageControl.ActivePage := LogTabSheet;
 
   // Refresh GUI
@@ -385,15 +409,15 @@ begin
   case ndx of
     0: begin
       UpdateUnapprovedDetails;
-      CorrectListViewWidth(UnapprovedListView);
+      ListView_CorrectWidth(UnapprovedListView);
     end;
     1: begin
       UpdateApprovedDetails;
-      CorrectListViewWidth(ApprovedListView);
+      ListView_CorrectWidth(ApprovedListView);
     end;
     2: begin
       UpdateApplicationDetails;
-      CorrectListViewWidth(LogListView);
+      ListView_CorrectWidth(LogListView);
     end;
   end;
 end;
@@ -489,6 +513,8 @@ begin
   AddDetailsItem('Reports recieved', IntToStr(statistics.reportsRecieved));
   AddDetailsItem('Reports approved', IntToStr(statistics.reportsApproved));
   AddDetailsItem('Reports denied', IntToStr(statistics.reportsDenied));
+  AddDetailsItem('Settings recieved', IntToStr(statistics.settingsRecieved));
+  AddDetailsItem('Settings deleted', IntToStr(statistics.settingsDeleted));
   AddDetailsItem(' ', ' ');
   AddDetailsItem('TES5 logins', IntToStr(statistics.tes5Logins));
   AddDetailsItem('TES4 logins', IntToStr(statistics.tes4Logins));
@@ -504,7 +530,8 @@ begin
   AddDetailsItem('Total bandwidth', FormatByteSize(statistics.totalBandwidth + sessionBandwidth));
   AddDetailsItem('Total uptime', TimeStr(statistics.totalUptime + sessionUptime));
   AddDetailsItem(' ', ' ');
-  AddDetailsItem('Website', 'http://www.nexusmods.com/skyrim/mods/37981');
+  AddDetailsItem('GitHub', 'http://github.com/matortheeternal/smash');
+  AddDetailsItem('Nexus Mods', '-');
   AddDetailsItem('API Credits', 'superobject, TurboPower Abbrevia, ZeosDBO');
 end;
 
@@ -735,6 +762,24 @@ begin
     ListView.Canvas.TextRect(R, x, y, Item.SubItems[i]);
   end;
 end;
+
+procedure TBackendForm.lvSettingsChange(Sender: TObject; Item: TListItem;
+  Change: TItemChange);
+begin
+  // ?
+end;
+
+procedure TBackendForm.lvSettingsCustomDrawItem(Sender: TCustomListView;
+  Item: TListItem; State: TCustomDrawState; var DefaultDraw: Boolean);
+begin
+  // ?
+end;
+
+procedure TBackendForm.lvSettingsData(Sender: TObject; Item: TListItem);
+begin
+  // ?
+end;
+
 
 
 {******************************************************************************}
@@ -1139,9 +1184,9 @@ procedure TBackendForm.SendResponse(var user: TUser; var AContext: TIdContext;
   id: integer; data: string; bLog: boolean = true);
 var
   json: string;
-  response: TmpMessage;
+  response: TmsMessage;
 begin
-  response := TmpMessage.Create(id, '', '', data);
+  response := TmsMessage.Create(id, '', '', data);
   json := TRttiJson.ToJson(response);
   Inc(user.download, Length(json));
   Inc(sessionBandwidth, Length(json));
@@ -1150,7 +1195,195 @@ begin
   response.Free;
 end;
 
-procedure TBackendForm.HandleMessage(msg: TmpMessage; size: integer;
+procedure TBackendForm.HandleNotify(var msg: TmsMessage; var user: TUser;
+  var bAuthorized: Boolean; var AContext: TIdContext);
+var
+  note: string;
+begin
+  if msg.data = 'Authorized?' then begin
+    note := 'No';
+    if bAuthorized then
+      note := 'Yes';
+    // respond to user
+    SendResponse(user, AContext, MSG_NOTIFY, note);
+  end
+  // game based logins
+  else if msg.data = 'TES5' then
+    Inc(statistics.tes5Logins)
+  else if msg.data = 'TES4' then
+    Inc(statistics.tes4Logins)
+  else if msg.data = 'FNV' then
+    Inc(statistics.fnvLogins)
+  else if msg.data = 'FO3' then
+    Inc(statistics.fo3Logins);
+end;
+
+procedure TBackendForm.HandleRegister(var msg: TmsMessage; var user: TUser;
+  var ip: String; var bAuthorized: Boolean; var AContext: TIdContext);
+var
+  note: string;
+begin
+  note := 'Username unavailable';
+  if UsernameAvailable(msg.username) then begin
+    if msg.data = 'Check' then
+      note := 'Available'
+    else if msg.data = 'Register' then begin
+      UpdateUser(ip, msg.username, msg.auth);
+      note := 'Registered '+msg.username;
+    end;
+  end;
+  // respond to user
+  SendResponse(user, AContext, MSG_NOTIFY, note);
+end;
+
+procedure TBackendForm.HandleAuthReset(var msg: TmsMessage; var user: Tuser;
+  var ip: String; var AContext: TIdContext);
+var
+  note: string;
+begin
+  note := 'Failed';
+  if ResetAuth(ip, msg.username, msg.auth) then
+    note := 'Success';
+  // respond to user
+  SendResponse(user, AContext, MSG_NOTIFY, note);
+end;
+
+procedure TBackendForm.HandleStatistics(var msg: TmsMessage; var user: Tuser;
+  var bAuthorized: Boolean; var AContext: TIdContext);
+var
+  note: string;
+  userStatistics: TUserStatistics;
+begin
+  note := 'Not authorized';
+  if bAuthorized then try
+    userStatistics := TUserStatistics(TRttiJson.FromJson(msg.data, TUserStatistics));
+    user.updateStatistics(userStatistics);
+    note := 'Statistics recieved';
+    userStatistics.Free;
+  except
+    on x : Exception do begin
+      LogMessage('ERROR', 'Server', 'Failed to load statistics '+x.Message);
+      note := 'Failed to load statistics.';
+    end;
+  end;
+  // respond to user
+  SendResponse(user, AContext, MSG_NOTIFY, note);
+end;
+
+procedure TBackendForm.HandleStatus(var user: TUser; var AContext: TIdContext);
+begin
+  SendResponse(user, AContext, MSG_STATUS, TRttiJson.ToJson(status), false);
+  LogMessage('SERVER', 'Response', 'Current status');
+end;
+
+procedure TBackendForm.HandleRequest(var msg: TmsMessage; var user: TUser;
+  var AContext: TIdContext);
+var
+  note: string;
+  stream: TMemoryStream;
+begin
+  if (Pos('Dictionary', msg.data) > 0) then begin
+    if FileExists(msg.data) then begin
+      stream := TMemoryStream.Create;
+      stream.LoadFromFile(msg.data);
+      AContext.Connection.IOHandler.LargeStream := True;
+      AContext.Connection.IOHandler.Write(stream, 0, true);
+      Inc(sessionBandwidth, stream.Size);
+      Inc(user.download, stream.Size);
+      Inc(statistics.dictionaryUpdates);
+      LogMessage('SERVER', 'Response', 'Sent '+msg.data+' '+ GetDictionaryHash(msg.data));
+      stream.Free;
+    end;
+  end
+  else if msg.data = 'Program' then begin
+    if FileExists('MergePlugins.zip') then begin
+      stream := TMemoryStream.Create;
+      stream.LoadFromFile('MergePlugins.zip');
+      AContext.Connection.IOHandler.LargeStream := True;
+      AContext.Connection.IOHandler.Write(stream, 0, true);
+      Inc(sessionBandwidth, stream.Size);
+      Inc(user.download, stream.Size);
+      Inc(statistics.programUpdates);
+      LogMessage('SERVER', 'Response', 'Sent '+msg.data+' '+ status.programVersion);
+      stream.Free;
+    end
+    else
+      LogMessage('ERROR', 'Server', 'User requested '+msg.data);
+  end
+  else if msg.data = 'Changelog' then begin
+    if FileExists('changelog.txt') then begin
+      stream := TMemoryStream.Create;
+      stream.LoadFromFile('changelog.txt');
+      AContext.Connection.IOHandler.LargeStream := True;
+      AContext.Connection.IOHandler.Write(stream, 0, true);
+      Inc(sessionBandwidth, stream.Size);
+      Inc(user.download, stream.Size);
+      LogMessage('SERVER', 'Response', 'Sent changelog');
+      stream.Free;
+    end
+    else
+      Logger.Write('ERROR', 'Server', 'Changelog missing');
+  end
+  else
+    Logger.Write('ERROR', 'Server', 'Unknown request '+msg.data);
+end;
+
+procedure TBackendForm.HandleReport(var msg: TmsMessage; var user: TUser;
+  var bAuthorized: Boolean; var AContext: TIdContext);
+var
+  note: String;
+  report: TReport;
+begin
+  note := 'Not authorized';
+  if bAuthorized then try
+    report := TReport.Create;
+    report := TReport(TRttiJson.FromJson(msg.data, TReport));
+    report.username := msg.username;
+    report.dateSubmitted := Now;
+    report.notes := StringReplace(report.notes, '@13', #13#10, [rfReplaceAll]);
+    report.notes := Wordwrap(report.notes, 70);
+    LogMessage('SERVER', 'Message', Format('Recieved report %s %s %s',
+      [report.game, report.username, report.filename]));
+
+    // replace reports from same user on same plugin
+    if ReportExists(UnapprovedReports, report) then begin
+      UnapprovedListView.Items.Count := UnapprovedReports.Count - 1;
+      RemoveExistingReports(UnapprovedReports, report);
+      DBRemoveReport(report, 'unapproved_reports');
+    end;
+
+    // add report to gui
+    UnapprovedReports.Add(report);
+    UnapprovedListView.Items.Count := UnapprovedReports.Count;
+
+    // add report to sql
+    DBAddReport(report, 'unapproved_reports');
+    note := 'Report accepted.';
+    Inc(statistics.reportsRecieved);
+    Inc(user.reportsSubmitted);
+
+    // update statistics based on game
+    if report.game = 'TES5' then
+      Inc(statistics.tes5Reports)
+    else if report.game = 'TES4' then
+      Inc(statistics.tes4Reports)
+    else if report.game = 'FNV' then
+      Inc(statistics.fnvLogins)
+    else if report.game = 'FO3' then
+      Inc(statistics.fo3Reports);
+  except
+    on x : Exception do begin
+      LogMessage('ERROR', 'Server', 'Failed to load report '+x.Message);
+      note := 'Failed to load report.';
+    end;
+  end;
+
+  // respond to user
+  SendResponse(user, AContext, MSG_NOTIFY, note);
+end;
+
+
+procedure TBackendForm.HandleMessage(msg: TmsMessage; size: integer;
   AContext: TIdContext);
 var
   report: TReport;
@@ -1158,7 +1391,6 @@ var
   user: TUser;
   stream: TMemoryStream;
   bAuthorized: boolean;
-  userStatistics: TUserStatistics;
 begin
   // get ip, authorization
   ip := AContext.Connection.Socket.Binding.PeerIP;
@@ -1182,164 +1414,13 @@ begin
 
   // handle message by id
   case msg.id of
-    MSG_NOTIFY: begin
-      if msg.data = 'Authorized?' then begin
-        note := 'No';
-        if bAuthorized then
-          note := 'Yes';
-        // respond to user
-        SendResponse(user, AContext, MSG_NOTIFY, note);
-      end
-      // game based logins
-      else if msg.data = 'TES5' then
-        Inc(statistics.tes5Logins)
-      else if msg.data = 'TES4' then
-        Inc(statistics.tes4Logins)
-      else if msg.data = 'FNV' then
-        Inc(statistics.fnvLogins)
-      else if msg.data = 'FO3' then
-        Inc(statistics.fo3Logins);
-    end;
-
-    MSG_REGISTER: begin
-      note := 'Username unavailable';
-      if UsernameAvailable(msg.username) then begin
-        if msg.data = 'Check' then
-          note := 'Available'
-        else if msg.data = 'Register' then begin
-          UpdateUser(ip, msg.username, msg.auth);
-          note := 'Registered '+msg.username;
-        end;
-      end;
-      // respond to user
-      SendResponse(user, AContext, MSG_NOTIFY, note);
-    end;
-
-    MSG_AUTH_RESET:  begin
-      note := 'Failed';
-      if ResetAuth(ip, msg.username, msg.auth) then
-        note := 'Success';
-      // respond to user
-      SendResponse(user, AContext, MSG_NOTIFY, note);
-    end;
-
-    MSG_STATISTICS:  begin
-      note := 'Not authorized';
-      if bAuthorized then try
-        userStatistics := TUserStatistics(TRttiJson.FromJson(msg.data, TUserStatistics));
-        user.updateStatistics(userStatistics);
-        note := 'Statistics recieved';
-        userStatistics.Free;
-      except
-        on x : Exception do begin
-          LogMessage('ERROR', 'Server', 'Failed to load statistics '+x.Message);
-          note := 'Failed to load statistics.';
-        end;
-      end;
-      // respond to user
-      SendResponse(user, AContext, MSG_NOTIFY, note);
-    end;
-
-    MSG_STATUS: begin
-      SendResponse(user, AContext, MSG_STATUS, TRttiJson.ToJson(status), false);
-      LogMessage('SERVER', 'Response', 'Current status');
-    end;
-
-    MSG_REQUEST:  begin
-      if (Pos('Dictionary', msg.data) > 0) then begin
-        if FileExists(msg.data) then begin
-          stream := TMemoryStream.Create;
-          stream.LoadFromFile(msg.data);
-          AContext.Connection.IOHandler.LargeStream := True;
-          AContext.Connection.IOHandler.Write(stream, 0, true);
-          Inc(sessionBandwidth, stream.Size);
-          Inc(user.download, stream.Size);
-          Inc(statistics.dictionaryUpdates);
-          LogMessage('SERVER', 'Response', 'Sent '+msg.data+' '+ GetDictionaryHash(msg.data));
-          stream.Free;
-        end;
-      end
-      else if msg.data = 'Program' then begin
-        if FileExists('MergePlugins.zip') then begin
-          stream := TMemoryStream.Create;
-          stream.LoadFromFile('MergePlugins.zip');
-          AContext.Connection.IOHandler.LargeStream := True;
-          AContext.Connection.IOHandler.Write(stream, 0, true);
-          Inc(sessionBandwidth, stream.Size);
-          Inc(user.download, stream.Size);
-          Inc(statistics.programUpdates);
-          LogMessage('SERVER', 'Response', 'Sent '+msg.data+' '+ status.programVersion);
-          stream.Free;
-        end
-        else
-          LogMessage('ERROR', 'Server', 'User requested '+msg.data);
-      end
-      else if msg.data = 'Changelog' then begin
-        if FileExists('changelog.txt') then begin
-          stream := TMemoryStream.Create;
-          stream.LoadFromFile('changelog.txt');
-          AContext.Connection.IOHandler.LargeStream := True;
-          AContext.Connection.IOHandler.Write(stream, 0, true);
-          Inc(sessionBandwidth, stream.Size);
-          Inc(user.download, stream.Size);
-          LogMessage('SERVER', 'Response', 'Sent changelog');
-          stream.Free;
-        end
-        else
-          Logger.Write('ERROR', 'Server', 'Changelog missing');
-      end
-      else
-        Logger.Write('ERROR', 'Server', 'Unknown request '+msg.data);
-    end;
-
-    MSG_REPORT: begin
-      note := 'Not authorized';
-      if bAuthorized then try
-        report := TReport.Create;
-        report := TReport(TRttiJson.FromJson(msg.data, TReport));
-        report.username := msg.username;
-        report.dateSubmitted := Now;
-        report.notes := StringReplace(report.notes, '@13', #13#10, [rfReplaceAll]);
-        report.notes := Wordwrap(report.notes, 70);
-        LogMessage('SERVER', 'Message', Format('Recieved report %s %s %s',
-          [report.game, report.username, report.filename]));
-
-        // replace reports from same user on same plugin
-        if ReportExists(UnapprovedReports, report) then begin
-          UnapprovedListView.Items.Count := UnapprovedReports.Count - 1;
-          RemoveExistingReports(UnapprovedReports, report);
-          DBRemoveReport(report, 'unapproved_reports');
-        end;
-
-        // add report to gui
-        UnapprovedReports.Add(report);
-        UnapprovedListView.Items.Count := UnapprovedReports.Count;
-
-        // add report to sql
-        DBAddReport(report, 'unapproved_reports');
-        note := 'Report accepted.';
-        Inc(statistics.reportsRecieved);
-        Inc(user.reportsSubmitted);
-
-        // update statistics based on game
-        if report.game = 'TES5' then
-          Inc(statistics.tes5Reports)
-        else if report.game = 'TES4' then
-          Inc(statistics.tes4Reports)
-        else if report.game = 'FNV' then
-          Inc(statistics.fnvLogins)
-        else if report.game = 'FO3' then
-          Inc(statistics.fo3Reports);
-      except
-        on x : Exception do begin
-          LogMessage('ERROR', 'Server', 'Failed to load report '+x.Message);
-          note := 'Failed to load report.';
-        end;
-      end;
-
-      // respond to user
-      SendResponse(user, AContext, MSG_NOTIFY, note);
-    end;
+    MSG_NOTIFY: HandleNotify(msg, user, bAuthorized, AContext);
+    MSG_REGISTER: HandleRegister(msg, user, ip, bAuthorized, AContext);
+    MSG_AUTH_RESET: HandleAuthReset(msg, user, ip, AContext);
+    MSG_STATISTICS:  HandleStatistics(msg, user, bAuthorized, AContext);
+    MSG_STATUS: HandleStatus(user, AContext);
+    MSG_REQUEST: HandleRequest(msg, user, AContext);
+    MSG_REPORT: HandleReport(msg, user, bAuthorized, AContext);
   end;
 
   // update user
@@ -1347,7 +1428,7 @@ begin
   DBUpdateUser(SetClause, WhereClause);
 end;
 
-procedure TBackendForm.WriteMessage(msg: TmpMessage; ip: string);
+procedure TBackendForm.WriteMessage(msg: TmsMessage; ip: string);
 begin
   LogMessage('SERVER', 'Message', ip+' ('+msg.username+')  '+MSG_STRINGS[msg.id]);
   if (Length(msg.data) > 1) and (Length(msg.data) < 60) then
@@ -1356,7 +1437,7 @@ end;
 
 procedure TBackendForm.TCPServerExecute(AContext: TIdContext);
 var
-  msg: TmpMessage;
+  msg: TmsMessage;
   LLine: string;
   size: integer;
 begin
@@ -1366,7 +1447,7 @@ begin
   if size < 3 then
     exit;
 
-  msg := TmpMessage(TRttiJson.FromJson(LLine, TmpMessage));
+  msg := TmsMessage(TRttiJson.FromJson(LLine, TmsMessage));
   if (msg.id > 0) then
     HandleMessage(msg, size, AContext);
 

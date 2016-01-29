@@ -1,4 +1,4 @@
-unit mpDictionaryForm;
+unit msDictionaryform;
 
 interface
 

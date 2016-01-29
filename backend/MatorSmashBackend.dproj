@@ -1,7 +1,7 @@
 ﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 		<PropertyGroup>
 			<ProjectGuid>{12317C9C-736E-45A4-8CB7-E43FF92DD93C}</ProjectGuid>
-			<MainSource>MergePluginsBackend.dpr</MainSource>
+			<MainSource>MatorSmashBackend.dpr</MainSource>
 			<Base>True</Base>
 			<Config Condition="'$(Config)'==''">Debug</Config>
 			<AppType>Application</AppType>
@@ -84,26 +84,26 @@
 			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
 		</PropertyGroup>
 		<ItemGroup>
-			<DelphiCompile Include="MergePluginsBackend.dpr">
+			<DelphiCompile Include="MatorSmashBackend.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
-			<DCCReference Include="mpBackendForm.pas">
+			<DCCReference Include="msBackendForm.pas">
 				<Form>BackendForm</Form>
 			</DCCReference>
-			<DCCReference Include="mpBackend.pas"/>
-			<DCCReference Include="mpDictionaryForm.pas">
+			<DCCReference Include="msBackend.pas"/>
+			<DCCReference Include="msDictionaryform.pas">
 				<Form>DictionaryForm</Form>
 			</DCCReference>
-			<DCCReference Include="mpOptionsForm.pas">
+			<DCCReference Include="msOptionsForm.pas">
 				<Form>OptionsForm</Form>
 			</DCCReference>
-			<DCCReference Include="mpEditForm.pas">
+			<DCCReference Include="msEditForm.pas">
 				<Form>EditForm</Form>
 			</DCCReference>
-			<DCCReference Include="mpLoginForm.pas">
+			<DCCReference Include="msLoginForm.pas">
 				<Form>LoginForm</Form>
 			</DCCReference>
-			<DCCReference Include="mpUserForm.pas">
+			<DCCReference Include="msUserForm.pas">
 				<Form>UserForm</Form>
 			</DCCReference>
 			<None Include="ModelSupport_MergePlugins\default.txaPackage"/>
@@ -156,7 +156,7 @@
 			<BorlandProject>
 				<Delphi.Personality>
 					<Source>
-						<Source Name="MainSource">MergePluginsBackend.dpr</Source>
+						<Source Name="MainSource">MatorSmashBackend.dpr</Source>
 					</Source>
 					<VersionInfo>
 						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
