@@ -513,7 +513,7 @@ begin
 
   // save patch plugin
   patch.plugin.dataPath := patch.dataPath;
-  //patch.plugin.Save;
+  patch.plugin.Save;
 
   // save files, fails, plugins
   patchFilePrefix := patch.dataPath + 'smash\'+ChangeFileExt(patch.filename, '');

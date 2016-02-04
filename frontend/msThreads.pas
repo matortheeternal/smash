@@ -240,7 +240,7 @@ begin
         Tracker.Write('Exception saving plugin errors '+x.Message);
     end;
     Tracker.SetProgress(PluginsList.Count + 1);
-    Tracker.Write(' ');
+
     // save patches
     SavePatches;
 

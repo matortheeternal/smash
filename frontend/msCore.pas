@@ -88,6 +88,7 @@ type
       var sTagGroup: String);
     procedure GetSettingTag;
     procedure WriteDescription;
+    procedure Save;
   end;
   TPatch = class(TObject)
   public
@@ -110,6 +111,7 @@ type
     procedure UpdateHashes;
     procedure UpdateSettings;
     procedure GetStatus;
+    procedure UpdateDataPath;
     procedure GetLoadOrders;
     procedure SortPlugins;
     procedure Remove(plugin: TPlugin); overload;
@@ -214,9 +216,8 @@ const
   FailedStatuses = [psFailed];
 
 var
-  PatchesList, SmashSettings: TList;
-  pluginsToHandle, patchesToBuild: TList;
-  ActiveMods: TStringList;
+  PatchesList, SmashSettings, pluginsToHandle, patchesToBuild: TList;
+  ActiveMods, SavedPluginPaths: TStringList;
   ActiveModProfile, xEditLogGroup, xEditLogLabel, DictionaryFilename: string;
 
 implementation
@@ -408,6 +409,29 @@ begin
   Container.SetElementEditValue('SNAM - Description', description.Text);
 end;
 
+procedure TPlugin.Save;
+var
+  path: string;
+  FileStream: TFileStream;
+begin
+  // save plugin
+  path := dataPath + filename + '.save';
+  Tracker.Write(' ');
+  Tracker.Write('Saving: ' + path);
+  Logger.Write('PLUGIN', 'Save', path);
+  FileStream := nil;
+  try
+    FileStream := TFileStream.Create(path, fmCreate);
+    _File.WriteToStream(FileStream, False);
+    if SavedPluginPaths.IndexOf(path) = -1 then
+      SavedPluginPaths.Add(dataPath + filename);
+  except
+    on x: Exception do
+      Tracker.Write('Failed to save: '+x.Message);
+  end;
+  TryToFree(FileStream);
+end;
+
 { TPatch Constructor }
 constructor TPatch.Create;
 begin
@@ -558,6 +582,13 @@ begin
   Result := FileExists(dataPath + filename);
 end;
 
+procedure TPatch.UpdateDataPath;
+begin
+  dataPath := settings.patchDirectory;
+  if dataPath <> wbDataPath then
+    dataPath := settings.patchDirectory + name + '\';
+end;
+
 procedure TPatch.GetStatus;
 var
   i: Integer;
@@ -581,7 +612,7 @@ begin
   end;
 
   // update the patch's data path
-  dataPath := settings.patchDirectory;
+  UpdateDataPath;
 
   // don't patch if usingMO is true and MODirectory is blank
   if settings.usingMO and (settings.ManagerPath = '') then begin
@@ -1050,6 +1081,7 @@ begin
   json.O['patches'] := SA([]);
 
   // loop through patches
+  Tracker.Write(' ');
   Tracker.Write('Dumping patches to JSON');
   for i := 0 to Pred(PatchesList.Count) do begin
     Tracker.UpdateProgress(1);
@@ -1300,27 +1332,24 @@ end;
 procedure RenameSavedPlugins;
 var
   i: Integer;
-  plugin: TPlugin;
   oldFileName, newFileName, bakFileName: string;
 begin
-  wbFileForceClosed;
-  for i := Pred(PluginsList.Count) downto 0 do begin
-    plugin := TPlugin(PluginsList[i]);
-    try
-      plugin._File._Release;
-      oldFileName := plugin.dataPath + plugin.filename;
-      newFileName := oldFileName + '.save';
-      if FileExists(newFileName) then begin
-        bakFileName := oldFileName + '.bak';
-        if FileExists(bakFileName) then
-          DeleteFile(bakFileName);
-        RenameFile(oldFileName, bakFileName);
-        RenameFile(newFileName, oldFileName);
-      end;
-    except
-      on x: Exception do
-        Tracker.Write('Failed to rename ' + plugin.filename + '.save');
-    end;
+  // tracker message
+  Tracker.Write(' ');
+  Tracker.Write('Renaming saved plugins');
+
+  for i := Pred(SavedPluginPaths.Count) downto 0 do try
+    oldFileName := SavedPluginPaths[i];
+    newFileName := oldFileName + '.save';
+    bakFileName := oldFileName + '.bak';
+    Tracker.Write(Format('    Renaming %s to %s', [ExtractFileName(newFileName), ExtractFileName(oldFileName)]));
+    if FileExists(bakFileName) then
+      DeleteFile(bakFileName);
+    RenameFile(oldFileName, bakFileName);
+    RenameFile(newFileName, oldFileName);
+  except
+    on x: Exception do
+      Tracker.Write('      Failed to rename ' + newFileName);
   end;
 end;
 
@@ -1921,12 +1950,14 @@ initialization
 begin
   PatchesList := TList.Create;
   SmashSettings := TList.Create;
+  SavedPluginPaths := TStringList.Create;
 end;
 
 finalization
 begin
   FreeList(PatchesList);
   FreeList(SmashSettings);
+  SavedPluginPaths.Free;
 end;
 
 end.
