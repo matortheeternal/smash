@@ -1168,7 +1168,7 @@ end;
 procedure TSmashForm.PluginsPopupMenuPopup(Sender: TObject);
 var
   i: integer;
-  bPluginInPatch, bHasSelection, bAllPluginsInPatch: boolean;
+  bPluginInPatch, bHasSelection, bAllPluginsInPatch, bAllHaveTags: boolean;
   ListItem: TListItem;
   plugin: TPlugin;
 begin
@@ -1176,6 +1176,7 @@ begin
   bHasSelection := false;
   bPluginInPatch := false;
   bAllPluginsInPatch := true;
+  bAllHaveTags := true;
 
   // loop through selection
   for i := 0 to Pred(PluginsListView.Items.Count) do begin
@@ -1185,6 +1186,7 @@ begin
 
     plugin := PluginsList[i];
     bHasSelection := true;
+    bAllHaveTags := bAllHaveTags and plugin.HasTags;
     bPluginInPatch := bPluginInPatch or plugin.IsInPatch;
     bAllPluginsInPatch := bAllPluginsInPatch and plugin.IsInPatch;
   end;
@@ -1194,6 +1196,8 @@ begin
   SmashSettingItem.Enabled := bHasSelection;
   OpenPluginLocationItem.Enabled := bHasSelection;
   RemoveFromPatchItem.Enabled := bHasSelection and bAllPluginsInPatch;
+  TagsItem.Enabled := bHasSelection;
+  ClearTagsItem.Enabled := bHasSelection and bAllHaveTags;
 end;
 
 procedure TSmashForm.UpdatePluginsPopupMenu;

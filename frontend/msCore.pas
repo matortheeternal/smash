@@ -83,6 +83,7 @@ type
     function IsInPatch: boolean;
     procedure LoadInfoDump(obj: ISuperObject);
     function InfoDump: ISuperObject;
+    function HasTags: Boolean;
     procedure SetSmashSetting(aSetting: TSmashSetting);
     procedure ApplyTags(sSettingName: String; var sl: TStringList;
       var sTagGroup: String);
@@ -323,6 +324,16 @@ begin
     smashSetting := aSetting;
     Logger.Write('PLUGIN', 'Settings', 'Using '+setting+' for '+filename);
   end;
+end;
+
+function TPlugin.HasTags: Boolean;
+var
+  regex: TRegex;
+  match: TMatch;
+begin
+  regex := TRegEx.Create('{{([a-zA-Z]{1,10}:){0,1}([^}]*)}}');
+  match := regex.Match(description.Text);
+  Result := match.Success;
 end;
 
 procedure TPlugin.ApplyTags(sSettingName: String; var sl: TStringList;
