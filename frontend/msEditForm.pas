@@ -21,7 +21,7 @@ type
     edFilename: TEdit;
     procedure FormShow(Sender: TObject);
     function NameValid: boolean;
-    function FilenameValid: boolean;
+    function ESPFilenameValid: boolean;
     procedure edFilenameChange(Sender: TObject);
     procedure edFilenameEnter(Sender: TObject);
     procedure edNameChange(Sender: TObject);
@@ -55,6 +55,10 @@ var
 begin
   Result := false;
 
+  // return false if illegal characters present
+  if not FileNameValid(edName.Text) then
+    exit;
+
   // return false if edName is blank
   if Trim(edName.Text) = '' then
     exit;
@@ -70,7 +74,7 @@ begin
   Result := true;
 end;
 
-function TEditForm.FilenameValid: boolean;
+function TEditForm.ESPFilenameValid: boolean;
 var
   aPatch: TPatch;
   plugin: TPlugin;
@@ -78,6 +82,10 @@ var
   sFilename: string;
 begin
   Result := false;
+
+  // return false if illegal characters present
+  if not FileNameValid(edFilename.Text) then
+    exit;
 
   // return false if filename doesn't end in .esp
   if not StrEndsWith(edFilename.Text, '.esp') then
@@ -117,7 +125,7 @@ var
   valid: boolean;
 begin
   // if invalid disable btnOk, show hint, and make font color red
-  valid := FilenameValid;
+  valid := ESPFilenameValid;
   btnOk.Enabled := valid and NameValid;
   edFilename.ShowHint := valid;
   if valid then
@@ -143,7 +151,7 @@ begin
     and (edName.Text <> patch.name);
 
   // if invalid show hint and make font color red
-  btnOk.Enabled := valid and FilenameValid;
+  btnOk.Enabled := valid and ESPFilenameValid;
   edName.ShowHint := (not valid) or exists;
   if (not valid) or exists then
     edName.Font.Color := $0000ff
