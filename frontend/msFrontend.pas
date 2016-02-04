@@ -138,6 +138,7 @@ type
     description: TStringList;
     masters: TStringList;
     requiredBy: TStringList;
+    saved: boolean;
     constructor Create; virtual;
     destructor Destroy; override;
     procedure GetData;
@@ -488,7 +489,7 @@ var
   dictionary, blacklist, PluginsList, PatchesList, BaseLog, Log,
   LabelFilters, GroupFilters, pluginsToHandle, patchesToBuild, SmashSettings: TList;
   TreeView: TTreeView;
-  timeCosts, language, ActiveMods, SavedPluginPaths: TStringList;
+  timeCosts, language, ActiveMods: TStringList;
   settings: TSettings;
   CurrentProfile: TProfile;
   statistics, sessionStatistics: TStatistics;
@@ -503,6 +504,7 @@ var
   TCPClient: TidTCPClient;
   AppStartTime, LastStatusTime: TDateTime;
   GameMode: TGameMode;
+  hardcodedFile: IwbFile;
 
 implementation
 
@@ -2246,24 +2248,36 @@ end;
 procedure RenameSavedPlugins;
 var
   i: Integer;
+  plugin: TPlugin;
   oldFileName, newFileName, bakFileName: string;
 begin
   // tracker message
   Tracker.Write(' ');
   Tracker.Write('Renaming saved plugins');
 
-  for i := Pred(SavedPluginPaths.Count) downto 0 do try
-    oldFileName := SavedPluginPaths[i];
-    newFileName := oldFileName + '.save';
-    bakFileName := oldFileName + '.bak';
-    Tracker.Write(Format('    Renaming %s to %s', [ExtractFileName(newFileName), ExtractFileName(oldFileName)]));
-    if FileExists(bakFileName) then
-      DeleteFile(bakFileName);
-    RenameFile(oldFileName, bakFileName);
-    RenameFile(newFileName, oldFileName);
-  except
-    on x: Exception do
-      Tracker.Write('      Failed to rename ' + newFileName);
+  for i := Pred(PluginsList.Count) downto 0 do begin
+    plugin := TPlugin(PluginsList[i]);
+    if not plugin.saved then
+      continue;
+    try
+      oldFileName := plugin.dataPath + plugin.filename;
+      newFileName := oldFileName + '.save';
+      if not FileExists(newFileName) then
+        continue;
+
+      // delete backup file if it already exists
+      bakFileName := oldFileName + '.bak';
+      if FileExists(bakFileName) then
+        DeleteFile(bakFileName);
+
+      // swap old file to bak, then new file to old
+      Tracker.Write(Format('    Renaming %s to %s', [ExtractFileName(newFileName), ExtractFileName(oldFileName)]));
+      RenameFile(oldFileName, bakFileName);
+      RenameFile(newFileName, oldFileName);
+    except
+      on x: Exception do
+        Tracker.Write('      Failed to rename: ' + x.Message);
+    end;
   end;
 end;
 
@@ -2966,7 +2980,7 @@ procedure ShowProgressForm(parent: TForm; var pf: TProgressForm; s: string);
 begin
   parent.Enabled := false;
   pf := TProgressForm.Create(parent);
-  pf.LogPath := LogPath;
+  pf.pfLogPath := LogPath;
   pf.PopupParent := parent;
   pf.Caption := s;
   pf.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
@@ -4336,8 +4350,7 @@ begin
   try
     FileStream := TFileStream.Create(path, fmCreate);
     _File.WriteToStream(FileStream, False);
-    if SavedPluginPaths.IndexOf(path) = -1 then
-      SavedPluginPaths.Add(dataPath + filename);
+    saved := true;
   except
     on x: Exception do
       Tracker.Write('Failed to save: '+x.Message);
@@ -4903,16 +4916,5 @@ begin
   // then change name in the object
   self.name := name;
 end;
-
-Initialization
-begin
-  SavedPluginPaths := TStringList.Create;
-end;
-
-Finalization
-begin
-  SavedPluginPaths.Free;
-end;
-
 
 end.

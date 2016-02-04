@@ -8,7 +8,7 @@ uses
   // mte units
   RttiTranslation,
   // smash units
-  msFrontend;
+  msConfiguration;
 
 type
   TTagHelper = class(TForm)

@@ -8,7 +8,7 @@ uses
   // mte units
   mteHelpers,
   // mator smash units
-  msFrontend;
+  msCore, msConfiguration;
 
 type
   TEditForm = class(TForm)

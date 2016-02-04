@@ -77,6 +77,14 @@
 			<DelphiCompile Include="MatorSmash.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="msConfiguration.pas"/>
+			<DCCReference Include="msCore.pas"/>
+			<DCCReference Include="msLoader.pas"/>
+			<DCCReference Include="msClient.pas"/>
+			<DCCReference Include="msConflict.pas"/>
+			<DCCReference Include="msChoicePanel.pas"/>
+			<DCCReference Include="msSmash.pas"/>
+			<DCCReference Include="msAlgorithm.pas"/>
 			<DCCReference Include="msProfileForm.pas">
 				<Form>ProfileForm</Form>
 			</DCCReference>
@@ -84,7 +92,6 @@
 			<DCCReference Include="msSmashForm.pas">
 				<Form>SmashForm</Form>
 			</DCCReference>
-			<DCCReference Include="msFrontend.pas"/>
 			<DCCReference Include="msThreads.pas"/>
 			<DCCReference Include="msOptionsForm.pas">
 				<Form>OptionsForm</Form>
@@ -99,42 +106,18 @@
 				<Form>SettingsManager</Form>
 			</DCCReference>
 			<DCCReference Include="msPluginSelectionForm.pas">
-				<Form>PluginSelectionForm</Form>
+				<Form>MiniPluginSelectionForm</Form>
 			</DCCReference>
 			<DCCReference Include="msConflictForm.pas">
 				<Form>ConflictForm</Form>
 			</DCCReference>
-			<DCCReference Include="msChoicePanel.pas"/>
-			<DCCReference Include="msSmash.pas"/>
-			<DCCReference Include="msAlgorithm.pas"/>
-			<DCCReference Include="msConflict.pas"/>
 			<DCCReference Include="msTagManager.pas">
 				<Form>TagManager</Form>
 			</DCCReference>
 			<DCCReference Include="msTagHelper.pas">
 				<Form>TagHelper</Form>
 			</DCCReference>
-			<None Include="ModelSupport_MergePlugins\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\default.txaPackage"/>
 			<None Include="ModelSupport_MatorSmash\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\MatorSmash\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\msFrontend\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\msEditForm\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\msProfileForm\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\msSplashForm\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\msProfilePanel\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\msThreads\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\msSmashForm\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\msOptionsForm\default.txvpck"/>
-			<None Include="ModelSupport_MatorSmash\msSmashForm\default.txaPackage"/>
-			<None Include="ModelSupport_MatorSmash\msFrontend\default.txaPackage"/>
-			<None Include="ModelSupport_MatorSmash\MatorSmash\default.txaPackage"/>
-			<None Include="ModelSupport_MatorSmash\msThreads\default.txaPackage"/>
-			<None Include="ModelSupport_MatorSmash\msProfilePanel\default.txaPackage"/>
-			<None Include="ModelSupport_MatorSmash\msProfileForm\default.txaPackage"/>
-			<None Include="ModelSupport_MatorSmash\msSplashForm\default.txaPackage"/>
-			<None Include="ModelSupport_MatorSmash\msEditForm\default.txaPackage"/>
-			<None Include="ModelSupport_MatorSmash\msOptionsForm\default.txaPackage"/>
 			<BuildConfiguration Include="Debug">
 				<Key>Cfg_2</Key>
 				<CfgParent>Base</CfgParent>
@@ -167,7 +150,7 @@
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">2</VersionInfo>
 						<VersionInfo Name="Release">1</VersionInfo>
-						<VersionInfo Name="Build">24</VersionInfo>
+						<VersionInfo Name="Build">56</VersionInfo>
 						<VersionInfo Name="Debug">True</VersionInfo>
 						<VersionInfo Name="PreRelease">True</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -179,7 +162,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName"/>
 						<VersionInfoKeys Name="FileDescription"/>
-						<VersionInfoKeys Name="FileVersion">0.2.1.24</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.2.1.56</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName"/>
 						<VersionInfoKeys Name="LegalCopyright"/>
 						<VersionInfoKeys Name="LegalTrademarks"/>
@@ -194,11 +177,7 @@
 						<Excluded_Packages Name="$(BDSBIN)\dcloffice2k150.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
 						<Excluded_Packages Name="$(BDSBIN)\dclofficexp150.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
 					</Excluded_Packages>
-					<Parameters_Win32>
-						<Parameters_Win32 Name="RunParams">&quot;C:\Program Files (x86)\Mator Smash\MatorSmash.exe&quot; -profile SkyrimProfile</Parameters_Win32>
-						<Parameters_Win32 Name="HostApplication">C:\Program Files (x86)\Mod Organizer\ModOrganizer.exe</Parameters_Win32>
-						<Parameters_Win32 Name="DebugCWD">&quot;C:\Program Files (x86)\Mod Organizer&quot;</Parameters_Win32>
-					</Parameters_Win32>
+					<Parameters_Win32/>
 				</Delphi.Personality>
 				<Platforms>
 					<Platform value="Win64">False</Platform>

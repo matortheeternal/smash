@@ -45,7 +45,6 @@ object TagHelper: TTagHelper
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 1
-    ExplicitTop = 400
   end
   object btnOK: TButton
     Left = 170
@@ -57,6 +56,5 @@ object TagHelper: TTagHelper
     Caption = 'OK'
     ModalResult = 1
     TabOrder = 2
-    ExplicitTop = 400
   end
 end

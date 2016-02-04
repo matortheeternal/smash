@@ -8,7 +8,7 @@ uses
   // mte components
   mteHelpers,
   // mp components
-  msFrontend;
+  msConfiguration, msLoader;
 
 type
   TProfilePanel = class(TPanel)
@@ -261,7 +261,7 @@ end;
 procedure TProfilePanel.NameChanged(Sender: TObject);
 begin
   if FileNameValid(edName.Text) and
-  (not DirectoryExists(ProgramPath + 'profiles\' + edName.Text)) then
+  (not DirectoryExists(PathList.Values['ProgramPath'] + 'profiles\' + edName.Text)) then
     aProfile.Rename(edName.Text);
 end;
 

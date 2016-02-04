@@ -3,13 +3,18 @@ unit mteBase;
 interface
 
 uses
-  Classes,
+  Classes, Menus,
+  // third party libraries
+  superobject,
   // mte units
   mteTracker,
   // xEdit units
   wbHelpers, wbInterface, wbImplementation;
 
 type
+  TSmashType = ( stUnknown, stRecord, stString, stInteger, stFlag, stFloat,
+    stStruct, stUnsortedArray, stUnsortedStructArray, stSortedArray,
+    stSortedStructArray, stByteArray, stUnion );
   TBasePlugin = class(TObject)
   public
     _File: IwbFile;
@@ -18,8 +23,8 @@ type
     fileSize: Int64;
     dateModified: string;
     filename: string;
-    numRecords: string;
-    numOverrides: string;
+    numRecords: Integer;
+    numOverrides: Integer;
     author: string;
     dataPath: string;
     description: TStringList;
@@ -43,17 +48,54 @@ type
     class procedure GetPluginDependencies(filename: string; var sl: TStringList);
   end;
 
-  { Bethesda Plugin Functions }
+  { General Helper Functions }
+  function etToString(et: TwbElementType): string;
+  function dtToString(dt: TwbDefType): string;
+  function ctToString(ct: TConflictThis): string;
+  function stToString(st: TSmashType): string;
+  function GetSmashType(element: IwbElement): TSmashType;
+  function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;
+  function IndexedPath(e: IwbElement): string;
+  function GetAllValues(e: IwbElement): string;
+  function IsSorted(e: IwbElement): boolean;
+  function HasStructChildren(e: IwbElement): boolean;
+  function WinningOverrideInFiles(rec: IwbMainRecord;
+    var sl: TStringList): IwbMainRecord;
   function IsOverride(aRecord: IwbMainRecord): boolean;
   function ExtractFormID(filename: string): string;
   function RemoveFileIndex(formID: string): string;
   function LocalFormID(aRecord: IwbMainRecord): integer;
   function LoadOrderPrefix(aRecord: IwbMainRecord): integer;
   function CountOverrides(aFile: IwbFile): integer;
+  function OverrideCountInFiles(rec: IwbMainRecord; var files: TStringList): Integer;
   procedure AddRequiredBy(var lst: TList; filename: string;
     var masters: TStringList);
   procedure GetMasters(aFile: IwbFile; var sl: TStringList);
   procedure AddMasters(aFile: IwbFile; var sl: TStringList);
+  function RemoveSelfOrContainer(const aElement: IwbElement): boolean;
+  procedure UndeleteAndDisable(const aRecord: IwbMainRecord);
+  function LoadOrderCompare(List: TStringList; Index1, Index2: Integer): Integer;
+
+  { Record Prototyping Functions }
+  function GetElementObj(var obj: ISuperObject; name: string): ISuperObject;
+  function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord): ISuperObject;
+  function GetRecordObj(var tree: ISuperObject; name: string): ISuperObject;
+  function GetRecordDef(sig: TwbSignature): TwbRecordDefEntry;
+  function BuildElementDef(element: IwbElement): ISuperObject;
+  function BuildRecordDef(container: IwbContainer; sName: string;
+    mrDef: IwbRecordDef; out recObj: ISuperObject): boolean; overload;
+  function BuildRecordDef(sName: string; out recObj: ISuperObject): boolean; overload;
+  function GetEditableFileContainer: IwbContainerElementRef;
+
+  { Plugin Error Functions }
+  function FixErrors(const aElement: IwbElement; lastRecord: IwbMainRecord;
+    var errors: TStringList): IwbMainRecord;
+  function CheckForErrors(const aElement: IwbElement; lastRecord: IwbMainRecord;
+    var errors: TStringList): IwbMainRecord;
+
+  { Asset Handling Functions }
+  procedure ExtractBSA(ContainerName, folder, destination: string); overload;
+  procedure ExtractBSA(ContainerName, destination: string; var ignore: TStringList); overload;
   function BSAExists(filename: string): boolean;
   function INIExists(filename: string): boolean;
   function TranslationExists(filename: string): boolean;
@@ -61,15 +103,6 @@ type
   function VoiceDataExists(filename: string): boolean;
   function FragmentsExist(f: IwbFile): boolean;
   function ReferencesSelf(f: IwbFile): boolean;
-  procedure ExtractBSA(ContainerName, folder, destination: string); overload;
-  procedure ExtractBSA(ContainerName, destination: string; var ignore: TStringList); overload;
-  function RemoveSelfOrContainer(const aElement: IwbElement): boolean;
-  procedure UndeleteAndDisable(const aRecord: IwbMainRecord);
-  function FixErrors(const aElement: IwbElement; lastRecord: IwbMainRecord;
-    var errors: TStringList): IwbMainRecord;
-  function CheckForErrors(const aElement: IwbElement; lastRecord: IwbMainRecord;
-    var errors: TStringList): IwbMainRecord;
-  function LoadOrderCompare(List: TStringList; Index1, Index2: Integer): Integer;
 
 var
   PluginsList: TList;
@@ -78,9 +111,9 @@ var
 implementation
 
 uses
-  SysUtils,
+  SysUtils, Dialogs,
   mteHelpers,
-  mpConfiguration;
+  msConfiguration;
 
 constructor TBasePlugin.Create;
 begin
@@ -110,7 +143,7 @@ begin
   Container := _File as IwbContainer;
   Container := Container.Elements[0] as IwbContainer;
   author := Container.GetElementEditValue('CNAM - Author');
-  numRecords := Container.GetElementEditValue('HEDR - Header\Number of Records');
+  numRecords := Container.GetElementNativeValue('HEDR - Header\Number of Records');
 
   // get masters, required by
   GetMasters(_File, masters);
@@ -268,10 +301,21 @@ end;
 
 
 {******************************************************************************}
-{ Bethesda Plugin Functions
+{ General Helper Functions
   Set of functions that read bethesda plugin files for various attributes.
 
   List of functions:
+  - etToString
+  - dtToString
+  - ctToString
+  - stToString
+  - GetSmashType
+  - ElementByIndexedPath
+  - IndexedPath
+  - GetAllValues
+  - IsSorted
+  - HasStructChildren
+  - WinningOverrideInFiles
   - IsOverride
   - LocalFormID
    -LoadOrderPrefix
@@ -290,6 +334,251 @@ end;
   - CreatSEQFile
 }
 {*****************************************************************************}
+
+{ Converts a TwbElementType to a string }
+function etToString(et: TwbElementType): string;
+begin
+  case Ord(et) of
+    Ord(etFile): Result := 'etFile';
+    Ord(etMainRecord): Result := 'etMainRecord';
+    Ord(etGroupRecord): Result := 'etGroupRecord';
+    Ord(etSubRecord): Result := 'etSubRecord';
+    Ord(etSubRecordStruct): Result := 'etSubRecordStruct';
+    Ord(etSubRecordArray): Result := 'etSubRecordArray';
+    Ord(etSubRecordUnion): Result := 'etSubRecordUnion';
+    Ord(etArray): Result := 'etArray';
+    Ord(etStruct): Result := 'etStruct';
+    Ord(etValue): Result := 'etValue';
+    Ord(etFlag): Result := 'etFlag';
+    Ord(etStringListTerminator): Result := 'etStringListTerminator';
+    Ord(etUnion): Result := 'etUnion';
+  end;
+end;
+
+{ Converts a TwbDefType to a string }
+function dtToString(dt: TwbDefType): string;
+begin
+  case Ord(dt) of
+    Ord(dtRecord): Result := 'dtRecord';
+    Ord(dtSubRecord): Result := 'dtSubRecord';
+    Ord(dtSubRecordArray): Result := 'dtSubRecordArray';
+    Ord(dtSubRecordStruct): Result := 'dtSubRecordStruct';
+    Ord(dtSubRecordUnion): Result := 'dtSubRecordUnion';
+    Ord(dtString): Result := 'dtString';
+    Ord(dtLString): Result := 'dtLString';
+    Ord(dtLenString): Result := 'dtLenString';
+    Ord(dtByteArray): Result := 'dtByteArray';
+    Ord(dtInteger): Result := 'dtInteger';
+    Ord(dtIntegerFormater): Result := 'dtIntegerFormatter';
+    Ord(dtFloat): Result := 'dtFloat';
+    Ord(dtArray): Result := 'dtArray';
+    Ord(dtStruct): Result := 'dtStruct';
+    Ord(dtUnion): Result := 'dtUnion';
+    Ord(dtEmpty): Result := 'dtEmpty';
+  end;
+end;
+
+function ctToString(ct: TConflictThis): string;
+begin
+  case Ord(ct) of
+    Ord(ctUnknown): Result := 'ctUnknown';
+    Ord(ctIgnored): Result := 'ctIgnored';
+    Ord(ctNotDefined): Result := 'ctNotDefined';
+    Ord(ctIdenticalToMaster): Result := 'ctIdenticalToMaster';
+    Ord(ctOnlyOne): Result := 'ctOnlyOne';
+    Ord(ctHiddenByModGroup): Result := 'ctHiddenByModGroup';
+    Ord(ctMaster): Result := 'ctMaster';
+    Ord(ctConflictBenign): Result := 'ctConflictBenign';
+    Ord(ctOverride): Result := 'ctOverride';
+    Ord(ctIdenticalToMasterWinsConflict): Result := 'ctIdenticalToMasterWinsConflict';
+    Ord(ctConflictWins): Result := 'ctConflictWins';
+    Ord(ctConflictLoses): Result := 'ctConflictLoses';
+  end;
+end;
+
+function stToString(st: TSmashType): string;
+begin
+  case Ord(st) of
+    Ord(stUnknown): Result := 'Unknown';
+    Ord(stRecord): Result := 'Record';
+    Ord(stString): Result := 'String';
+    Ord(stInteger): Result := 'Integer';
+    Ord(stFlag): Result := 'Flag';
+    Ord(stFloat): Result := 'Float';
+    Ord(stStruct): Result := 'Struct';
+    Ord(stUnsortedArray): Result := 'Unsorted Array';
+    Ord(stUnsortedStructArray): Result := 'Unsorted Struct Array';
+    Ord(stSortedArray): Result := 'Sorted Array';
+    Ord(stSortedStructArray): Result := 'Sorted Struct Array';
+    Ord(stByteArray): Result := 'Byte Array';
+    Ord(stUnion): Result := 'Union';
+    else Result := 'Unknown';
+  end;
+end;
+
+function GetSmashType(element: IwbElement): TSmashType;
+var
+  subDef: IwbSubRecordDef;
+  dt: TwbDefType;
+  bIsSorted, bHasStructChildren: boolean;
+begin
+  dt := element.Def.DefType;
+  if Supports(element.Def, IwbSubRecordDef, subDef) then
+    dt := subDef.Value.DefType;
+
+  case Ord(dt) of
+    Ord(dtRecord): Result := stRecord;
+    Ord(dtSubRecord): Result := stUnknown;
+    Ord(dtSubRecordStruct): Result := stStruct;
+    Ord(dtSubRecordUnion): Result := stUnion;
+    Ord(dtString): Result := stString;
+    Ord(dtLString): Result := stString;
+    Ord(dtLenString): Result := stString;
+    Ord(dtByteArray): Result := stByteArray;
+    Ord(dtInteger): Result := stInteger;
+    Ord(dtIntegerFormater): Result := stInteger;
+    Ord(dtIntegerFormaterUnion): Result := stInteger;
+    Ord(dtFlag): Result := stFlag;
+    Ord(dtFloat): Result := stFloat;
+    Ord(dtSubRecordArray), Ord(dtArray): begin
+      bIsSorted := IsSorted(element);
+      bHasStructChildren := HasStructChildren(element);
+      if bIsSorted then begin
+        if bHasStructChildren then
+          Result := stSortedStructArray
+        else
+          Result := stSortedArray;
+      end
+      else begin
+        if bHasStructChildren then
+          Result := stUnsortedStructArray
+        else
+          Result := stUnsortedArray;
+      end;
+    end;
+    Ord(dtStruct): Result := stStruct;
+    Ord(dtUnion): Result := stUnion;
+    Ord(dtEmpty): Result := stUnknown;
+    Ord(dtStructChapter): Result := stStruct;
+    else Result := stUnknown;
+  end;
+end;
+
+function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;
+var
+  i, index: integer;
+  path: TStringList;
+  c: IwbContainerElementRef;
+begin
+  // replace forward slashes with backslashes
+  ip := StringReplace(ip, '/', '\', [rfReplaceAll]);
+
+  // prepare path stringlist delimited by backslashes
+  path := TStringList.Create;
+  path.Delimiter := '\';
+  path.StrictDelimiter := true;
+  path.DelimitedText := ip;
+
+  // treat e as a container
+  if not Supports(e, IwbContainerElementRef, c) then
+    exit;
+
+  // traverse path
+  for i := 0 to Pred(path.count) do begin
+    if Pos('[', path[i]) > 0 then begin
+      index := StrToInt(GetTextIn(path[i], '[', ']'));
+      e := c.Elements[index];
+      if not Supports(e, IwbContainerElementRef, c) then
+        exit;
+    end
+    else begin
+      e := c.ElementByPath[path[i]];
+      if not Supports(e, IwbContainerElementRef, c) then
+        exit;
+    end;
+  end;
+
+  // set result
+  Result := e;
+end;
+
+function IndexedPath(e: IwbElement): string;
+var
+  c: IwbContainer;
+  a: string;
+begin
+  c := e.Container;
+  while (e.ElementType <> etMainRecord) do begin
+    if c.ElementType = etSubRecordArray then
+      a := '['+IntToStr(c.IndexOf(e))+']'
+    else
+      a := e.Name;
+    if Result <> '' then
+      Result := a + '\' + Result
+    else
+      Result := a;
+    e := c;
+    c := e.Container;
+  end;
+end;
+
+{ Returns a string hash of all of the values contained in an element }
+function GetAllValues(e: IwbElement): string;
+var
+  i: integer;
+  c: IwbContainerElementRef;
+begin
+  Result := e.EditValue;
+  if not Supports(e, IwbContainerElementRef, c) then
+    exit;
+
+  // loop through children elements
+  for i := 0 to Pred(c.ElementCount) do begin
+    if (Result <> '') then
+      Result := Result + ';' + GetAllValues(c.Elements[i])
+    else
+      Result := GetAllValues(c.Elements[i]);
+  end;
+end;
+
+{ Returns true if @e is a sorted container }
+function IsSorted(e: IwbElement): boolean;
+var
+  Container: IwbSortableContainer;
+begin
+  Result := false;
+  if Supports(e, IwbSortableContainer, Container) then
+    Result := Container.Sorted;
+end;
+
+{ Returns true if @e is a container with struct children }
+function HasStructChildren(e: IwbElement): boolean;
+var
+  Container: IwbContainerElementRef;
+begin
+  Result := false;
+  if Supports(e, IwbContainerElementRef, Container)
+  and (Container.ElementCount > 0) then
+    Result := GetSmashType(Container.Elements[0]) = stStruct;
+end;
+
+{ Returns the most-winning override of @rec from the
+  files listed in @sl }
+function WinningOverrideInFiles(rec: IwbMainRecord;
+  var sl: TStringList): IwbMainRecord;
+var
+  i: Integer;
+  ovr: IwbMainRecord;
+begin
+  Result := rec;
+  for i := Pred(rec.OverrideCount) downto 0 do begin
+    ovr := rec.Overrides[i];
+    if sl.IndexOf(ovr._file.FileName) > -1 then begin
+      Result := ovr;
+      exit;
+    end;
+  end;
+end;
 
 { Returns true if the input record is an override record }
 function IsOverride(aRecord: IwbMainRecord): boolean;
@@ -348,6 +637,20 @@ begin
   for i := 0 to Pred(aFile.GetRecordCount) do begin
     aRecord := aFile.GetRecord(i);
     if IsOverride(aRecord) then
+      Inc(Result);
+  end;
+end;
+
+{ Returns the number of overrides of the specified record in the specified file set }
+function OverrideCountInFiles(rec: IwbMainRecord; var files: TStringList): Integer;
+var
+  i: Integer;
+  ovr: IwbMainRecord;
+begin
+  Result := 0;
+  for i := 0 to Pred(rec.OverrideCount) do begin
+    ovr := rec.Overrides[i];
+    if files.IndexOf(ovr._File.FileName) > -1 then
       Inc(Result);
   end;
 end;
@@ -866,6 +1169,280 @@ begin
   LO1 := Integer(List.Objects[Index1]);
   LO2 := Integer(List.Objects[Index2]);
   Result := LO1 - LO2;
+end;
+
+
+{******************************************************************************}
+{ Record Prototyping Functions
+  - GetElementObj
+  - CreateRecordObj
+  - GetRecordObj
+  - GetRecordDef
+  - BuildElementDef
+  - BuildRecordDef
+  - GetEditableFileContainer
+}
+{******************************************************************************}
+
+{
+  GetElementObj:
+  Gets the child json object from a node in a TSmashSetting tree
+  @obj matching @name.  Returns nil if a matching child is not
+  found.
+}
+function GetElementObj(var obj: ISuperObject; name: string): ISuperObject;
+var
+  item: ISuperObject;
+begin
+  Result := nil;
+  if not Assigned(obj) then
+    exit;
+  if not Assigned(obj['c']) then
+    exit;
+  for item in obj['c'] do begin
+    if item.S['n'] = name then begin
+      Result := item;
+      exit;
+    end;
+  end;
+end;
+
+function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord): ISuperObject;
+var
+  item: ISuperObject;
+begin
+  item := SO;
+  item.S['n'] := rec.Signature;
+  item.I['t'] := Ord(stRecord);
+  tree.A['records'].Add(item);
+  Result := item;
+end;
+
+function GetRecordObj(var tree: ISuperObject; name: string): ISuperObject;
+var
+  aSignature: TwbSignature;
+  item: ISuperObject;
+begin
+  Result := nil;
+  aSignature := StrToSignature(name);
+  for item in tree['records'] do begin
+    if StrToSignature(item.S['n']) = aSignature then
+      Result := item;
+  end;
+end;
+
+function GetRecordDef(sig: TwbSignature): TwbRecordDefEntry;
+var
+  i: Integer;
+  def: TwbRecordDefEntry;
+begin
+  for i := Low(wbRecordDefs) to High(wbRecordDefs) do begin
+    def := wbRecordDefs[i];
+    if def.rdeSignature = sig then begin
+      Result := def;
+      exit;
+    end;
+  end;
+end;
+
+function BuildElementDef(element: IwbElement): ISuperObject;
+var
+  container: IwbContainerElementRef;
+  i: Integer;
+  childElement: IwbElement;
+begin
+  // release object if something goes wrong
+  Result := SO;
+  try
+    Result.S['n'] := element.Name;
+    Result.I['t'] := Ord(GetSmashType(element));
+
+    // populate element children, if it supports them
+    if not Supports(element, IwbContainerElementRef, container) then
+      exit;
+    // assign to container if it doesn't have element but can hold them
+    if (container.ElementCount = 0)
+    and container.CanAssign(High(Integer), nil, false) then try
+      container.Assign(High(Integer), nil, false);
+    except
+      // oops, container assignment failed
+      // this catches an assertion error when assigning to a DOBJ record
+      on x: Exception do
+        exit;
+    end;
+
+    // if we have children, make children array and recurse
+    if container.ElementCount > 0 then begin
+      Result.O['c'] := SA([]);
+      // traverse children
+      for i := 0 to Pred(container.ElementCount) do begin
+        childElement := container.Elements[i];
+        Result.A['c'].Add(BuildElementDef(childElement));
+      end;
+    end;
+  except
+    on x: Exception do begin
+      Result._Release;
+      raise x;
+    end;
+  end;
+end;
+
+function BuildRecordDef(container: IwbContainer; sName: string;
+  mrDef: IwbRecordDef; out recObj: ISuperObject): boolean;
+var
+  i: Integer;
+  rec, element: IwbElement;
+  recContainer: IwbContainerElementRef;
+begin
+  Result := false;
+  rec := container.Add(sName);
+  // exit if we couldn't add record
+  if not Assigned(rec) then begin
+    if Supports(container.Container, IwbGroupRecord) then
+      Result := BuildRecordDef(container.Container, sName, mrDef, recObj)
+    else
+      ShowMessage('Couldn''t add '+sName+' to '+container.Path);
+    exit;
+  end;
+
+  // else traverse record's children to construct
+  // record prototype
+  try
+    if not Supports(rec, IwbContainerElementRef, recContainer) then
+      exit;
+    // add all
+    for i := 0 to Pred(mrDef.MemberCount) do
+      rec.Assign(i, nil, False);
+
+    // construct json
+    recObj := SO;
+    try
+      recObj.S['n'] := sName;
+      recObj.I['t'] := Ord(stRecord);
+      recObj.O['c'] := SA([]);
+      for i := 0 to Pred(recContainer.ElementCount) do begin
+        element := recContainer.Elements[i];
+        recObj.A['c'].Add(BuildElementDef(element));
+      end;
+    except
+      on x: Exception do begin
+        recObj._Release;
+        raise x;
+      end;
+    end;
+  finally
+    rec.Remove;
+  end;
+
+  // if everything completed, result is object we made
+  Result := true;
+end;
+
+function BuildRecordDef(sName: string; out recObj: ISuperObject): boolean;
+var
+  sig: TwbSignature;
+  def: TwbRecordDefEntry;
+  mrDef: IwbRecordDef;
+  Container: IwbContainerElementRef;
+  groupContainer: IwbContainer;
+  group: IwbElement;
+  aFile: IwbFile;
+  bAssignedGroup: boolean;
+begin
+  Result := false;
+  bAssignedGroup := false;
+  sig := StrToSignature(sName);
+
+  // get def
+  def := GetRecordDef(sig);
+  mrDef := def.rdeDef;
+
+  // get file container
+  Container := GetEditableFileContainer;
+  aFile := (GetEditableFileContainer as IwbFile);
+
+  // create group in file if missing
+  group := aFile.GroupBySignature[sig];
+  if not Assigned(group) then begin
+    bAssignedGroup := true;
+    group := Container.Add(sName);
+    // if group couldn't be added we exit
+    if not Assigned(group) then
+      exit;
+  end;
+
+  // get to the def if we can
+  try
+    if not Supports(group, IwbContainer, groupContainer) then
+      exit;
+    Result := BuildRecordDef(groupContainer, sName, mrDef, recObj);
+  finally
+    if bAssignedGroup then
+      group.Remove;
+  end;
+end;
+
+function GetEditableFileContainer: IwbContainerElementRef;
+var
+  i: Integer;
+  aPlugin: TBasePlugin;
+  aFile: IwbFile;
+  Container: IwbContainerElementRef;
+begin
+  Result := nil;
+  i := 0;
+  repeat
+    // exit if max index reached
+    if i > Pred(PluginsList.Count) then
+      exit;
+
+    // get next plugin
+    aPlugin := TBasePlugin(PluginsList[i]);
+    Inc(i);
+
+    // exit if file is invalid
+    aFile := aPlugin._File;
+    if not Supports(aFile, IwbContainerElementRef, Container) then
+      exit;
+  until Container.IsElementEditable(nil);
+  Result := Container;
+end;
+
+procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
+var
+  i: Integer;
+  RecordDef: PwbRecordDef;
+  item: TMenuItem;
+begin
+  // populate wbGroupOrder to additem
+  with TStringList.Create do try
+    Sorted := True;
+    Duplicates := dupIgnore;
+
+    // initialize list contents
+    AddStrings(wbGroupOrder);
+    Sorted := False;
+
+    // get record def names, if available
+    for i := Pred(Count) downto 0 do
+      if wbFindRecordDef(AnsiString(Strings[i]), RecordDef) then
+        Strings[i] := Strings[i] + ' - ' + RecordDef.Name
+      else
+        Delete(i);
+
+    // populate menu items
+    for i := 0 to Pred(Count) do begin
+      if Length(Strings[i]) < 4 then
+        continue;
+      item := TMenuItem.Create(AddItem);
+      item.Caption := Strings[i];
+      item.OnClick := Event;
+      AddItem.Add(item);
+    end;
+  finally
+    Free;
+  end;
 end;
 
 initialization

@@ -4,11 +4,11 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ComCtrls, StdCtrls, Buttons, ImgList, FileCtrl, ExtCtrls,
+  Dialogs, ComCtrls, StdCtrls, Buttons, ImgList, FileCtrl, ExtCtrls, Types,
   // mte units
   mteHelpers, RttiTranslation,
   // mp units
-  msFrontend;
+  msConfiguration, msClient;
 
 type
   TOptionsForm = class(TForm)
@@ -130,12 +130,12 @@ implementation
 
 procedure TOptionsForm.btnBrowsePatchDirectoryClick(Sender: TObject);
 begin
-  BrowseForFolder(edPatchDirectory, ProgramPath);
+  BrowseForFolder(edPatchDirectory, PathList.Values['ProgramPath']);
 end;
 
 procedure TOptionsForm.btnBrowseMOClick(Sender: TObject);
 begin
-  BrowseForFolder(edModOrganizerPath, ProgramPath);
+  BrowseForFolder(edModOrganizerPath, PathList.Values['ProgramPath']);
   if DirectoryExists(edModOrganizerPath.Text + 'mods\') then begin
     edModOrganizerModsPath.Text := edModOrganizerPath.Text + 'mods\';
     edPatchDirectory.Text := edModOrganizerPath.Text + 'mods\';
@@ -144,7 +144,7 @@ end;
 
 procedure TOptionsForm.btnBrowseMOModsClick(Sender: TObject);
 begin
-  BrowseForFolder(edModOrganizerModsPath, ProgramPath);
+  BrowseForFolder(edModOrganizerModsPath, PathList.Values['ProgramPath']);
 end;
 
 procedure TOptionsForm.btnDetectClick(Sender: TObject);
@@ -159,45 +159,30 @@ const
   validModOrganizerFilenames: array[1..1] of string = ('ModOrganizer.exe');
   ignore: array[1..1] of string = ('data');
 var
-  i: integer;
-  modOrganizerPath, paths: string;
-  pathList: TStringList;
-  info: TSearchRec;
+  DrivesArray: TStringDynArray;
+  modOrganizerPath, sPaths, sDrive: string;
 begin
   // search for installations in GamePath
-  if (modOrganizerPath = '') then
-    modOrganizerPath := RecursiveFileSearch(GamePath, validModOrganizerFilenames, ignore, 2);
+  modOrganizerPath := RecursiveFileSearch(PathList.Values['GamePath'],
+    validModOrganizerFilenames, ignore, 2);
 
   // search for installations in ?:\Program Files and ?:\Program Files (x86)
-  for i := 65 to 90 do begin
-    if DirectoryExists(chr(i) + ':\Program Files') then
-      paths := paths + chr(i) + ':\Program Files;';
-    if DirectoryExists(chr(i) + ':\Program Files (x86)') then
-      paths := paths + chr(i) + ':\Program Files (x86);';
+  DrivesArray := GetDriveList;
+  for sDrive in DrivesArray do begin
+    if not DriveReady(sDrive) then
+      continue;
+    if DirectoryExists(sDrive + 'Program Files') then
+      sPaths := sPaths + sDrive + 'Program Files;';
+    if DirectoryExists(sDrive + 'Program Files (x86)') then
+      sPaths := sPaths + sDrive + 'Program Files (x86);';
   end;
 
-  modOrganizerPath := FileSearch('Mod Organizer\ModOrganizer.exe', paths);
+  if (modOrganizerPath = '') then
+    modOrganizerPath := FileSearch('Mod Organizer\ModOrganizer.exe', sPaths);
 
   // search each folder in each valid Program Files directory for ModOrganizer.exe
-  if (modOrganizerPath = '') then begin
-    pathList := TStringList.Create;
-    while (Pos(';', paths) > 0) do begin
-      pathList.Add(Copy(paths, 1, Pos(';', paths) - 1));
-      paths := Copy(paths, Pos(';', paths) + 1, Length(paths));
-    end;
-    for i := 0 to pathList.Count - 1 do begin
-      if FindFirst(pathList[i] + '\*', faDirectory, info) = 0 then begin
-        repeat
-          modOrganizerPath := FileSearch('ModOrganizer.exe', pathList[i] + '\' + info.Name);
-          if (modOrganizerPath <> '') then
-            break;
-        until FindNext(info) <> 0;
-        FindClose(info);
-        // break if we found it
-        if (modOrganizerPath <> '') then break;
-      end;
-    end;
-  end;
+  if (modOrganizerPath = '') then
+    modOrganizerPath := SearchPathsForFile(sPaths, 'ModOrganizer.exe');
 
   // if found, set TEdit captions, else alert user
   if (modOrganizerPath <> '') then begin
@@ -216,8 +201,8 @@ end;
 procedure TOptionsForm.btnOKClick(Sender: TObject);
 begin
   // check if we need to update patch status afterwards
-  bUpdatePatchStatus := (settings.usingMO <> kbUsingMO.Checked)
-    or (settings.MOPath <> edModOrganizerPath.Text)
+  ProgramStatus.bUpdatePatchStatus := (settings.usingMO <> kbUsingMO.Checked)
+    or (settings.ManagerPath <> edModOrganizerPath.Text)
     or (settings.patchDirectory <> edPatchDirectory.Text);
 
   // General > Language
@@ -261,8 +246,8 @@ begin
 
   // Integrations > Mod Organizer
   settings.usingMO := kbUsingMO.Checked;
-  settings.MOPath := edModOrganizerPath.Text;
-  settings.MOModsPath := edModOrganizerModsPath.Text;
+  settings.ManagerPath := edModOrganizerPath.Text;
+  settings.ModsPath := edModOrganizerModsPath.Text;
 
   SaveSettings;
 end;
@@ -311,10 +296,10 @@ end;
 
 procedure TOptionsForm.btnResetClick(Sender: TObject);
 begin
-  if settings.registered and not bAuthorized then begin
+  if settings.registered and not ProgramStatus.bAuthorized then begin
     ResetAuth;
     CheckAuthorization;
-    if bAuthorized then begin
+    if ProgramStatus.bAuthorized then begin
       btnReset.Enabled := false;
       lblStatusValue.Caption := GetLanguageString('mpOpt_Registered');
       lblStatusValue.Font.Color := clGreen;
@@ -327,7 +312,7 @@ procedure TOptionsForm.btnUpdateDictionaryClick(Sender: TObject);
 begin
   if TCPClient.Connected then begin
     if UpdateDictionary then begin
-      status := TmsStatus.Create;
+      LocalStatus := TmsStatus.Create;
       CompareStatuses;
       btnUpdateDictionary.Enabled := false;
       lblDictionaryStatus.Caption := GetLanguageString('mpOpt_UpToDate');
@@ -349,7 +334,7 @@ end;
 
 procedure TOptionsForm.btnChangePatchProfileClick(Sender: TObject);
 begin
-  bChangeProfile := true;
+  ProgramStatus.bChangeProfile := true;
   btnOKClick(nil);
   Close;
 end;
@@ -482,8 +467,8 @@ begin
 
   // Integrations > Mod Organizer
   kbUsingMO.Checked := settings.usingMO;
-  edModOrganizerPath.Text := settings.MOPath;
-  edModOrganizerModsPath.Text := settings.MOModsPath;
+  edModOrganizerPath.Text := settings.ManagerPath;
+  edModOrganizerModsPath.Text := settings.ModsPath;
 
   // disable controls if not using mod organizer
   kbUsingMOClick(nil);
@@ -495,7 +480,7 @@ begin
     btnRegister.Enabled := false;
     // if not authorized then enable reset button
     if TCPClient.Connected then begin
-      if not bAuthorized then begin
+      if not ProgramStatus.bAuthorized then begin
         btnReset.Enabled := true;
         lblStatusValue.Caption := GetLanguageString('mpOpt_AuthFailed');
         lblStatusValue.Font.Color := clRed;
@@ -505,24 +490,24 @@ begin
         lblStatusValue.Caption := GetLanguageString('mpOpt_Registered');
         lblStatusValue.Font.Color := clGreen;
         lblStatusValue.Hint := '';
-        bAuthorized := true;
+        ProgramStatus.bAuthorized := true;
       end;
     end;
   end;
 
   // dictionary update
-  if bDictionaryUpdate then begin
-    btnUpdateDictionary.Enabled := bDictionaryUpdate;
+  if ProgramStatus.bDictionaryUpdate then begin
+    btnUpdateDictionary.Enabled := ProgramStatus.bDictionaryUpdate;
     lblDictionaryStatus.Caption := GetLanguageString('mpOpt_UpdateAvailable');
     lblDictionaryStatus.Font.Color := $000080FF;
   end;
 
   // program update
-  if bProgramUpdate then begin
-    btnUpdateProgram.Enabled := bProgramUpdate;
+  if ProgramStatus.bProgramUpdate then begin
+    btnUpdateProgram.Enabled := ProgramStatus.bProgramUpdate;
     lblProgramStatus.Caption := GetLanguageString('mpOpt_UpdateAvailable');
     lblProgramStatus.Hint := Format(GetLanguageString('mpOpt_VersionCompare'),
-      [status.programVersion, RemoteStatus.programVersion]);
+      [LocalStatus.ProgramVersion, RemoteStatus.ProgramVersion]);
     lblProgramStatus.Font.Color := $000080FF;
   end;
 
