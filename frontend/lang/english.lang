@@ -38,6 +38,7 @@ msMain_NumOverrides=Number of overrides
 msMain_Author=Author
 msMain_Description=Description
 msMain_Masters=Masters
+msMain_ClearTags=Are you sure you want to clear tags from these plugins?
 { ## Plugins Popup Menu ## }
 msMain_NewPatchItem_Caption=<New Patch>
 msMain_OpenPluginLocationItem_Caption=Open plugin location
@@ -60,6 +61,7 @@ msMain_DateBuilt=Date built
 msMain_Plugins=Plugins
 msMain_Fails=Fails
 msMain_TooManyFails=Too many fails to display.
+msMain_DeletePatches=Are you sure you want to delete these patches?
 { ## Patches Popup Menu ## }
 msMain_ToggleRebuildItem_Caption=Toggle rebuild status
 msMain_OpenInExplorerItem_Caption=Open in explorer
