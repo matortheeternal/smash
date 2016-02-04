@@ -29,7 +29,6 @@ type
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure ReadTags;
     procedure WriteTags;
     procedure AddTags(var slTagsToAdd: TStringList);
@@ -99,6 +98,9 @@ end;
 
 procedure TTagManager.FormShow(Sender: TObject);
 begin
+  // create tags stringlist
+  slTags := TStringList.Create;
+
   // update description and tags
   meDescription.Lines.Text := plugin.description.Text;
   ReadTags;
@@ -114,8 +116,11 @@ begin
     if kbCombine.Checked then
       plugin.GetSettingTag;
     plugin.WriteDescription;
-    //plugin.Save;
+    plugin.Save;
   end;
+
+  // free memory
+  slTags.Free;
 end;
 
 procedure TTagManager.FormCreate(Sender: TObject);
@@ -126,14 +131,6 @@ begin
 
   // load translation
   TRttiTranslation.Load(language, self);
-
-  // create tags stringlist
-  slTags := TStringList.Create;
-end;
-
-procedure TTagManager.FormDestroy(Sender: TObject);
-begin
-  slTags.Free;
 end;
 
 procedure TTagManager.ReadTags;
@@ -141,7 +138,7 @@ var
   bHasTags: Boolean;
 begin
   slTags.Clear;
-  GetTags(meDescription.Lines.Text, slTags);
+  ParseTags(meDescription.Lines.Text, slTags);
   bHasTags := slTags.Count > 0;
   btnClear.Enabled := bHasTags;
   btnRemove.Enabled := bHasTags;
@@ -149,8 +146,7 @@ end;
 
 procedure TTagManager.WriteTags;
 var
-  i, index: Integer;
-  sGroup, sTagGroup, sTags, tag: String;
+  sTags: String;
 begin
   // clear tags
   meDescription.Lines.Text := ClearTags(meDescription.Lines.Text);
@@ -160,23 +156,7 @@ begin
     exit;
 
   // see if all of the tags belong to the same group
-  for i := 0 to Pred(slTags.Count) do begin
-    tag := slTags[i];
-    index := Pos('.', tag);
-    sTagGroup := Copy(tag, 1, index - 1);
-    if (index > 0) and (index < 10) and (SameText(sGroup, sTagGroup) or (i = 0)) then
-      sGroup := sTagGroup
-    else
-      sGroup := '';
-  end;
-
-  // generate the string of tags
-  if sGroup <> '' then begin
-    sTags := StringReplace(slTags.CommaText, sGroup + '.', '', [rfReplaceAll, rfIgnoreCase]);
-    sTags := Format('{{%s:%s}}', [UpperCase(sGroup), sTags])
-  end
-  else
-    sTags := Format('{{%s}}', [slTags.CommaText]);
+  sTags := GetTagString(slTags);
 
   // write the tags to the description
   meDescription.Lines.Add(' ');

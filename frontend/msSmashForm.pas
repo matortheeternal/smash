@@ -167,6 +167,9 @@ type
     procedure ChangeSettingClick(Sender: TObject);
     procedure RemoveFromPatchItemClick(Sender: TObject);
     procedure OpenPluginLocationItemClick(Sender: TObject);
+    procedure ManageTagsItemClick(Sender: TObject);
+    procedure ClearTagsItemClick(Sender: TObject);
+    procedure ApplySettingTagsItemClick(Sender: TObject);
     // SMASH LIST VIEW EVENTS
     procedure UpdatePatchDetails;
     procedure UpdatePatches;
@@ -212,8 +215,6 @@ type
     procedure ToggleAutoScrollItemClick(Sender: TObject);
     procedure ImageDisconnectedClick(Sender: TObject);
     procedure DictionaryButtonClick(Sender: TObject);
-    procedure ManageTagsItemClick(Sender: TObject);
-    procedure ClearTagsItemClick(Sender: TObject);
   protected
     procedure WMSize(var AMessage: TMessage); message WM_SIZE;
     procedure WMMove(var AMessage: TMessage); message WM_MOVE;
@@ -1287,6 +1288,30 @@ begin
     finally
       tmForm.Free;
     end;
+  end;
+
+  // update
+  UpdatePatches;
+  UpdateListViews;
+  UpdateQuickbar;
+  UpdateStatusBar;
+end;
+
+procedure TSmashForm.ApplySettingTagsItemClick(Sender: TObject);
+var
+  i: integer;
+  ListItem: TListItem;
+  plugin: TPlugin;
+begin
+  for i := 0 to Pred(PluginsListView.Items.Count) do begin
+    // only process selected list items
+    ListItem := PluginsListView.Items[i];
+    if not ListItem.Selected then
+      continue;
+
+    // create a tag manager instance for the plugin
+    plugin := TPlugin(PluginsList[i]);
+    plugin.ApplySettingTags;
   end;
 
   // update

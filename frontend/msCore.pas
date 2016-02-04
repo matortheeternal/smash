@@ -44,6 +44,8 @@ type
     procedure Delete;
     procedure Rename(newName: string);
     function MatchesHash(hash: string): boolean;
+    function GetTags: String;
+    function GetCombinedTags: String;
   end;
   {TRecommendation = class(TObject)
   public
@@ -84,8 +86,9 @@ type
     procedure LoadInfoDump(obj: ISuperObject);
     function InfoDump: ISuperObject;
     function HasTags: Boolean;
+    procedure ApplySettingTags;
     procedure SetSmashSetting(aSetting: TSmashSetting);
-    procedure ApplyTags(sSettingName: String; var sl: TStringList;
+    procedure LoadTags(sSettingName: String; var sl: TStringList;
       var sTagGroup: String);
     procedure GetSettingTag;
     procedure WriteDescription;
@@ -153,6 +156,7 @@ type
   function PluginByFilename(sFilename: string): TPlugin;
   procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
   procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
+  function GetTagString(var slTags: TStringList): String;
   // Tree Helper Functions
   procedure BuildTreeFromPlugins(var tv: TTreeView; var sl: TStringList;
     tree: ISuperObject);
@@ -173,7 +177,7 @@ type
   procedure GetMissingTags(var slPresent, slMissing: TStringList);
   procedure ExtractTags(var match: TMatch; var sl: TStringList;
     var sTagGroup: String);
-  procedure GetTags(description: string; var sl: TStringList);
+  procedure ParseTags(description: string; var sl: TStringList);
 
 
 const
@@ -336,7 +340,21 @@ begin
   Result := match.Success;
 end;
 
-procedure TPlugin.ApplyTags(sSettingName: String; var sl: TStringList;
+procedure TPlugin.ApplySettingTags;
+var
+  sTags: String;
+begin
+  description.Text := ClearTags(description.Text);
+  sTags := smashSetting.GetTags;
+
+  // write tags to the description
+  description.Add(' ');
+  description.Add(sTags);
+  description.Text := Trim(description.Text);
+  WriteDescription;
+end;
+
+procedure TPlugin.LoadTags(sSettingName: String; var sl: TStringList;
   var sTagGroup: String);
 var
   slRecords: TStringList;
@@ -404,7 +422,7 @@ begin
   else begin
     Logger.Write('PLUGIN', 'Tags', 'Found tag '+match.Value+' for '+filename);
     ExtractTags(match, sl, sTagGroup);
-    ApplyTags(match.Groups.Item[2].Value, sl, sTagGroup);
+    LoadTags(match.Groups.Item[2].Value, sl, sTagGroup);
   end;
 
   // free memory
@@ -1080,6 +1098,39 @@ begin
   Result := Pos(hash, self.hash) = 2;
 end;
 
+function TSmashSetting.GetTags: String;
+begin
+  if Pos('Combined setting:', description) = 1 then
+      Result := GetCombinedTags
+  // else handle a normal setting
+  else begin
+    if Pos('.', name) < 10 then
+      Result := Format('{{%s}}', [StringReplace(name, '.', ':', [])])
+    else
+      Result := Format('{{%s}}', [name]);
+  end;
+end;
+
+function TSmashSetting.GetCombinedTags: String;
+var
+  sl, slTags: TStringList;
+begin
+  Result := '';
+  sl := TStringList.Create;
+  slTags := TStringList.Create;
+  try
+    sl.Text := description;
+    // parse tags from description
+    slTags.CommaText := sl[1];
+
+    // return tag string
+    Result := GetTagString(slTags);
+  finally
+    sl.Free;
+    slTags.Free;
+  end;
+end;
+
 procedure SavePatches;
 var
   i: Integer;
@@ -1479,6 +1530,30 @@ begin
       plugin.smashSetting := TSettingHelpers.SettingByName('Skip');
     end;
   end;
+end;
+
+function GetTagString(var slTags: TStringList): String;
+var
+  i, index: Integer;
+  tag, sTagGroup, sGroup: String;
+begin
+  for i := 0 to Pred(slTags.Count) do begin
+    tag := slTags[i];
+    index := Pos('.', tag);
+    sTagGroup := Copy(tag, 1, index - 1);
+    if (index > 0) and (index < 10) and (SameText(sGroup, sTagGroup) or (i = 0)) then
+      sGroup := sTagGroup
+    else
+      sGroup := '';
+  end;
+
+  // generate the string of tags
+  if sGroup <> '' then begin
+    Result := StringReplace(slTags.CommaText, sGroup + '.', '', [rfReplaceAll, rfIgnoreCase]);
+    Result := Format('{{%s:%s}}', [UpperCase(sGroup), Result])
+  end
+  else
+    Result := Format('{{%s}}', [slTags.CommaText]);
 end;
 
 
@@ -1942,7 +2017,7 @@ begin
   end;
 end;
 
-procedure GetTags(description: string; var sl: TStringList);
+procedure ParseTags(description: string; var sl: TStringList);
 var
   regex: TRegEx;
   match: TMatch;

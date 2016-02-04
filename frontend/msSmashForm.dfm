@@ -796,6 +796,7 @@ object SmashForm: TSmashForm
       end
       object ApplySettingTagsItem: TMenuItem
         Caption = 'Apply setting tags'
+        OnClick = ApplySettingTagsItemClick
       end
       object ClearTagsItem: TMenuItem
         Caption = 'Clear tags'
