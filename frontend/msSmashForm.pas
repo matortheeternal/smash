@@ -1203,10 +1203,11 @@ end;
 
 procedure TSmashForm.UpdatePluginsPopupMenu;
 var
-  i: Integer;
+  i, index: Integer;
   patch: TPatch;
   aSetting: TSmashSetting;
-  MenuItem: TMenuItem;
+  MenuItem, GroupItem: TMenuItem;
+  sGroup: String;
 begin
   // clear submenus
   AddToPatchItem.Clear;
@@ -1230,10 +1231,26 @@ begin
   // add smash settings to submenu
   for i := 0 to Pred(SmashSettings.Count) do begin
     aSetting := TSmashSetting(SmashSettings[i]);
-    MenuItem := TMenuItem.Create(SmashSettingItem);
+
+    // parse setting group
+    sGroup := 'Ungrouped';
+    index := Pos('.', aSetting.name);
+    if (index > 0) and (index < 11) then
+      sGroup := Copy(aSetting.name, 1, index - 1);
+
+    // get group menu item or create it if missing
+    GroupItem := SmashSettingItem.Find(sGroup);
+    if not Assigned(GroupItem) then begin
+      GroupItem := TMenuItem.Create(SmashSettingItem);
+      GroupItem.Caption := sGroup;
+      SmashSettingItem.Add(GroupItem);
+    end;
+
+    // create MenuItem
+    MenuItem := TMenuItem.Create(GroupItem);
     MenuItem.Caption := aSetting.name;
     MenuItem.OnClick := ChangeSettingClick;
-    SmashSettingItem.Add(MenuItem);
+    GroupItem.Add(MenuItem);
   end;
 end;
 

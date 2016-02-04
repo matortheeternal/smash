@@ -1099,12 +1099,15 @@ begin
 end;
 
 function TSmashSetting.GetTags: String;
+var
+  index: Integer;
 begin
   if Pos('Combined setting:', description) = 1 then
       Result := GetCombinedTags
   // else handle a normal setting
   else begin
-    if Pos('.', name) < 10 then
+    index := Pos('.', name);
+    if (index > 0) and (index < 11) then
       Result := Format('{{%s}}', [StringReplace(name, '.', ':', [])])
     else
       Result := Format('{{%s}}', [name]);
@@ -1541,7 +1544,7 @@ begin
     tag := slTags[i];
     index := Pos('.', tag);
     sTagGroup := Copy(tag, 1, index - 1);
-    if (index > 0) and (index < 10) and (SameText(sGroup, sTagGroup) or (i = 0)) then
+    if (index > 0) and (index < 11) and (SameText(sGroup, sTagGroup) or (i = 0)) then
       sGroup := sTagGroup
     else
       sGroup := '';
