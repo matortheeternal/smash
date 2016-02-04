@@ -256,12 +256,15 @@ object SettingsManager: TSettingsManager
     OnPopup = TreePopupMenuPopup
     Left = 704
     Top = 256
-    object AddItem: TMenuItem
-      Caption = 'Add'
-    end
-    object BuildFromPluginsItem: TMenuItem
-      Caption = 'Build from plugins'
-      OnClick = BuildFromPluginsItemClick
+    object BuildItem: TMenuItem
+      Caption = 'Build'
+      object AddItem: TMenuItem
+        Caption = 'Add'
+      end
+      object BuildFromPluginsItem: TMenuItem
+        Caption = 'Build from plugins'
+        OnClick = BuildFromPluginsItemClick
+      end
     end
     object AutosetItem: TMenuItem
       Caption = 'Autoset attributes'
@@ -271,38 +274,45 @@ object SettingsManager: TSettingsManager
       Caption = 'Select similar nodes'
       OnClick = SelectSimilarNodesItemClick
     end
-    object ToggleNodesItem: TMenuItem
-      Caption = 'Toggle nodes'
-      OnClick = ToggleNodesItemClick
-    end
-    object PreserveDeletionsItem: TMenuItem
-      Caption = 'Toggle preserve deletions'
-      OnClick = PreserveDeletionsItemClick
-    end
-    object SingleEntityItem: TMenuItem
-      Caption = 'Toggle treat as single entity'
-      OnClick = SingleEntityItemClick
-    end
-    object ChainNodesItem: TMenuItem
-      Caption = 'Chain nodes'
-      OnClick = ChainNodesItemClick
-    end
-    object LinkNodeToItem: TMenuItem
-      Caption = 'Link node to'
-      object TMenuItem
+    object ToggleItem: TMenuItem
+      Caption = 'Toggle'
+      object ToggleNodesItem: TMenuItem
+        Caption = 'Toggle nodes'
+        OnClick = ToggleNodesItemClick
+      end
+      object PreserveDeletionsItem: TMenuItem
+        Caption = 'Toggle preserve deletions'
+        OnClick = PreserveDeletionsItemClick
+      end
+      object SingleEntityItem: TMenuItem
+        Caption = 'Toggle treat as single entity'
+        OnClick = SingleEntityItemClick
       end
     end
-    object UnlinkNodeItem: TMenuItem
-      Caption = 'Unlink nodes'
-      OnClick = UnlinkNodeItemClick
+    object LinkItem: TMenuItem
+      Caption = 'Link'
+      object ChainNodesItem: TMenuItem
+        Caption = 'Chain nodes'
+        OnClick = ChainNodesItemClick
+      end
+      object LinkNodeToItem: TMenuItem
+        Caption = 'Link node to'
+      end
+      object UnlinkNodeItem: TMenuItem
+        Caption = 'Unlink nodes'
+        OnClick = UnlinkNodeItemClick
+      end
     end
-    object AutoPruneItem: TMenuItem
-      Caption = 'Auto-prune nodes'
-      OnClick = AutoPruneItemClick
-    end
-    object PruneNodesItem: TMenuItem
-      Caption = 'Prune nodes'
-      OnClick = PruneNodesItemClick
+    object PruneItem: TMenuItem
+      Caption = 'Prune'
+      object AutoPruneItem: TMenuItem
+        Caption = 'Auto-prune nodes'
+        OnClick = AutoPruneItemClick
+      end
+      object PruneNodesItem: TMenuItem
+        Caption = 'Prune nodes'
+        OnClick = PruneNodesItemClick
+      end
     end
   end
   object StateImages: TImageList
@@ -311,7 +321,7 @@ object SettingsManager: TSettingsManager
     Left = 784
     Top = 256
     Bitmap = {
-      494C010104000800D00011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010104000800E40011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000440000002200000001002000000000002024
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -623,7 +633,7 @@ object SettingsManager: TSettingsManager
     Left = 856
     Top = 256
     Bitmap = {
-      494C010103000800F80010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C0101030008000C0110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000D7D7F8FF7373E6FF3434DBFF2121BEFF2121BEFF2D2DDAFF6B6BE4FFD2D2

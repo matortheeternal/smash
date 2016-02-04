@@ -41,21 +41,26 @@ type
         [FormSection('Tree')]
           lblTree: TLabel;
           tvRecords: TTreeView;
-          TreePopupMenu: TPopupMenu;
-          AddItem: TMenuItem;
-          BuildFromPluginsItem: TMenuItem;
-          AutosetItem: TMenuItem;
-          SelectSimilarNodesItem: TMenuItem;
-          ToggleNodesItem: TMenuItem;
-          PreserveDeletionsItem: TMenuItem;
-          SingleEntityItem: TMenuItem;
-          ChainNodesItem: TMenuItem;
-          LinkNodeToItem: TMenuItem;
-          UnlinkNodeItem: TMenuItem;
-          AutoPruneItem: TMenuItem;
-          PruneNodesItem: TMenuItem;
           StateImages: TImageList;
           FlagIcons: TImageList;
+          [FormSection('TreePopupMenu')]
+            TreePopupMenu: TPopupMenu;
+            LinkItem: TMenuItem;
+            PruneItem: TMenuItem;
+            BuildItem: TMenuItem;
+            ToggleItem: TMenuItem;
+            AddItem: TMenuItem;
+            BuildFromPluginsItem: TMenuItem;
+            AutosetItem: TMenuItem;
+            SelectSimilarNodesItem: TMenuItem;
+            ToggleNodesItem: TMenuItem;
+            PreserveDeletionsItem: TMenuItem;
+            SingleEntityItem: TMenuItem;
+            ChainNodesItem: TMenuItem;
+            LinkNodeToItem: TMenuItem;
+            UnlinkNodeItem: TMenuItem;
+            AutoPruneItem: TMenuItem;
+            PruneNodesItem: TMenuItem;
 
     // TREE METHODS
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
