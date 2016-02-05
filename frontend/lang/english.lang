@@ -99,6 +99,9 @@ msMain_Testers=Testers
 msMain_Translators=Translators
 msMain_LoadException=Exception Loading Plugins
 msMain_PluginsNotLoaded=Due to an exception, not all of your plugins #13#10have been loaded.  You can still use the program. #13#10See the log tab for more info.#13#10
+msMain_Enable=Enable
+msMain_Disable=Disable
+msMain_AutoScroll=Autoscroll
 { ## Log Popup Menu ## }
 msMain_FilterGroupItem_Caption=Filter group
 msMain_FilterLabelItem_Caption=Filter label
