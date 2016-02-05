@@ -1258,20 +1258,37 @@ procedure TSmashForm.AddToPatchClick(Sender: TObject);
 var
   MenuItem: TMenuItem;
   patch: TPatch;
+  name: String;
 begin
   MenuItem := TMenuItem(Sender);
-  patch := PatchesList[AddToPatchItem.IndexOf(MenuItem) - 1];
-  AddPluginsToPatch(patch);
+  name := StripHotkey(MenuItem.Caption);
+  patch := TPatchHelpers.PatchByName(PatchesList, name);
+  if Assigned(patch) then
+    AddPluginsToPatch(patch)
+  else begin
+    ToggleFormState(false);
+    ShowMessage('Error: Could not find patch '+name);
+    ToggleFormState(true);
+  end;
+
 end;
 
 procedure TSmashForm.ChangeSettingClick(Sender: TObject);
 var
   MenuItem: TMenuItem;
   aSetting: TSmashSetting;
+  name: String;
 begin
   MenuItem := TMenuItem(Sender);
-  aSetting := SmashSettings[SmashSettingItem.IndexOf(MenuItem)];
-  ChangePatchSetting(aSetting);
+  name := StripHotkey(MenuItem.Caption);
+  aSetting := TSettingHelpers.SettingByName(name);
+  if Assigned(aSetting) then
+    ChangePatchSetting(aSetting)
+  else begin
+    ToggleFormState(false);
+    ShowMessage('Error: Could not find setting '+name);
+    ToggleFormState(true);
+  end;
 end;
 
 procedure TSmashForm.AddToNewPatchClick(Sender: TObject);
