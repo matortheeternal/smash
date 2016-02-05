@@ -107,7 +107,7 @@ begin
 
   // IF AUTOMATIC UPDATING IS ENABLED, CHECK FOR UPDATE
   InitializeClient;
-  if settings.updateDictionary or settings.updateProgram then try
+  {if settings.updateDictionary or settings.updateProgram then try
     Tracker.Write('Checking for updates');
     ConnectToServer;
     if TCPClient.Connected then begin
@@ -118,7 +118,7 @@ begin
   except
     on x: Exception do
       Logger.Write('CLIENT', 'Update', 'Failed to get automatic update '+x.Message);
-  end;
+  end;}
 
   // INITIALIZE DICTIONARY
   Logger.Write('GENERAL', 'Dictionary', 'Using '+wbAppName+'Dictionary.txt');

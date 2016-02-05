@@ -451,7 +451,7 @@ end;
 procedure TSmashForm.FormShow(Sender: TObject);
 begin
   // HANDLE AUTO-UPDATE
-  if ProgramStatus.bInstallUpdate then begin
+  {if ProgramStatus.bInstallUpdate then begin
     Logger.Write('CLIENT', 'Disconnect', 'Disconnecting...');
     TCPClient.Disconnect;
     ProgramStatus.bClose := true;
@@ -459,7 +459,7 @@ begin
     Logger.Write('GENERAL', 'Update', 'Restarting.');
     ShellExecute(Application.Handle, 'runas', PChar(ParamStr(0)), '', '', SW_SHOWNORMAL);
     Close;
-  end;
+  end;}
 
   // DISABLE GUI IF INITIALIZATION EXCEPTION
   if ProgramStatus.bInitException then begin
