@@ -82,7 +82,7 @@ begin
 
   // initialize application
   Application.Initialize;
-  ForceDirectories(ProgramPath + 'profiles');
+  ForceDirectories(PathList.Values['ProgramPath'] + 'profiles');
   LoadSettings;
   LoadStatistics;
 
