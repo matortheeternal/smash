@@ -1904,7 +1904,7 @@ begin
       MergeChildren(recordObj, existingRecordObj)
     // else just add it to the tree
     else
-      newSetting.tree.A['records'].Add(recordObj);
+      newSetting.tree.A['records'].Add(recordObj.Clone);
   end;
   newSetting.UpdateRecords;
 
