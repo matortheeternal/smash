@@ -2090,7 +2090,6 @@ begin
       if not Assigned(plugin) then begin
         Logger.Write('PATCH', 'Plugins', 'Removing '+patch.plugins[j]+', plugin not loaded');
         patch.plugins.Delete(j);
-        continue;
       end;
     end;
   end;
