@@ -2078,6 +2078,7 @@ var
   patchNames: string;
   bApproved: boolean;
   patchesToDelete: TList;
+  frmDialog: TForm;
 begin
   // see how many patches the user selected
   bApproved := false;
@@ -2093,12 +2094,15 @@ begin
 
   // show multi-patch prompt if multiple patches selected
   if patchesToDelete.Count > 0 then
-    bApproved := MessageDlg(GetLanguageString('msMain_DeletePatches') + patchNames, mtConfirmation,
-      mbOKCancel, 0) = mrOk;
+    frmDialog := CreateMessageDialog(GetLanguageString('msMain_DeletePatches') + patchNames, mtConfirmation, mbOKCancel, mbOk);
+    frmDialog.PopupParent := self;
+    ToggleFormState(false);
+    bApproved := frmDialog.ShowModal = mrOk;
+    ToggleFormState(true);
 
   // exit if user didn't approve deletion
   if not bApproved then
-    exit;
+    Exit;
 
   // clear details grid
   slDetails.Clear;
