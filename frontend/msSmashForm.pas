@@ -2083,7 +2083,7 @@ begin
     if not PatchesListView.Items[i].Selected then
       continue;
     patch := TPatch(PatchesList[i]);
-    Logger.Write('PATCH', 'Plugins', 'Removing plugins from '+patch.name);
+    Logger.Write('PATCH', 'Plugins', 'Removing unloaded plugins from '+patch.name);
     // remove plugins that aren't loaded or have errors
     for j := Pred(patch.plugins.Count) downto 0 do begin
       plugin := PluginByFilename(patch.plugins[j]);
