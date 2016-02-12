@@ -76,6 +76,7 @@ type
             OpenInExplorerItem: TMenuItem;
             BuildPatchItem: TMenuItem;
             EditPatchItem: TMenuItem;
+            RemoveUnloadedPluginsItem: TMenuItem;
             DeletePatchItem: TMenuItem;
             [FormSection('Move Submenu')]
               MoveItem: TMenuItem;
@@ -215,6 +216,7 @@ type
     procedure ToggleAutoScrollItemClick(Sender: TObject);
     procedure ImageDisconnectedClick(Sender: TObject);
     procedure DictionaryButtonClick(Sender: TObject);
+    procedure RemoveUnloadedPluginsItemClick(Sender: TObject);
   protected
     procedure WMSize(var AMessage: TMessage); message WM_SIZE;
     procedure WMMove(var AMessage: TMessage); message WM_MOVE;
@@ -2068,6 +2070,35 @@ begin
   // update
   UpdatePatches;
   UpdateListViews;
+end;
+
+procedure TSmashForm.RemoveUnloadedPluginsItemClick(Sender: TObject);
+var
+  i, j: integer;
+  plugin: TPlugin;
+  patch: TPatch;
+begin
+  // loop through patches
+  for i := 0 to Pred(PatchesListView.Items.Count) do begin
+    if not PatchesListView.Items[i].Selected then
+      continue;
+    patch := TPatch(PatchesList[i]);
+    Logger.Write('PATCH', 'Plugins', 'Removing plugins from '+patch.name);
+    // remove plugins that aren't loaded or have errors
+    for j := Pred(patch.plugins.Count) downto 0 do begin
+      plugin := PluginByFilename(patch.plugins[j]);
+      if not Assigned(plugin) then begin
+        Logger.Write('PATCH', 'Plugins', 'Removing '+patch.plugins[j]+', plugin not loaded');
+        patch.plugins.Delete(j);
+        continue;
+      end;
+    end;
+  end;
+
+  // update
+  UpdatePatches;
+  UpdateListViews;
+  UpdateQuickbar;
 end;
 
 procedure TSmashForm.DeletePatchItemClick(Sender: TObject);
