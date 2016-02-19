@@ -83,6 +83,9 @@ begin
     for i := 0 to Pred(slPlugins.Count) do
       Logger.Write('LOAD', 'Order', '['+IntToHex(i, 2)+'] '+slPlugins[i]);
 
+    Tracker.Write('Setting resource path');
+    wbContainerHandler.AddFolder(wbDataPath);
+
     // LOAD PLUGINS
     for i := 0 to Pred(slPlugins.Count) do begin
       Tracker.Write('Loading '+slPlugins[i]);
@@ -113,6 +116,8 @@ begin
         end;
       end;
     end;
+
+    LoadBSAs;
 
     // LOAD PLUGIN INFORMATION
     Tracker.Write('Loading plugin information');
