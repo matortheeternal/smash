@@ -87,6 +87,7 @@ begin
   wbVWDInTemporary := wbGameMode in [gmTES5, gmFO3, gmFNV];
   Logger.Write('GENERAL', 'Game', 'Using '+wbGameName);
   Logger.Write('GENERAL', 'Path', 'Using '+wbDataPath);
+  Logger.Write('GENERAL', 'GameIni', 'Using '+wbTheGameIniFileName);
 
   // INITIALIZE SETTINGS FOR GAME
   LoadSettings;
@@ -233,9 +234,9 @@ begin
   PathList.Values['DataPath'] := wbDataPath;
   PathList.Values['GamePath'] := UpDirectory(wbDataPath);
 
+  // find game ini inside the user's documents folder.
   sMyDocumentsPath := GetCSIDLShellFolder(CSIDL_PERSONAL);
-  if sMyDocumentsPath <> '' then
-  begin
+  if sMyDocumentsPath <> '' then begin
     sIniPath := sMyDocumentsPath + 'My Games\' + wbGameName + '\';
 
     if wbGameMode in [gmFO3, gmFNV] then
@@ -311,42 +312,42 @@ begin
   end;
 end;
 
-{ Loads all of the BSAs found by FindBSAs, which checks the ini and path. }
+{ Loads all of the BSAs specified in the game ini and by plugins }
 procedure LoadBSAs;
 var
   slBSAFileNames: TStringList;
   slErrors: TStringList;
   i: Integer;
   modIndex: Integer;
+  plugin: TPlugin;
+  bIsTES5: Boolean;
 begin
   slBSAFileNames := TStringList.Create;
   try
     slErrors:= TStringList.Create;
     try
       FindBSAs(wbTheGameIniFileName, wbDataPath, slBSAFileNames, slErrors);
-      for i := 0 to slBSAFileNames.Count - 1 do
-      begin
-        Tracker.Write('Loading resources from ' + slBSAFileNames[i]);
+      for i := 0 to slBSAFileNames.Count - 1 do begin
+        Logger.Write('LOAD', 'Resources', 'Loading resources from ' + slBSAFileNames[i]);
         wbContainerHandler.AddBSA(wbDataPath + slBSAFileNames[i]);
       end;
       for i := 0 to slErrors.Count - 1 do
-        Tracker.Write(slErrors[i] + ' was not found');
+        Logger.Write('ERROR', 'Load', slErrors[i] + ' was not found');
 
-      for modIndex := 0 to PluginsList.Count - 1 do
-      begin
+      for modIndex := 0 to PluginsList.Count - 1 do begin
         slBSAFileNames.Clear;
         slErrors.Clear;
+        plugin := TPlugin(PluginsList[modIndex]);
+        bIsTES5 := wbGameMode = gmTES5;
 
-        HasBSAs(ChangeFileExt(TPlugin(PluginsList[modIndex]).filename, ''),
-          wbDataPath, wbGameMode = gmTES5, wbGameMode = gmTES5, slBSAFileNames,
-          slErrors);
-        for i := 0 to slBSAFileNames.Count - 1 do
-        begin
-          Tracker.Write('Loading resources from ' + slBSAFileNames[i]);
+        HasBSAs(ChangeFileExt(plugin.filename, ''),
+          wbDataPath, bIsTES5, bIsTES5, slBSAFileNames, slErrors);
+        for i := 0 to slBSAFileNames.Count - 1 do begin
+          Logger.Write('LOAD', 'Resources', 'Loading resources from ' + slBSAFileNames[i]);
           wbContainerHandler.AddBSA(wbDataPath + slBSAFileNames[i]);
         end;
         for i := 0 to slErrors.Count - 1 do
-          Tracker.Write(slErrors[i] + ' was not found');
+          Logger.Write('ERROR', 'Load', slErrors[i] + ' was not found');
       end;
 
     finally
