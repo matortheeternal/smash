@@ -76,7 +76,6 @@ type
             OpenInExplorerItem: TMenuItem;
             BuildPatchItem: TMenuItem;
             EditPatchItem: TMenuItem;
-            RemoveUnloadedPluginsItem: TMenuItem;
             DeletePatchItem: TMenuItem;
             [FormSection('Move Submenu')]
               MoveItem: TMenuItem;
@@ -452,6 +451,13 @@ end;
 // Force PluginsListView to autosize columns
 procedure TSmashForm.FormShow(Sender: TObject);
 begin
+  // CLOSE IF PLUGIN SELECTION CANCELED
+  if ProgramStatus.bClose then begin
+    bClosing := true;
+    Close;
+    exit;
+  end;
+
   // HANDLE AUTO-UPDATE
   {if ProgramStatus.bInstallUpdate then begin
     Logger.Write('CLIENT', 'Disconnect', 'Disconnecting...');
