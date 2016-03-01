@@ -558,6 +558,10 @@ begin
     BuildOverridesList(patch, pluginsToPatch, recordsList, keepList);
     HandleCanceled(msg);
 
+    // stop smashing if no records to smash
+    if recordsList.Count = 0 then
+      raise Exception.create('No records to patch!');
+
     // smash records
     SmashRecords(patch, recordsList);
     HandleCanceled(msg);
