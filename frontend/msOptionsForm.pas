@@ -400,7 +400,8 @@ begin
 end;
 
 procedure TOptionsForm.FormCreate(Sender: TObject);
-var index: Integer;
+var
+  index: Integer;
 begin
   // do translation dump?
   if bTranslationDump then
