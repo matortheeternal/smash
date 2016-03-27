@@ -13,9 +13,12 @@ object SettingsManager: TSettingsManager
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  KeyPreview = True
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnKeyDown = FormKeyDown
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -68,6 +71,7 @@ object SettingsManager: TSettingsManager
       TabStop = False
       ViewStyle = vsReport
       OnChange = lvSettingsChange
+      OnClick = lvSettingsClick
       OnDrawItem = lvSettingsDrawItem
     end
   end
@@ -76,8 +80,11 @@ object SettingsManager: TSettingsManager
     Top = 0
     Width = 371
     Height = 582
+    Hint = 'The search clears any previous selections, be aware of that!'
     Align = alClient
     Constraints.MinWidth = 300
+    ParentShowHint = False
+    ShowHint = True
     TabOrder = 1
     object lblName: TLabel
       Left = 8
@@ -101,7 +108,7 @@ object SettingsManager: TSettingsManager
     end
     object lblTree: TLabel
       Left = 8
-      Top = 218
+      Top = 234
       Width = 22
       Height = 13
       Margins.Left = 8
@@ -130,9 +137,9 @@ object SettingsManager: TSettingsManager
     end
     object tvRecords: TTreeView
       Left = 8
-      Top = 237
+      Top = 261
       Width = 354
-      Height = 306
+      Height = 282
       Margins.Left = 8
       Align = alCustom
       Anchors = [akLeft, akTop, akRight, akBottom]
@@ -230,6 +237,18 @@ object SettingsManager: TSettingsManager
       Text = '$00000000'
       OnChange = edNameChange
     end
+    object edSearch: TEdit
+      Left = 152
+      Top = 234
+      Width = 209
+      Height = 21
+      Align = alCustom
+      Anchors = [akLeft, akTop, akRight]
+      TabOrder = 7
+      Text = 'Search...'
+      OnClick = edSearchClick
+      OnKeyPress = edSearchKeyPress
+    end
   end
   object SettingsPopupMenu: TPopupMenu
     OnPopup = SettingsPopupMenuPopup
@@ -254,8 +273,8 @@ object SettingsManager: TSettingsManager
   end
   object TreePopupMenu: TPopupMenu
     OnPopup = TreePopupMenuPopup
-    Left = 704
-    Top = 256
+    Left = 672
+    Top = 504
     object BuildItem: TMenuItem
       Caption = 'Build'
       object AddItem: TMenuItem
@@ -318,10 +337,10 @@ object SettingsManager: TSettingsManager
   object StateImages: TImageList
     Height = 17
     Width = 17
-    Left = 784
-    Top = 256
+    Left = 752
+    Top = 504
     Bitmap = {
-      494C010104000800E40011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010104000800F00011001100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000440000002200000001002000000000002024
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -630,10 +649,10 @@ object SettingsManager: TSettingsManager
       000000000000000000000000000000000000000000000000000000000000}
   end
   object FlagIcons: TImageList
-    Left = 856
-    Top = 256
+    Left = 824
+    Top = 504
     Bitmap = {
-      494C0101030008000C0110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010103000800180110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000D7D7F8FF7373E6FF3434DBFF2121BEFF2121BEFF2D2DDAFF6B6BE4FFD2D2

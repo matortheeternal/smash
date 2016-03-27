@@ -5,7 +5,7 @@ interface
 uses
   Windows, Types, Messages, SysUtils, Variants, Classes, Graphics, Controls,
   Forms, Dialogs, StdCtrls, ExtCtrls, ComCtrls, Grids, ValEdit, CommCtrl, Menus,
-  ImgList,
+  ImgList, StrUtils,
   // superobject
   superobject,
   // mte units
@@ -61,6 +61,7 @@ type
             UnlinkNodeItem: TMenuItem;
             AutoPruneItem: TMenuItem;
             PruneNodesItem: TMenuItem;
+    edSearch: TEdit;
 
     // TREE METHODS
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
@@ -115,9 +116,18 @@ type
     procedure btnSaveClick(Sender: TObject);
     procedure btnDiscardClick(Sender: TObject);
     procedure edNameChange(Sender: TObject);
+    procedure edSearchClick(Sender: TObject);
+    procedure edSearchKeyPress(Sender: TObject; var Key: Char);
+    procedure NextSearchResult();
+    procedure ResetSearch();
+    procedure FormDestroy(Sender: TObject);
+    procedure lvSettingsClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     { Private declarations }
     lastHint: string;
+    bSearchActive: Boolean;
+    slSearchResults: TStringList;
   public
     { Public declarations }
     FilterFilename: string;
@@ -133,10 +143,90 @@ var
   currentSettingItem: TListItem;
   pForm: TProgressForm;
   LastCollapseTime: TDateTime;
+  SearchIndex: Integer = -1;
 
 implementation
 
 {$R *.dfm}
+
+procedure TSettingsManager.edSearchClick(Sender: TObject);
+begin
+  // On search field click set bSearchActive to false
+  if (bSearchActive) and (MessageDlg('Start new search?', mtConfirmation, [mbyes, mbno], 0) = mrYes) then
+    bSearchActive := False;
+  // Empties the search field when clicked and a search is active
+  if not bSearchActive then
+    edSearch.Text := '';
+end;
+
+procedure TSettingsManager.edSearchKeyPress(Sender: TObject; var Key: Char);
+var
+  i: Integer;
+  node: TTreeNode;
+begin
+  // Exit if no records are available
+  if tvRecords.Items.Count = 0 then
+    exit;
+  // Exit function if input is not "Enter"
+  if Key <> #13 then
+    exit;
+  // Tell the user to enter search term
+  if (edSearch.Text = 'Search...') or (edSearch.Text = '') then begin
+    ShowMessage('Please enter a search term!');
+    exit;
+  end;
+  // Do a search when bSearchActive is false
+  if not bSearchActive then begin
+    // Clear old results
+    slSearchResults.Clear;
+    for i := 0 to Pred(tvRecords.Items.Count) do begin
+      node := tvRecords.Items[i];
+      // Check if search-string is contained in node-text
+      if ContainsText(node.Text, edSearch.Text) then
+        slSearchResults.AddObject(node.Text,TObject(node));
+    end;
+    bSearchActive := True;
+    // Show result
+    NextSearchResult;
+    Key := #0;
+  end;
+end;
+
+procedure TSettingsManager.NextSearchResult();
+var
+  node: TTreeNode;
+begin
+  // Notify the user of an unsuccessful search and reset search
+  if slSearchResults.Count = 0 then begin
+    ShowMessage('No results could be found!');
+    ResetSearch;
+    exit;
+  end;
+
+  // Exit the function if there is no search active
+  if not bSearchActive then
+    exit;
+
+  // Increase the SearchIndex
+  Searchindex := Searchindex + 1;
+  // Display the amount of results and the current position in the search field
+  edSearch.Text := ('Result: ' + InttoStr(Searchindex+1) + ' / ' + InttoStr(slSearchResults.Count+1));
+  // Go back to the beginning if end is reached
+  if Searchindex > Pred(slSearchResults.Count) then begin
+    Searchindex := 0;
+  end;
+  // select the node and set focus
+  node := TTreeNode(slSearchResults.Objects[Searchindex]);
+  tvRecords.SetFocus;
+  node.Selected := true;
+  node.Focused := true;
+end;
+
+procedure TSettingsManager.ResetSearch();
+begin
+  bSearchActive := False;
+  edSearch.Text := 'Search...';
+end;
 
 { Tree methods }
 procedure TSettingsManager.DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
@@ -198,6 +288,10 @@ end;
 
 procedure TSettingsManager.tvRecordsKeyPress(Sender: TObject; var Key: Char);
 begin
+  if Key = #13 then
+    NextSearchResult;
+    Key := #0;
+
   if Key = ' ' then
     Key := #0;
 end;
@@ -672,7 +766,7 @@ begin
       and (Pos('Count', node.Text) > 0) then
         node.StateIndex := csUnChecked;
     end;
-    
+
     // recurse
     if (node.HasChildren) and (node.StateIndex <> csUnChecked) then
       Autoset(node);
@@ -938,6 +1032,22 @@ begin
     aSetting := TSmashSetting(SmashSettings[i]);
     AddSettingItem(aSetting, false);
   end;
+
+  // Create the StringList for the Search
+  slSearchResults := TStringList.Create;
+end;
+
+procedure TSettingsManager.FormDestroy(Sender: TObject);
+begin
+  // Free the Search StringList
+  slSearchResults.Free;
+end;
+
+procedure TSettingsManager.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if (Key = 70) and (Shift = [ssCtrl]) then
+    edSearch.SetFocus;
 end;
 
 procedure TSettingsManager.FormShow(Sender: TObject);
@@ -1001,6 +1111,12 @@ begin
   // load tree if assigned
   if Assigned(currentSetting.tree) then
     LoadTree(tvRecords, currentSetting);
+end;
+
+procedure TSettingsManager.lvSettingsClick(Sender: TObject);
+begin
+  if bSearchActive then
+    ResetSearch;
 end;
 
 procedure TSettingsManager.btnDiscardClick(Sender: TObject);
