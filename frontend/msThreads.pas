@@ -114,6 +114,11 @@ begin
       end;
     end;
 
+    // LOAD BSAS
+    Tracker.Write('Loading Resources');
+    wbContainerHandler.AddFolder(wbDataPath);
+    LoadBSAs;
+
     // LOAD PLUGIN INFORMATION
     Tracker.Write('Loading plugin information');
     TPatchHelpers.AssignPatchesToPlugins;

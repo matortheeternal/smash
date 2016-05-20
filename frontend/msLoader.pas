@@ -16,6 +16,7 @@ uses
   function GetGameID(name: string): integer;
   function GetGamePath(mode: TGameMode): string;
   procedure LoadDefinitions;
+  procedure LoadBSAs;
   { Mod Organizer methods }
   procedure ModOrganizerInit;
   function GetActiveProfile: string;
@@ -86,6 +87,7 @@ begin
   wbVWDInTemporary := wbGameMode in [gmTES5, gmFO3, gmFNV];
   Logger.Write('GENERAL', 'Game', 'Using '+wbGameName);
   Logger.Write('GENERAL', 'Path', 'Using '+wbDataPath);
+  Logger.Write('GENERAL', 'GameIni', 'Using '+wbTheGameIniFileName);
 
   // INITIALIZE SETTINGS FOR GAME
   LoadSettings;
@@ -218,15 +220,30 @@ end;
 
 { Sets the game mode in the TES5Edit API }
 procedure SetGame(id: integer);
+var
+  sMyDocumentsPath: string;
+  sIniPath: string;
 begin
   ProgramStatus.GameMode := GameArray[id];
   wbGameName := ProgramStatus.GameMode.gameName;
   wbGameMode := ProgramStatus.GameMode.gameMode;
   wbAppName := ProgramStatus.GameMode.appName;
   wbDataPath := CurrentProfile.gamePath + 'Data\';
+
   // set general paths
   PathList.Values['DataPath'] := wbDataPath;
-  PathList.Values['GamePath'] := UpDirectory(wbDataPath)
+  PathList.Values['GamePath'] := UpDirectory(wbDataPath);
+
+  // find game ini inside the user's documents folder.
+  sMyDocumentsPath := GetCSIDLShellFolder(CSIDL_PERSONAL);
+  if sMyDocumentsPath <> '' then begin
+    sIniPath := sMyDocumentsPath + 'My Games\' + wbGameName + '\';
+
+    if wbGameMode in [gmFO3, gmFNV] then
+      wbTheGameIniFileName := sIniPath + 'Fallout.ini'
+    else
+      wbTheGameIniFileName := sIniPath + wbGameName + '.ini';
+  end;
 end;
 
 { Get the game ID associated with a game long name }
@@ -295,6 +312,51 @@ begin
   end;
 end;
 
+{ Loads all of the BSAs specified in the game ini and by plugins }
+procedure LoadBSAs;
+var
+  slBSAFileNames: TStringList;
+  slErrors: TStringList;
+  i: Integer;
+  modIndex: Integer;
+  plugin: TPlugin;
+  bIsTES5: Boolean;
+begin
+  slBSAFileNames := TStringList.Create;
+  try
+    slErrors:= TStringList.Create;
+    try
+      FindBSAs(wbTheGameIniFileName, wbDataPath, slBSAFileNames, slErrors);
+      for i := 0 to slBSAFileNames.Count - 1 do begin
+        Logger.Write('LOAD', 'Resources', 'Loading resources from ' + slBSAFileNames[i]);
+        wbContainerHandler.AddBSA(wbDataPath + slBSAFileNames[i]);
+      end;
+      for i := 0 to slErrors.Count - 1 do
+        Logger.Write('ERROR', 'Load', slErrors[i] + ' was not found');
+
+      for modIndex := 0 to PluginsList.Count - 1 do begin
+        slBSAFileNames.Clear;
+        slErrors.Clear;
+        plugin := TPlugin(PluginsList[modIndex]);
+        bIsTES5 := wbGameMode = gmTES5;
+
+        HasBSAs(ChangeFileExt(plugin.filename, ''),
+          wbDataPath, bIsTES5, bIsTES5, slBSAFileNames, slErrors);
+        for i := 0 to slBSAFileNames.Count - 1 do begin
+          Logger.Write('LOAD', 'Resources', 'Loading resources from ' + slBSAFileNames[i]);
+          wbContainerHandler.AddBSA(wbDataPath + slBSAFileNames[i]);
+        end;
+        for i := 0 to slErrors.Count - 1 do
+          Logger.Write('ERROR', 'Load', slErrors[i] + ' was not found');
+      end;
+
+    finally
+      slErrors.Free;
+    end;
+  finally
+    slBSAFileNames.Free;
+  end;
+end;
 
 {******************************************************************************}
 { Mod Organizer methods
