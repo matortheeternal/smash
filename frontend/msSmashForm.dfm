@@ -200,10 +200,6 @@ object SmashForm: TSmashForm
       object PatchesTabSheet: TTabSheet
         Caption = 'Patches'
         ImageIndex = 1
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object PatchesListView: TListView
           Left = 3
           Top = 3
@@ -253,10 +249,6 @@ object SmashForm: TSmashForm
       object LogTabSheet: TTabSheet
         Caption = 'Log'
         ImageIndex = 2
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object LogListView: TListView
           Left = 3
           Top = 3
@@ -820,6 +812,10 @@ object SmashForm: TSmashForm
       Caption = 'Edit patch'
       OnClick = EditPatchItemClick
     end
+    object RemoveUnloadedPluginsItem: TMenuItem
+      Caption = 'Remove unloaded plugins'
+      OnClick = RemoveUnloadedPluginsItemClick
+    end
     object DeletePatchItem: TMenuItem
       Caption = 'Delete patch'
       OnClick = DeletePatchItemClick
@@ -862,7 +858,7 @@ object SmashForm: TSmashForm
     Left = 1008
     Top = 8
     Bitmap = {
-      494C010108001400880240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010108001400900240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000000100006000000001002000000000000080
       0100000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

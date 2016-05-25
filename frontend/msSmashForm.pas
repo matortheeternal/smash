@@ -76,6 +76,7 @@ type
             OpenInExplorerItem: TMenuItem;
             BuildPatchItem: TMenuItem;
             EditPatchItem: TMenuItem;
+            RemoveUnloadedPluginsItem: TMenuItem;
             DeletePatchItem: TMenuItem;
             [FormSection('Move Submenu')]
               MoveItem: TMenuItem;
