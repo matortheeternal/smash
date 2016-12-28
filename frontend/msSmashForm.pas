@@ -481,7 +481,6 @@ begin
     PatchesTabSheet.Enabled := false;
     PatchesTabSheet.TabVisible := false;
     PageControl.ActivePage := LogTabSheet;
-    PageControlChange(PageControl);
   end;
 
   // QUICKBAR
@@ -554,6 +553,8 @@ begin
   // ACTIVATE WINDOW
   FormDisplayTime := Now;
   ForceForeground(Handle);
+  if ProgramStatus.bInitException then
+    PageControlChange(PageControl);
   if not settings.buildRefs then
     LoaderDone;
 end;
