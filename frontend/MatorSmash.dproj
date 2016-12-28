@@ -148,9 +148,9 @@
 						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
 						<VersionInfo Name="AutoIncBuild">True</VersionInfo>
 						<VersionInfo Name="MajorVer">0</VersionInfo>
-						<VersionInfo Name="MinorVer">2</VersionInfo>
-						<VersionInfo Name="Release">2</VersionInfo>
-						<VersionInfo Name="Build">3</VersionInfo>
+						<VersionInfo Name="MinorVer">3</VersionInfo>
+						<VersionInfo Name="Release">0</VersionInfo>
+						<VersionInfo Name="Build">1</VersionInfo>
 						<VersionInfo Name="Debug">True</VersionInfo>
 						<VersionInfo Name="PreRelease">True</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -162,13 +162,13 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName"/>
 						<VersionInfoKeys Name="FileDescription"/>
-						<VersionInfoKeys Name="FileVersion">0.2.2.3</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.3.0.1</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName"/>
 						<VersionInfoKeys Name="LegalCopyright"/>
 						<VersionInfoKeys Name="LegalTrademarks"/>
 						<VersionInfoKeys Name="OriginalFilename"/>
 						<VersionInfoKeys Name="ProductName">Mator Smash</VersionInfoKeys>
-						<VersionInfoKeys Name="ProductVersion">0.2.2</VersionInfoKeys>
+						<VersionInfoKeys Name="ProductVersion">0.3.0</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments">created by matortheeternal</VersionInfoKeys>
 					</VersionInfoKeys>
 					<Excluded_Packages>
