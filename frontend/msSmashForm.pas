@@ -2130,12 +2130,14 @@ begin
     end;
 
   // show multi-patch prompt if multiple patches selected
-  if patchesToDelete.Count > 0 then
-    frmDialog := CreateMessageDialog(GetLanguageString('msMain_DeletePatches') + patchNames, mtConfirmation, mbOKCancel, mbOk);
+  if patchesToDelete.Count > 0 then begin
+    frmDialog := CreateMessageDialog(GetLanguageString('msMain_DeletePatches') +
+      patchNames, mtConfirmation, mbOKCancel, mbOk);
     frmDialog.PopupParent := self;
     ToggleFormState(false);
     bApproved := frmDialog.ShowModal = mrOk;
     ToggleFormState(true);
+  end;
 
   // exit if user didn't approve deletion
   if not bApproved then
