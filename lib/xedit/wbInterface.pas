@@ -24,7 +24,7 @@ uses
   Graphics;
 
 const
-  VersionString  = '3.1.1';
+  VersionString  = '3.2';
   clOrange       = $004080FF;
   wbFloatDigits  = 6;
   wbHardcodedDat = '.Hardcoded.keep.this.with.the.exe.and.otherwise.ignore.it.I.really.mean.it.dat';
@@ -51,6 +51,7 @@ var
   wbHideNeverShow          : Boolean  = True;
   wbShowFormVersion        : Boolean  = False;
   wbShowFlagEnumValue      : Boolean  = False;
+  wbShowGroupRecordCount   : Boolean  = False;
   wbDisplayShorterNames    : Boolean  = False;
   wbSortSubRecords         : Boolean  = False;
   wbSortFLST               : Boolean  = True;
@@ -66,11 +67,14 @@ var
   wbForceNewHeader         : Boolean  = False; // add wbNewHeaderAddon value to the headers of mainrecords and GRUP records
   wbNewHeaderAddon         : Cardinal = 40;    // 4 additional bytes, 40 - new form version field
   wbRequireLoadOrder       : Boolean  = False;
+  wbCreateContainedIn      : Boolean  = True;
   wbVWDInTemporary         : Boolean  = False;
+  wbVWDAsQuestChildren     : Boolean  = False;
   wbResolveAlias           : Boolean  = True;
   wbActorTemplateHide      : Boolean  = True;
   wbClampFormID            : Boolean  = True;
   wbDoNotBuildRefsFor      : TStringList;
+  wbCopyIsRunning          : Integer  = 0;
 
   wbUDRSetXESP       : Boolean = True;
   wbUDRSetScale      : Boolean = False;
@@ -104,6 +108,7 @@ var
   wbMoreInfoForRequired              : Boolean = False;
   wbMoreInfoForDecider               : Boolean = False;
   wbTrackAllEditorID                 : Boolean = False;
+  wbShowTip                          : Boolean = True;
 
   wbCheckExpectedBytes : Boolean = True;
 
@@ -273,6 +278,9 @@ type
     dtStructChapter
   );
 
+  TwbGroupTypes = set of Byte;
+  TwbStringEncoding = (seCP1252, seUTF8);
+
 var
   dtNonValues : set of TwbDefType = [
     dtRecord,
@@ -285,6 +293,8 @@ var
     dtUnion,
     dtStructChapter
   ];
+
+  wbStringEncoding: TwbStringEncoding = seCP1252;
 
 type
   IwbDef = interface;
@@ -388,7 +398,8 @@ type
     esConstructionComplete,
     esDestroying,
     esChangeNotified,
-    esModifiedUpdated
+    esModifiedUpdated,
+    esSorting
   );
 
   TwbElementStates = set of TwbElementState;
@@ -500,6 +511,9 @@ type
 
     function CopyInto(const aFile: IwbFile; AsNew, DeepCopy: Boolean; const aPrefixRemove, aPrefix, aSuffix: string): IwbElement;
 
+    function GetTreeHead: Boolean;              // Is the element expected to be a "header record" in the tree navigator
+    function GetTreeBranch: Boolean;            // Is the element expected to show in the tree navigator
+
     property ElementID: Cardinal
       read GetElementID;
     property ElementStates: TwbElementStates
@@ -600,6 +614,12 @@ type
 
     property DontShow: Boolean
       read GetDontShow;
+
+    property TreeHead: Boolean
+      read GetTreeHead;
+
+    property TreeBranch: Boolean
+      read GetTreeBranch;
   end;
 
   IwbRecord = interface;
@@ -730,7 +750,8 @@ type
     fsOnlyHeader,
     fsIsHardcoded,
     fsIsGameMaster,
-    fsIsTemporary
+    fsIsTemporary,
+    fsHasNoFormID
   );
 
   TwbFileStates = set of TwbFileState;
@@ -745,6 +766,7 @@ type
     function GetRecordByFormID(aFormID: Cardinal; aAllowInjected: Boolean): IwbMainRecord;
     function GetRecordByEditorID(const aEditorID: string): IwbMainRecord;
     function GetLoadOrder: Integer;
+    procedure ForceLoadOrder(aValue: Integer);
     function GetGroupBySignature(const aSignature: TwbSignature): IwbGroupRecord;
     function HasGroup(const aSignature: TwbSignature): Boolean;
     function GetFileStates: TwbFileStates;
@@ -773,7 +795,13 @@ type
     function GetIsLocalized: Boolean;
     procedure SetIsLocalized(Value: Boolean);
 
+    function GetNextObjectID: Cardinal;
+    procedure SetNextObjectID(aObjectID: Cardinal);
+
     function GetIsNotPlugin: Boolean;
+    function GetHasNoFormID: Boolean;
+    procedure SetHasNoFormID(Value: Boolean);
+
     property FileName: string
       read GetFileName;
     property UnsavedSince: TDateTime
@@ -813,8 +841,16 @@ type
     property IsLocalized: Boolean
       read GetIsLocalized
       write SetIsLocalized;
+
+    property NextObjectID: Cardinal
+      read GetNextObjectID
+      write SetNextObjectID;
+
     property IsNotPlugin: Boolean   // Save or other file to display.
       read GetIsNotPlugin;
+    property HasNoFormID: Boolean   // Like Morrowind for example. Also true for save/coSave.
+      read GetHasNoFormID
+      write SetHasNoFormID;
   end;
 
   IwbDataContainer = interface(IwbContainer)
@@ -825,6 +861,7 @@ type
     function GetDontCompare: Boolean;
     function GetDontSave: Boolean;
     function IsValidOffset(aBasePtr, aEndPtr: Pointer; anOffset: Integer): Boolean;
+    function IsLocalOffset(anOffset: Integer): Boolean;
 
     property DataBasePtr: Pointer
       read GetDataBasePtr;
@@ -838,6 +875,8 @@ type
     property DontSave: Boolean
       read GetDontSave;
   end;
+
+  TDynDataContainers = array of IwbDataContainer;
 
   IwbRecord = interface(IwbDataContainer)
     ['{4FC53881-25E2-421D-8AF6-F589979767E6}']
@@ -945,6 +984,8 @@ type
     procedure SetIsVisibleWhenDistant(aValue: Boolean);
     function GetHasVisibleWhenDistantMesh: Boolean;
     function GetHasMesh: Boolean;
+    function GetHasPrecombinedMesh: Boolean;
+    function GetPrecombinedMesh: string;
     function GetIsInitiallyDisabled: Boolean;
     procedure SetIsInitiallyDisabled(aValue: Boolean);
 
@@ -1044,6 +1085,10 @@ type
       read GetHasVisibleWhenDistantMesh;
     property HasMesh: Boolean
       read GetHasMesh;
+    property HasPrecombinedMesh: Boolean
+      read GetHasPrecombinedMesh;
+    property PrecombinedMesh: string
+      read GetPrecombinedMesh;
     property IsInitiallyDisabled: Boolean
       read GetIsInitiallyDisabled
       write SetIsInitiallyDisabled;
@@ -1068,14 +1113,22 @@ type
     ['{3E575648-EF6F-4e9f-956F-D2E184B670E4}']
     function GetChapterType: Integer;
     function GetChapterTypeName: String;
+    function GetChapterName: String;
     property ChapterType: Integer
       read GetChapterType;
     property ChapterTypeName: String
       read GetChapterTypeName;
+    property ChapterName: String
+      read GetChapterName;
   end;
 
   TDynElements = array of IwbElement;
+  {$IFDEF WIN32}
   TDynCardinalArray = array of Cardinal;
+  {$ENDIF WIN32}
+  {$IFDEF WIN64}
+  TDynCardinalArray = array of UInt64;
+  {$ENDIF WIN32}
 
   IwbSubRecord = interface(IwbRecord)
     ['{CDE36A3D-64F6-4B8E-980E-FBAB8D9FCAF7}']
@@ -1147,10 +1200,11 @@ type
   TwbUnionDecider = function(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
   TwbIntegerDefFormaterUnionDecider = function(const aElement: IwbElement): Integer;
   TwbIsSortedCallback = function(const aContainer: IwbContainer): Boolean;
-  TwbCountCallback = function(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
+  TwbCountCallback = function(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Cardinal;
   TwbSizeCallback = function(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement;var CompressedSize: Integer): Cardinal;
   TwbGetChapterTypeCallback = function(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
   TwbGetChapterTypeNameCallback = function(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): String;
+  TwbGetChapterNameCallback = function(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): String;
 
   IwbNamedDef = interface(IwbDef)
     ['{F8FEDE89-C089-42C5-B587-49A7D87055F0}']
@@ -1159,10 +1213,21 @@ type
     procedure AfterLoad(const aElement: IwbElement);
     procedure AfterSet(const aElement: IwbElement; const aOldValue, aNewValue: Variant);
 
+    function GetTreeHead: Boolean;              // Is the element expected to be a "header record" in the tree navigator
+    procedure SetTreeHead(aValue: Boolean);     // Make the element a "header record" in the tree navigator;
+    function GetTreeBranch: Boolean;            // Is the element included in a "leaf" expected to be displayed in the view pane
+    procedure SetTreeBranch(aValue: Boolean);   // Make the element included in a "leaf" visible in the tree navigator;
+
     property Name: string
       read GetName;
     property Path: string
       read GetPath;
+
+    property TreeHead: Boolean
+      read GetTreeHead write SetTreeHead;
+
+    property TreeBranch: Boolean
+      read GetTreeBranch write SetTreeBranch;
   end;
 
   IwbSignatureDef = interface(IwbNamedDef)
@@ -1450,10 +1515,21 @@ type
     function GetSizing(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement;var CompressedSize: Integer): Cardinal;
     function GetChapterType(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
     function GetChapterTypeName(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): String;
+    function GetChapterName(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): String;
   end;
+
+  TwbStructCompression = (
+    scNone,
+    scZComp,
+    scLZComp
+  );
 
   IwbStructZDef = interface(IwbStructCDef) // Compressible structure !!! NOT SAFE FOR EDIT AT THE MOMEMNT !!!
     ['{8ED8E461-E4BB-494E-8A3B-B352A245B9A0}']
+  end;
+
+  IwbStructLZDef = interface(IwbStructZDef) // Compressible structure using LZ4 !!! NOT SAFE FOR EDIT AT THE MOMEMNT !!!
+    ['{A5AB100F-83CA-4B53-B3CD-2BF926210900}']
   end;
 
   IwbIntegerDefFormater = interface(IwbDef)
@@ -1533,6 +1609,10 @@ type
   IwbChar4 = interface(IwbIntegerDefFormater)
     ['{CF657B3A-E7A6-48FE-AC68-8DF15962A531}']
   end;
+
+  IwbStr4 = interface(IwbIntegerDefFormater)	// 4 bytes strings stored as itU32 
+    ['{2DC5200E-C1F1-47e7-A927-3D110D59F55A}']
+  end;  // The interface handles swaping the character in readable order
 
   IwbFlagsDef = interface;
 
@@ -1648,14 +1728,24 @@ type
       read GetFileName;
   end;
 
+  IwbBA2File = interface(IwbResourceContainer)
+    ['{D05EAAEC-8A23-4CDD-83E4-7593AC846CE3}']
+    function GetFileName: string;
+
+    property FileName: string
+      read GetFileName;
+  end;
+
   TDynResources = array of IwbResource;
 
   IwbContainerHandler = interface(IInterface)
     ['{0CC80043-EADC-4C7D-8677-8719735582C7}']
     procedure AddFolder(const aPath: string);
     procedure AddBSA(const aFileName: string);
+    procedure AddBA2(const aFileName: string);
 
     function OpenResource(const aFileName: string): TDynResources;
+    function OpenResourceData(const aContainerName, aFileName: string): TBytes;
     function ResolveHash(const aHash: Int64): TDynStrings;
     function ContainerExists(aContainerName: string): Boolean;
     procedure ContainerList(const aList: TStrings);
@@ -2466,6 +2556,17 @@ function wbArrayS(const aName          : string;
                         aGetCP         : TwbGetConflictPriority = nil)
                                        : IwbArrayDef; overload;
 
+function wbArray(const aName          : string;
+                 const aElement       : IwbValueDef;
+                       aCountCallback : TwbCountCallback;
+                       aPriority      : TwbConflictPriority;
+                       aRequired      : Boolean;
+                       aAfterLoad     : TwbAfterLoadCallback;
+                       aAfterSet      : TwbAfterSetCallback;
+                       aDontShow      : TwbDontShowCallback = nil;
+                       aGetCP         : TwbGetConflictPriority = nil)
+                                       : IwbArrayDef; overload;
+
 function wbArrayS(const aSignature : TwbSignature;
                   const aName      : string;
                   const aElement   : IwbValueDef;
@@ -2501,7 +2602,6 @@ function wbRArrayS(const aName      : string;
                          aGetCP     : TwbGetConflictPriority = nil)
                                     : IwbSubRecordArrayDef; overload;
 
-
 {--- wbStruct - ordered list of members ----------------------------------------}
 function wbStructSK(const aSortKey             : array of Integer;
                     const aName                : string;
@@ -2518,7 +2618,12 @@ function wbStructSK(const aSortKey             : array of Integer;
 function wbStructSK(const aSortKey             : array of Integer;
                     const aName                : string;
                     const aMembers             : array of IwbValueDef;
+                    {$IFDEF WIN32}
                     const aElementMap          : array of Cardinal;
+                    {$ENDIF WIN32}
+                    {$IFDEF WIN64}
+                    const aElementMap          : array of UInt64;
+                    {$ENDIF WIN64}
                           aPriority            : TwbConflictPriority = cpNormal;
                           aRequired            : Boolean = False;
                           aDontShow            : TwbDontShowCallback = nil;
@@ -2608,6 +2713,7 @@ function wbStructC(const aName                : string;
                          aSizing              : TwbSizeCallback;
                          aGetChapterType      : TwbGetChapterTypeCallback;
                          aGetChapterTypeName  : TwbGetChapterTypeNameCallback;
+                         aGetChapterName      : TwbGetChapterNameCallback;
                    const aMembers             : array of IwbValueDef;
                          aPriority            : TwbConflictPriority = cpNormal;
                          aRequired            : Boolean = False;
@@ -2622,6 +2728,7 @@ function wbStructZ(const aName                : string;
                          aSizing              : TwbSizeCallback;
                          aGetChapterType      : TwbGetChapterTypeCallback;
                          aGetChapterTypeName  : TwbGetChapterTypeNameCallback;
+                         aGetChapterName      : TwbGetChapterNameCallback;
                    const aMembers             : array of IwbValueDef;
                          aPriority            : TwbConflictPriority = cpNormal;
                          aRequired            : Boolean = False;
@@ -2631,6 +2738,21 @@ function wbStructZ(const aName                : string;
                          aAfterSet            : TwbAfterSetCallback = nil;
                          aGetCP               : TwbGetConflictPriority = nil)
                                               : IwbStructDef; overload;
+
+function wbStructLZ(const aName                : string;
+                          aSizing              : TwbSizeCallback;
+                          aGetChapterType      : TwbGetChapterTypeCallback;
+                          aGetChapterTypeName  : TwbGetChapterTypeNameCallback;
+                          aGetChapterName      : TwbGetChapterNameCallback;
+                    const aMembers             : array of IwbValueDef;
+                          aPriority            : TwbConflictPriority = cpNormal;
+                          aRequired            : Boolean = False;
+                          aDontShow            : TwbDontShowCallback = nil;
+                          aOptionalFromElement : Integer = -1;
+                          aAfterLoad           : TwbAfterLoadCallback = nil;
+                          aAfterSet            : TwbAfterSetCallback = nil;
+                          aGetCP               : TwbGetConflictPriority = nil)
+                                               : IwbStructDef; overload;
 
 function wbRStruct(const aName           : string;
                    const aMembers        : array of IwbRecordMemberDef;
@@ -2879,6 +3001,8 @@ function wbFormIDCkNoReach(const aName          : string;
 
 function wbChar4: IwbChar4;
 
+function wbStr4: IwbStr4;
+
 function wbFlags(const aNames           : array of string;
                        aUnknownIsUnused : Boolean = False)
                                         : IwbFlagsDef; overload;
@@ -2925,6 +3049,8 @@ function wbFormaterUnion(aDecider : TwbIntegerDefFormaterUnionDecider;
 
 function wbIsPlugin(aFileName: string): Boolean;
 
+function wbStr4ToString(aInt: Int64): string;
+
 type
   PwbRecordDefEntry = ^TwbRecordDefEntry;
   TwbRecordDefEntry = record
@@ -2947,11 +3073,11 @@ var
   wbGroupOrder       : TStringList;
   wbLoadBSAs         : Boolean{} = True{};
   wbLoadAllBSAs      : Boolean{} = False{};
+  wbArchiveExtension : string = '.bsa';
   wbBuildRefs        : Boolean{} = True{};
   wbContainerHandler : IwbContainerHandler;
   wbLoaderDone       : Boolean;
   wbLoaderError      : Boolean;
-  wbColumnWidth      : Integer = 200;
 
 procedure wbAddGroupOrder(const aSignature: TwbSignature);
 function wbGetGroupOrder(const aSignature: TwbSignature): Integer;
@@ -2983,7 +3109,7 @@ var
   wbSizeOfMainRecordStruct : Integer;
 
 type
-  TwbGameMode   = (gmFNV, gmFO3, gmTES3, gmTES4, gmTES5);
+  TwbGameMode   = (gmFNV, gmFO3, gmTES3, gmTES4, gmTES5, gmSSE, gmFO4);
   TwbToolMode   = (tmView, tmEdit, tmDump, tmExport, tmMasterUpdate, tmMasterRestore, tmLODgen, tmScript,
                     tmTranslate, tmESMify, tmESPify, tmSortAndCleanMasters,
                     tmCheckForErrors, tmCheckForITM, tmCheckForDR);
@@ -2996,6 +3122,7 @@ var
   wbToolSource  : TwbToolSource;
   wbAppName     : string;
   wbGameName    : string;
+  wbGameName2   : string; // game title name
   wbToolName    : string;
   wbSourceName  : String;
   wbLanguage    : string;
@@ -3074,6 +3201,8 @@ procedure wbEndInternalEdit;
 function wbIsInternalEdit: Boolean;
 
 function StrToSignature(const s: string): TwbSignature;
+function wbStringToAnsi(const aString: string; const aElement: IwbElement): AnsiString;
+function wbAnsiToString(const aString: AnsiString; const aElement: IwbElement): string;
 
 function FixupFormID(aFormID: Cardinal; const aOld, aNew: TBytes): Cardinal;
 
@@ -3100,9 +3229,17 @@ var
   wbBytesToGroup      : Cardinal = 4;
   wbExtractInfo       : ^TByteSet;
   wbTerminator        : Byte = Ord('|');
+  wbPlayerRefID       : Cardinal = $14;
+  wbChangedFormOffset : Integer = 10000;
+  wbOfficialDLC       : array of string;
 
 type
+  {$IFDEF WIN32}
   TwbRefIDArray = array of Cardinal;
+  {$ENDIF WIN32}
+  {$IFDEF WIN64}
+  TwbRefIDArray = array of UInt64;
+  {$ENDIF WIN64}
 
 function wbReadInteger24(aBasePtr: pointer): Int64;
 procedure InitializeRefIDArray(anArray: TwbRefIDArray);
@@ -3137,6 +3274,52 @@ begin
     Result := PwbSignature(@t[1])^
   else
     raise Exception.Create('"'+t+'" is not a valid signature');
+end;
+
+function IsTranslatable(const aElement: IwbElement): Boolean;
+var
+  Def: IwbDef;
+begin
+  Result := False;
+
+  if Assigned(aElement) then begin
+    Def := aElement.ValueDef;
+    if not Assigned(Def) then
+      Def := aElement.Def;
+
+    if Assigned(Def) then
+       Result := Def.ConflictPriority[aElement] = cpTranslate;
+  end;
+end;
+
+function wbStringToAnsi(const aString: String; const aElement: IwbElement): AnsiString;
+var
+  Translatable: Boolean;
+begin
+  if Assigned(aElement) then
+    Translatable := IsTranslatable(aElement)
+  else
+    Translatable := True;
+
+  if Translatable and (wbStringEncoding = seUTF8) then
+    Result := UTF8Encode(aString)
+  else
+    Result := AnsiString(aString);
+end;
+
+function wbAnsiToString(const aString: AnsiString; const aElement: IwbElement): string;
+var
+  Translatable: Boolean;
+begin
+  if Assigned(aElement) then
+    Translatable := IsTranslatable(aElement)
+  else
+    Translatable := True;
+
+  if Translatable and (wbStringEncoding = seUTF8) then
+    Result := UTF8Decode(aString)
+  else
+    Result := string(aString);
 end;
 
 function wbBeginInternalEdit(aForce: Boolean): Boolean;
@@ -3492,6 +3675,8 @@ type
     noDontShow   : TwbDontShowCallback;
     noTerminator : Boolean;
     noUnused     : Boolean;
+    noTreeHead   : Boolean;
+    noTreeBranch : Boolean;
   protected
     constructor Clone(const aSource: TwbDef); override;
     constructor Create(aPriority   : TwbConflictPriority;
@@ -3514,6 +3699,10 @@ type
     function GetPath: string;
     procedure AfterLoad(const aElement: IwbElement); virtual;
     procedure AfterSet(const aElement: IwbElement; const aOldValue, aNewValue: Variant);
+    function GetTreeHead: Boolean;              // Is the element expected to be a "header record" in the tree navigator
+    procedure SetTreeHead(aValue: Boolean);     // Make the element a "header record" in the tree navigator;
+    function GetTreeBranch: Boolean;            // Is the element included in a "leaf" expected to be displayed in the view pane
+    procedure SetTreeBranch(aValue: Boolean);   // Make the element included in a "leaf" visible in the tree navigator;
   end;
 
   TwbSignatureDef = class(TwbNamedDef, IwbSignatureDef)
@@ -3940,7 +4129,7 @@ type
                        aDontShow   : TwbDontShowCallback;
                        aGetCP      : TwbGetConflictPriority; 
                        aTerminator : Boolean;
-					             aForward    : boolean = false); virtual;
+                       aForward    : boolean = false); virtual;
     function ToStringNative(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): AnsiString; virtual;
     function ToStringTransform(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement; aTransformType: TwbStringTransformType): string;
 
@@ -4337,7 +4526,12 @@ type
                  const aMembers             : array of IwbValueDef;
                  const aSortKey             : array of Integer;
                  const aExSortKey           : array of Integer;
+                 {$IFDEF WIN32}
                  const aElementMap          : array of Cardinal;
+                 {$ENDIF WIN32}
+                 {$IFDEF WIN64}
+                 const aElementMap          : array of UInt64;
+                 {$ENDIF WIN64}
                        aOptionalFromElement : Integer;
                        aDontShow            : TwbDontShowCallback;
                        aAfterLoad           : TwbAfterLoadCallback;
@@ -4371,6 +4565,7 @@ type
     scSizeCallback       : TwbSizeCallback;
     scGetChapterType     : TwbGetChapterTypeCallback;
     scGetChapterTypeName : TwbGetChapterTypeNameCallback;
+    scGetChapterName     : TwbGetChapterNameCallback;
   protected
     constructor Clone(const aSource: TwbDef); override;
     constructor Create(aPriority            : TwbConflictPriority;
@@ -4386,6 +4581,7 @@ type
                        aSizeCallBack        : TwbSizeCallback;
                        aGetChapterType      : TwbGetChapterTypeCallback;
                        aGetChapterTypeName  : TwbGetChapterTypeNameCallback;
+                       aGetChapterName      : TwbGetChapterNameCallback;
                        aGetCP               : TwbGetConflictPriority);
     function GetDefType: TwbDefType; override;
     function GetDefTypeName: string; override;
@@ -4393,9 +4589,13 @@ type
     function GetSizing(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement;var CompressedSize: Integer): Cardinal; virtual;
     function GetChapterType(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer; virtual;
     function GetChapterTypeName(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): String; virtual;
+    function GetChapterName(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): String; virtual;
   end;
 
   TwbStructZDef = class(TwbStructCDef, IwbStructZDef)
+  end;
+
+  TwbStructLZDef = class(TwbStructCDef, IwbStructLZDef)
   end;
 
   TwbIntegerDefFormater = class(TwbDef, IwbIntegerDefFormater)
@@ -4581,6 +4781,21 @@ type
     procedure BuildRef(aInt: Int64; const aElement: IwbElement); override;
     function CanAssign(const aElement: IwbElement; aIndex: Integer; const aDef: IwbDef): Boolean; override;
     function GetLinksTo(aInt: Int64; const aElement: IwbElement): IwbElement; override;
+
+    function ToEditValue(aInt: Int64; const aElement: IwbElement): string; override;
+    function FromEditValue(const aValue: string; const aElement: IwbElement): Int64; override;
+    function GetIsEditable(aInt: Int64; const aElement: IwbElement): Boolean; override;
+    function CanContainFormIDs: Boolean; override;
+  end;
+
+  TwbStr4 = class(TwbIntegerDefFormater, IwbStr4)
+  protected
+    constructor Clone(const aSource: TwbDef); override;
+
+    {---IwbIntegerDefFormater---}
+    function ToString(aInt: Int64; const aElement: IwbElement): string; override;
+    function ToSortKey(aInt: Int64; const aElement: IwbElement): string; override;
+    function CanAssign(const aElement: IwbElement; aIndex: Integer; const aDef: IwbDef): Boolean; override;
 
     function ToEditValue(aInt: Int64; const aElement: IwbElement): string; override;
     function FromEditValue(const aValue: string; const aElement: IwbElement): Int64; override;
@@ -5872,6 +6087,20 @@ begin
   Result := TwbArrayDef.Create(aPriority, aRequired, aName, aElement, aCountCallback, [], True, aAfterLoad, aAfterSet, aDontShow, aGetCP, True, False, False);
 end;
 
+function wbArray(const aName          : string;
+                 const aElement       : IwbValueDef;
+                       aCountCallback : TwbCountCallback;
+                       aPriority      : TwbConflictPriority;
+                       aRequired      : Boolean;
+                       aAfterLoad     : TwbAfterLoadCallback;
+                       aAfterSet      : TwbAfterSetCallback;
+                       aDontShow      : TwbDontShowCallback = nil;
+                       aGetCP         : TwbGetConflictPriority = nil)
+                                       : IwbArrayDef; overload;
+begin
+  Result := TwbArrayDef.Create(aPriority, aRequired, aName, aElement, aCountCallback, [], False, aAfterLoad, aAfterSet, aDontShow, aGetCP, True, False, False);
+end;
+
 function wbRArrayS(const aName      : string;
                    const aElement   : IwbRecordMemberDef;
                          aPriority  : TwbConflictPriority = cpNormal;
@@ -5914,8 +6143,6 @@ function wbArrayS(const aName      : string;
 begin
   Result := TwbArrayDef.Create(aPriority, aRequired, aName, aElement, Length(aLabels), aLabels, True, aAfterLoad, aAfterSet, aDontShow, aGetCP, True, False, False);
 end;
-
-
 
 {--- wbStruct - ordered list of members ----------------------------------------}
 function wbStructSK(const aSignature           : TwbSignature;
@@ -5968,7 +6195,12 @@ end;
 function wbStructSK(const aSortKey             : array of Integer;
                     const aName                : string;
                     const aMembers             : array of IwbValueDef;
+                    {$IFDEF WIN32}
                     const aElementMap          : array of Cardinal;
+                    {$ENDIF WIN32}
+                    {$IFDEF WIN64}
+                    const aElementMap          : array of UInt64;
+                    {$ENDIF WIN64}
                           aPriority            : TwbConflictPriority = cpNormal;
                           aRequired            : Boolean = False;
                           aDontShow            : TwbDontShowCallback = nil;
@@ -6048,6 +6280,7 @@ function wbStructC(const aName                : string;
                          aSizing              : TwbSizeCallback;
                          aGetChapterType      : TwbGetChapterTypeCallback;
                          aGetChapterTypeName  : TwbGetChapterTypeNameCallback;
+                         aGetChapterName      : TwbGetChapterNameCallback;
                    const aMembers             : array of IwbValueDef;
                          aPriority            : TwbConflictPriority = cpNormal;
                          aRequired            : Boolean = False;
@@ -6058,13 +6291,14 @@ function wbStructC(const aName                : string;
                          aGetCP               : TwbGetConflictPriority = nil)
                                               : IwbStructDef; overload;
 begin
-  Result := TwbStructCDef.Create(aPriority, aRequired, aName, aMembers, [], [], aOptionalFromElement, aDontShow, aAfterLoad, aAfterSet, aSizing, aGetChapterType, aGetChapterTypeName, aGetCP);
+  Result := TwbStructCDef.Create(aPriority, aRequired, aName, aMembers, [], [], aOptionalFromElement, aDontShow, aAfterLoad, aAfterSet, aSizing, aGetChapterType, aGetChapterTypeName, aGetChapterName, aGetCP);
 end;
 
 function wbStructZ(const aName                : string;
                          aSizing              : TwbSizeCallback;
                          aGetChapterType      : TwbGetChapterTypeCallback;
                          aGetChapterTypeName  : TwbGetChapterTypeNameCallback;
+                         aGetChapterName      : TwbGetChapterNameCallback;
                    const aMembers             : array of IwbValueDef;
                          aPriority            : TwbConflictPriority = cpNormal;
                          aRequired            : Boolean = False;
@@ -6075,7 +6309,25 @@ function wbStructZ(const aName                : string;
                          aGetCP               : TwbGetConflictPriority = nil)
                                               : IwbStructDef; overload;
 begin
-  Result := TwbStructZDef.Create(aPriority, aRequired, aName, aMembers, [], [], aOptionalFromElement, aDontShow, aAfterLoad, aAfterSet, aSizing, aGetChapterType, aGetChapterTypeName, aGetCP);
+  Result := TwbStructZDef.Create(aPriority, aRequired, aName, aMembers, [], [], aOptionalFromElement, aDontShow, aAfterLoad, aAfterSet, aSizing, aGetChapterType, aGetChapterTypeName, agetChapterName, aGetCP);
+end;
+
+function wbStructLZ(const aName                : string;
+                          aSizing              : TwbSizeCallback;
+                          aGetChapterType      : TwbGetChapterTypeCallback;
+                          aGetChapterTypeName  : TwbGetChapterTypeNameCallback;
+                          aGetChapterName      : TwbGetChapterNameCallback;
+                    const aMembers             : array of IwbValueDef;
+                          aPriority            : TwbConflictPriority = cpNormal;
+                          aRequired            : Boolean = False;
+                          aDontShow            : TwbDontShowCallback = nil;
+                          aOptionalFromElement : Integer = -1;
+                          aAfterLoad           : TwbAfterLoadCallback = nil;
+                          aAfterSet            : TwbAfterSetCallback = nil;
+                          aGetCP               : TwbGetConflictPriority = nil)
+                                               : IwbStructDef; overload;
+begin
+  Result := TwbStructLZDef.Create(aPriority, aRequired, aName, aMembers, [], [], aOptionalFromElement, aDontShow, aAfterLoad, aAfterSet, aSizing, aGetChapterType, aGetChapterTypeName, agetChapterName, aGetCP);
 end;
 
 function wbRStruct(const aName           : string;
@@ -6314,6 +6566,11 @@ end;
 function wbChar4: IwbChar4;
 begin
   Result := TwbChar4.Create(cpNormal, False, nil);
+end;
+
+function wbStr4: IwbStr4;
+begin
+  Result := TwbStr4.Create(cpNormal, False, nil);
 end;
 
 function wbFormID(const aSignature : TwbSignature;
@@ -6767,8 +7024,11 @@ end;
 
 constructor TwbNamedDef.Clone(const aSource: TwbDef);
 begin
-  with (aSource as TwbNamedDef) do
+  with (aSource as TwbNamedDef) do begin
     Self.Create(defPriority, defRequired, noName, noAfterLoad, noAfterSet, noDontShow, defGetCP, noTerminator).defSource := aSource;
+    Self.noTreeHead := GetTreeHead;
+    Self.notreeBranch := GetTreeBranch;
+  end
 end;
 
 constructor TwbNamedDef.Create(aPriority   : TwbConflictPriority;
@@ -6785,6 +7045,8 @@ begin
   noAfterLoad := aAfterLoad;
   noAfterSet := aAfterSet;
   noTerminator := aTerminator;
+  noTreeHead := False;
+  noTreeBranch := False;
   if aName = 'Unused' then begin
     noUnused := True;
     if aPriority = cpNormal then
@@ -6830,6 +7092,16 @@ begin
   end;
 end;
 
+function TwbNamedDef.GetTreeBranch: Boolean;
+begin
+  Result := noTreeBranch;
+end;
+
+function TwbNamedDef.GetTreeHead: Boolean;
+begin
+  Result := noTreeHead;
+end;
+
 procedure TwbNamedDef.ParentSet;
 var
   Parent: IwbNamedDef;
@@ -6839,6 +7111,16 @@ begin
     IsUnknown := IsUnknown or (Pos('unknown', LowerCase(Parent.Name)) > 0);
     noUnused := noUnused or (Parent.Name = 'Unused');
   end;
+end;
+
+procedure TwbNamedDef.SetTreeBranch(aValue: Boolean);
+begin
+  noTreeBranch := avalue;
+end;
+
+procedure TwbNamedDef.SetTreeHead(aValue: Boolean);
+begin
+  noTreeHead := aValue;
 end;
 
 { TwbSignatureDef }
@@ -6908,7 +7190,7 @@ end;
 
 function TwbRecordDef.AdditionalInfoFor(const aMainRecord: IwbMainRecord): string;
 begin
-  if Assigned(recAddInfoCallback) then
+  if (wbCopyIsRunning = 0) and Assigned(recAddInfoCallback) then
     Result := recAddInfoCallback(aMainRecord)
   else
     Result := '';
@@ -7023,7 +7305,12 @@ begin
           recContainsEditorID := True;
 
       end;
-      recSignatures.AddObject(Sig, Pointer(i) );
+      try
+        recSignatures.AddObject(Sig, Pointer(i) );
+      except
+        on E: Exception do
+          raise Exception.Create('Duplicate definition ' + Sig + ' in allow unordered record ' + aSignature);
+      end;
     end;
   end;
 
@@ -7462,14 +7749,17 @@ constructor TwbSubRecordStructDef.Create(aPriority       : TwbConflictPriority;
                                          aGetCP          : TwbGetConflictPriority);
 var
   i,j: Integer;
+  FoundRequired : Boolean;
 begin
   srsAllowUnordered := aAllowUnordered;
   srsSignatures := TwbFastStringListCS.CreateSorted(dupIgnore);
 
+  FoundRequired := False;
   SetLength(srsMembers, Length(aMembers));
   for i := Low(srsMembers) to High(srsMembers) do begin
     srsMembers[i] := (aMembers[i] as IwbDefInternal).SetParent(Self, False) as IwbRecordMemberDef;
     srsCanContainFormIDs := srsCanContainFormIDs or aMembers[i].CanContainFormIDs;
+    FoundRequired := FoundRequired or srsMembers[i].Required;
     for j := 0 to Pred(aMembers[i].SignatureCount) do
       srsSignatures.AddObject(aMembers[i].Signatures[j], Pointer(i) );
   end;
@@ -7481,6 +7771,9 @@ begin
   end;
 
   inherited Create(aPriority, aRequired, aName, aAfterLoad, aAfterSet, aDontShow, aGetCP, False);
+
+  if srsAllowUnordered and not FoundRequired then
+   raise Exception.Create(GetPath + ' must contain at least one required element');
 end;
 
 destructor TwbSubRecordStructDef.Destroy;
@@ -7952,7 +8245,7 @@ begin
         itU24: Value := wbReadInteger24(aBasePtr);
         itU32: Value := PCardinal(aBasePtr)^;
         itS32: Value := PLongInt(aBasePtr)^;
-        itU64: Value := PInt64(aBasePtr)^; //no U64 in delphi...
+        itU64: Value := PUInt64(aBasePtr)^; //no U64 in delphi...
         itS64: Value := PInt64(aBasePtr)^;
         itU6to30: Value := ReadIntegerCounter(aBasePtr);
       else
@@ -8001,7 +8294,7 @@ begin
       itU24: Value := wbReadInteger24(aBasePtr);
       itU32: Value := PCardinal(aBasePtr)^;
       itS32: Value := PLongInt(aBasePtr)^;
-      itU64: Value := PInt64(aBasePtr)^; //no U64 in delphi...
+      itU64: Value := PUInt64(aBasePtr)^; //no U64 in delphi...
       itS64: Value := PInt64(aBasePtr)^;
       itU6to30: Value := ReadIntegerCounter(aBasePtr);
     else
@@ -8083,7 +8376,7 @@ begin
     itU24: WriteInteger24(aBasePtr, aValue);
     itU32: PCardinal(aBasePtr)^ := aValue;
     itS32: PLongInt(aBasePtr)^ := aValue;
-    itU64: PInt64(aBasePtr)^ := aValue;
+    itU64: PUInt64(aBasePtr)^ := aValue;
     itS64: PInt64(aBasePtr)^ := aValue;
     itU6to30: WriteIntegerCounter(aBasePtr, aValue);
   else
@@ -8101,7 +8394,7 @@ begin
     itU24: WriteInteger24(aBasePtr, aValue);
     itU32: PCardinal(aBasePtr)^ := aValue;
     itS32: PLongInt(aBasePtr)^ := aValue;
-    itU64: PInt64(aBasePtr)^ := aValue;
+    itU64: PUInt64(aBasePtr)^ := aValue;
     itS64: PInt64(aBasePtr)^ := aValue;
     itU6to30: WriteIntegerCounter(aBasePtr, aValue);
   else
@@ -8207,7 +8500,7 @@ begin
         itU24: Value := wbReadInteger24(aBasePtr);
         itU32: Value := PCardinal(aBasePtr)^;
         itS32: Value := PLongInt(aBasePtr)^;
-        itU64: Value := PInt64(aBasePtr)^; //no U64 in delphi...
+        itU64: Value := PUInt64(aBasePtr)^; //no U64 in delphi...
         itS64: Value := PInt64(aBasePtr)^;
         itU6to30: Value := ReadIntegerCounter(aBasePtr);
       else
@@ -8235,7 +8528,7 @@ begin
       itU24: Result := 3*SizeOf(Byte)+Ord(noTerminator);
       itU32: Result := SizeOf(Cardinal)+Ord(noTerminator);
       itS32: Result := SizeOf(LongInt)+Ord(noTerminator);
-      itU64: Result := SizeOf(Int64)+Ord(noTerminator);
+      itU64: Result := SizeOf(UInt64)+Ord(noTerminator);
       itS64: Result := SizeOf(Int64)+Ord(noTerminator);
       itU6to30: Result := ReadIntegerCounterSize(aBasePtr)+Ord(noTerminator);
     else
@@ -8255,7 +8548,7 @@ begin
     itU24: Result := 3*SizeOf(Byte)+Ord(noTerminator);
     itU32: Result := SizeOf(Cardinal)+Ord(noTerminator);
     itS32: Result := SizeOf(LongInt)+Ord(noTerminator);
-    itU64: Result := SizeOf(Int64)+Ord(noTerminator);
+    itU64: Result := SizeOf(UInt64)+Ord(noTerminator);
     itS64: Result := SizeOf(Int64)+Ord(noTerminator);
     itU6to30: Result := 1+Ord(noTerminator);
   else
@@ -8352,7 +8645,7 @@ begin
       itU24: Value := wbReadInteger24(aBasePtr);
       itU32: Value := PCardinal(aBasePtr)^;
       itS32: Value := PLongInt(aBasePtr)^;
-      itU64: Value := PInt64(aBasePtr)^; //no U64 in delphi...
+      itU64: Value := PUInt64(aBasePtr)^; //no U64 in delphi...
       itS64: Value := PInt64(aBasePtr)^;
       itU6to30: Value := ReadIntegerCounter(aBasePtr);
     else
@@ -8384,7 +8677,7 @@ begin
       itU24: Result := wbReadInteger24(aBasePtr);
       itU32: Result := PCardinal(aBasePtr)^;
       itS32: Result := PLongInt(aBasePtr)^;
-      itU64: Result := PInt64(aBasePtr)^; //no U64 in delphi...
+      itU64: Result := PUInt64(aBasePtr)^; //no U64 in delphi...
       itS64: Result := PInt64(aBasePtr)^;
       itU6to30: Result := ReadIntegerCounter(aBasePtr);
     else
@@ -8405,7 +8698,7 @@ begin
       itU24: Result := wbReadInteger24(aBasePtr);
       itU32: Result := PCardinal(aBasePtr)^;
       itS32: Result := PLongInt(aBasePtr)^;
-      itU64: Result := PInt64(aBasePtr)^; //no U64 in delphi...
+      itU64: Result := PUInt64(aBasePtr)^; //no U64 in delphi...
       itS64: Result := PInt64(aBasePtr)^;
       itU6to30: Result := ReadIntegerCounter(aBasePtr);
     else
@@ -8435,7 +8728,7 @@ begin
       itU24: Value := wbReadInteger24(aBasePtr);
       itU32: Value := PCardinal(aBasePtr)^;
       itS32: Value := PLongInt(aBasePtr)^;
-      itU64: Value := PInt64(aBasePtr)^; //no U64 in delphi...
+      itU64: Value := PUInt64(aBasePtr)^; //no U64 in delphi...
       itS64: Value := PInt64(aBasePtr)^;
       itU6to30: Value := ReadIntegerCounter(aBasePtr);
     else
@@ -8481,7 +8774,7 @@ begin
       itU24: Value := wbReadInteger24(aBasePtr);
       itU32: Value := PCardinal(aBasePtr)^;
       itS32: Value := PLongInt(aBasePtr)^;
-      itU64: Value := PInt64(aBasePtr)^; //no U64 in delphi...
+      itU64: Value := PUInt64(aBasePtr)^; //no U64 in delphi...
       itS64: Value := PInt64(aBasePtr)^;
       itU6to30: Value := ReadIntegerCounter(aBasePtr);
     else
@@ -8658,12 +8951,22 @@ begin
 end;
 
 function TwbArrayDef.GetPrefixCount(aBasePtr: Pointer): Cardinal;
+var
+  Count : int64;
 begin
   Result := 0;
   if arCount = -255 then
     Result := 0
   else if arCount = -254 then
     Result := ReadIntegerCounter(aBasePtr)
+  else if arCount = -253 then begin  // Matrix of count * count
+    Count := ReadIntegerCounter(aBasePtr);
+    Result := Count * Count;
+  end
+  else if arCount = -241 then begin  // Matrix of cardinal * cardinal
+    Count := PCardinal(aBasePtr)^;
+    Result := Count * Count;
+  end
   else if Assigned(aBasePtr) then
     case GetPrefixlength(aBasePtr) of
       1: Result := PByte(aBasePtr)^;
@@ -8682,6 +8985,10 @@ begin
       Result := 2
     else if arCount = -4 then
       Result := 1
+    else if arCount = -241 then
+      Result := 4
+    else if arCount = -253 then
+      Result := ReadIntegerCounterSize(aBasePtr)
     else if arCount = -254 then
       Result := ReadIntegerCounterSize(aBasePtr);
 end;
@@ -8744,7 +9051,7 @@ begin
     if (Count < 1) and Assigned(arCountCallback) and not (Container=nil) then
       Count := arCountCallback(BasePtr, aEndPtr, ArrayContainer);
 
-    if not Assigned(BasePtr) and (Count < 1) then
+    if not Assigned(BasePtr) and (Count < 1) and not Assigned(arCountCallback) then // EXPERIMENT: Probably should not be done
       Count := 1;
 
     if (Count < 1) and not Assigned(arCountCallback) then begin
@@ -8805,7 +9112,7 @@ begin
             Exit;
           end;
           if Assigned(BasePtr) then
-            Inc(Cardinal(BasePtr), Size);
+            Inc(PByte(BasePtr), Size);
           Inc(Index);
         end;
 
@@ -8842,7 +9149,10 @@ end;
 
 function TwbArrayDef.GetSorted: Boolean;
 begin
-  Result := arSorted;
+  if wbCopyIsRunning = 0 then
+    Result := arSorted
+  else
+    Result := False;
 end;
 
 procedure TwbArrayDef.Report(const aParents: TwbDefPath);
@@ -8919,7 +9229,12 @@ constructor TwbStructDef.Create(aPriority            : TwbConflictPriority;
                           const aMembers             : array of IwbValueDef;
                           const aSortKey             : array of Integer;
                           const aExSortKey           : array of Integer;
+                          {$IFDEF WIN32}
                           const aElementMap          : array of Cardinal;
+                          {$ENDIF WIN32}
+                          {$IFDEF WIN64}
+                          const aElementMap          : array of UInt64;
+                          {$ENDIF WIN64}
                                 aOptionalFromElement : Integer;
                                 aDontShow            : TwbDontShowCallback;
                                 aAfterLoad           : TwbAfterLoadCallback;
@@ -9033,7 +9348,7 @@ begin
           Break;
         end;
         if Assigned(BasePtr) then
-          Inc(Cardinal(BasePtr), Size);
+          Inc(PByte(BasePtr), Size);
       end;
     end else
       for i := Low(stMembers) to High(stMembers) do begin
@@ -9051,7 +9366,7 @@ begin
           Break;
         end;
         if Assigned(BasePtr) then
-          Inc(Cardinal(BasePtr), Size);
+          Inc(PByte(BasePtr), Size);
       end;
   end;
 end;
@@ -9069,7 +9384,7 @@ begin
       Break;
     end;
     if Assigned(aBasePtr) then
-      Inc(Cardinal(aBasePtr), Size);
+      Inc(PByte(aBasePtr), Size);
     Inc(Result, Size);
   end;
 end;
@@ -9121,7 +9436,7 @@ begin
       if SortMember <= High(stMembers) then begin
         BasePtr := aBasePtr;
         for j := Low(stMembers) to Pred(SortMember) do begin
-          Inc(Cardinal(BasePtr), stMembers[j].Size[BasePtr, aEndPtr, aElement]);
+          Inc(PByte(BasePtr), stMembers[j].Size[BasePtr, aEndPtr, aElement]);
           if Cardinal(BasePtr) > Cardinal(aEndPtr) then
             BasePtr := aEndPtr;
         end;
@@ -9148,7 +9463,7 @@ begin
         if SortMember <= High(stMembers) then begin
           BasePtr := aBasePtr;
           for j := Low(stMembers) to Pred(SortMember) do begin
-            Inc(Cardinal(BasePtr), stMembers[j].Size[BasePtr, aEndPtr, aElement]);
+            Inc(PByte(BasePtr), stMembers[j].Size[BasePtr, aEndPtr, aElement]);
             if Cardinal(BasePtr) > Cardinal(aEndPtr) then
               BasePtr := aEndPtr;
           end;
@@ -9669,6 +9984,7 @@ end;
 
 function CmpB8(a, b: Byte): Integer;
 asm
+{$IFDEF WIN32}
   xor ecx, ecx
   cmp al, dl
   ja @@GT
@@ -9680,10 +9996,24 @@ asm
   inc ecx
 @@EQ:
   mov eax, ecx
+{$ENDIF WIN32}
+{$IFDEF WIN64}
+  xor eax, eax
+  cmp ecx, edx
+  ja @@GT
+  je @@EQ
+@@LT:
+  dec eax
+  dec eax
+@@GT:
+  inc eax
+@@EQ:
+{$ENDIF WIN64}
 end;
 
 function CmpI32(a, b : Integer) : Integer;
 asm
+{$IFDEF WIN32}
   xor ecx, ecx
   cmp eax, edx
   jg @@GT
@@ -9695,10 +10025,24 @@ asm
   inc ecx
 @@EQ:
   mov eax, ecx
+{$ENDIF WIN32}
+{$IFDEF WIN64}
+  xor eax, eax
+  cmp ecx, edx
+  jg @@GT
+  je @@EQ
+@@LT:
+  dec eax
+  dec eax
+@@GT:
+  inc eax
+@@EQ:
+{$ENDIF WIN64}
 end;
 
 function CmpW32(a, b: Cardinal): Integer;
 asm
+{$IFDEF WIN32}
   xor ecx, ecx
   cmp eax, edx
   ja @@GT
@@ -9710,6 +10054,19 @@ asm
   inc ecx
 @@EQ:
   mov eax, ecx
+{$ENDIF WIN32}
+{$IFDEF WIN64}
+  xor eax, eax
+  cmp ecx, edx
+  ja @@GT
+  je @@EQ
+@@LT:
+  dec eax
+  dec eax
+@@GT:
+  inc eax
+@@EQ:
+{$ENDIF WIN64}
 end;
 
 function CmpI64(const a, b : Int64) : Integer;
@@ -9722,6 +10079,7 @@ function CmpI64(const a, b : Int64) : Integer;
 //    Result := nxGreaterThan;
 //end;
 asm
+{$IFDEF WIN32}
   xor eax, eax
   mov edx, [ebp+20]
   cmp edx, [ebp+12]
@@ -9737,6 +10095,19 @@ asm
 @@GT:
   inc eax
 @@EQ:
+{$ENDIF WIN32}
+{$IFDEF WIN64}
+  xor rax, rax
+  cmp rcx, rdx
+  jg @@GT
+  je @@EQ
+@@LT:
+  dec rax
+  dec rax
+@@GT:
+  inc rax
+@@EQ:
+{$ENDIF WIN64}
 end;
 
 function TwbEnumDef.FindSparseName(aSearchIndex: Int64; var Index: Integer): Boolean;
@@ -9954,7 +10325,7 @@ constructor TwbStringDef.Create(aPriority   : TwbConflictPriority;
                                 aDontShow   : TwbDontShowCallback;
                                 aGetCP      : TwbGetConflictPriority;
                                 aTerminator : Boolean;
-								                aForward    : boolean);
+                                aForward    : boolean);
 begin
   sdSize := aSize;
   sdForward := aForward;
@@ -9999,7 +10370,7 @@ end;
 
 procedure TwbStringDef.FromStringTransform(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement; const aValue: string; aTransformType: TwbStringTransformType);
 begin
-  FromStringNative(aBasePtr, aEndPtr, aElement, TransformString(AnsiString(aValue), aTransformType, aElement));
+  FromStringNative(aBasePtr, aEndPtr, aElement, TransformString(wbStringToAnsi(aValue, aElement), aTransformType, aElement));
 end;
 
 function TwbStringDef.GetDefType: TwbDefType;
@@ -10049,7 +10420,7 @@ begin
         if PAnsiChar(aBasePtr)^ = #0 then
           Exit;
 
-        Inc(Cardinal(aBasePtr));
+        Inc(PByte(aBasePtr));
       end;
     end;
   end;
@@ -10116,7 +10487,7 @@ end;
 
 function TwbStringDef.ToStringTransform(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement; aTransformType: TwbStringTransformType): string;
 begin
-  Result := TransformString(ToStringNative(aBasePtr, aEndPtr, aElement), aTransformType, aElement);
+  Result := wbAnsiToString(TransformString(ToStringNative(aBasePtr, aEndPtr, aElement), aTransformType, aElement), aElement);
 end;
 
 function TwbStringDef.TransformString(const s: AnsiString; aTransformType: TwbStringTransformType; const aElement: IwbElement): AnsiString;
@@ -10282,15 +10653,16 @@ function TwbFloatDef.GetSize(aBasePtr, aEndPtr: Pointer; const aElement: IwbElem
 begin
   if Assigned(aBasePtr) and Assigned(aEndPtr) and (Cardinal(aBasePtr) >= Cardinal(aEndPtr)) then
     Result := Ord(noTerminator)
-  else if fdDouble then
-    Result := SizeOf(Double) + Ord(noTerminator)
   else
-    Result := SizeOf(Single) + Ord(noTerminator);
+    Result := GetDefaultSize(aBasePtr, aEndPtr, aElement)
 end;
 
 function TwbFloatDef.GetDefaultSize(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): Integer;
 begin
-  Result := GetSize(aBasePtr, aEndPtr, aElement);
+  if fdDouble then
+    Result := SizeOf(Double) + Ord(noTerminator)
+  else
+    Result := SizeOf(Single) + Ord(noTerminator);
 end;
 
 function TwbFloatDef.SetToDefault(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): Boolean;
@@ -10557,6 +10929,66 @@ begin
   Used(aElement, Result);
 end;
 
+{ TwbStr4 }
+
+function TwbStr4.CanAssign(const aElement: IwbElement; aIndex: Integer; const aDef: IwbDef): Boolean;
+begin
+  Result := Supports(aDef, IwbStr4);
+end;
+
+function TwbStr4.CanContainFormIDs: Boolean;
+begin
+  Result := False;
+end;
+
+constructor TwbStr4.Clone(const aSource: TwbDef);
+begin
+  with aSource as TwbStr4 do
+    Self.Create(defPriority, defRequired, defGetCP).defSource := aSource;
+end;
+
+function TwbStr4.FromEditValue(const aValue: string; const aElement: IwbElement): Int64;
+const
+  Empty : TwbSignature = '    ';
+var
+  s     : AnsiString;
+  Temp  : AnsiString;
+  i     : Integer;
+begin
+  if aValue = '' then
+    Result := Cardinal(Empty)
+  else begin
+    s := AnsiString(aValue);
+    if Length(s) <> 4 then
+      raise Exception.Create('The value must be exactly 4 characters');
+    Temp := s;
+    for i := 1 to 4 do s[i] := Temp[5-i];
+
+    Result := PCardinal(@s[1])^;
+  end;
+end;
+
+function TwbStr4.GetIsEditable(aInt: Int64; const aElement: IwbElement): Boolean;
+begin
+  Result := True;
+end;
+
+function TwbStr4.ToEditValue(aInt: Int64; const aElement: IwbElement): string;
+begin
+  Result := ToSortKey(aInt, aElement);
+end;
+
+function TwbStr4.ToSortKey(aInt: Int64; const aElement: IwbElement): string;
+begin
+  Result := wbStr4ToString(aInt);
+end;
+
+function TwbStr4.ToString(aInt: Int64; const aElement: IwbElement): string;
+begin
+  Result := ToSortKey(aInt, aElement);
+  Used(aElement, Result);
+end;
+
 { TwbFormID }
 
 procedure TwbFormID.BuildRef(aInt: Int64; const aElement: IwbElement);
@@ -10796,6 +11228,9 @@ begin
   if Result < $800 then
     Exit;
 
+  if Result = $FFFFFFFF then
+    Exit;
+
   if Assigned(aElement) then begin
     _File := aElement._File;
     if Assigned(_File) then begin
@@ -10961,6 +11396,8 @@ begin
         end else begin
           if IsValid('NULL') then
             Strings.Add('NULL - Null Reference [00000000]');
+          if IsValid('FFFF') then
+            Strings.Add('FFFF - None Reference [FFFFFFFF]');
           if IsValid('TRGT') then
             Strings.Add('TARGET - Target Reference [00000000]');
           if IsValid('PLYR') then
@@ -11002,6 +11439,8 @@ begin
   if aInt = 0 then
     Exit;
   if aInt = $14 then
+    Exit;
+  if (aInt = $FFFFFFFF) and IsValid('FFFF') then
     Exit;
 
   if (aInt < $800) and IsValid('ACVA') then
@@ -11051,7 +11490,7 @@ begin
   OldValue := aInt;
   NewValue := OldValue;
 
-  if (aInt < $800) or (aInt = $FFFFFFFF) and IsValid('ACVA') then begin
+  if (aInt < $800) or (aInt = $FFFFFFFF) and (IsValid('ACVA') or IsValid('FFFF')) then begin
     Result := NewValue;
     Exit;
   end;
@@ -11073,7 +11512,7 @@ var
   i      : Integer;
 begin
   Result := aFormID;
-  if (Result = 0) or (Result = $14) then
+  if (Result = 0) or (Result = $14) or (Result = $FFFFFFFF) then
     Exit;
   FileID := aFormID shr 24;
   for i := Low(aOld) to High(aOld) do
@@ -11091,7 +11530,7 @@ begin
   OldValue := aInt;
   NewValue := OldValue;
 
-  if (aInt < $800) or (aInt = $FFFFFFFF) and IsValid('ACVA') then begin
+  if (aInt < $800) or (aInt = $FFFFFFFF) and (IsValid('ACVA') or IsValid('FFFF')) then begin
     Result := NewValue;
     Exit;
   end;
@@ -11146,28 +11585,22 @@ end;
 
 function TwbFormID.ToSortKey(aInt: Int64; const aElement: IwbElement): string;
 var
-  _File: IwbFile;
   MainRecord: IwbMainRecord;
 begin
-  if aInt < $800 then begin
+  if (aInt < $800) or (aInt = $FFFFFFFF) then begin
     Result := IntToHex64(aInt, 8);
     Exit;
   end;
 
-  if Assigned(aElement) then begin
-    _File := aElement._File;
-    if Assigned(_File) then begin
-      try
-        MainRecord := _File.RecordByFormID[aInt, True];
-        if Assigned(MainRecord) then begin
-          Result := IntToHex64(MainRecord.LoadOrderFormID, 8);
-          Exit;
-        end;
-      except
-        on E: Exception do begin
-          Result := IntToHex64(aInt, 8);
-          Exit;
-        end;
+  MainRecord := GetMainRecord(aInt, aElement);
+  if Assigned(MainRecord) then begin
+    try
+      Result := IntToHex64(MainRecord.LoadOrderFormID, 8);
+      Exit;
+    except
+      on E: Exception do begin
+        Result := IntToHex64(aInt, 8);
+        Exit;
       end;
     end;
   end;
@@ -11220,6 +11653,18 @@ begin
           FoundSignatures.Objects[i] := TObject(Succ(Integer(FoundSignatures.Objects[i])));
         end;
     end;
+    Used(aElement, Result);
+    Exit;
+  end else if aInt = $FFFFFFFF then begin
+    Result := 'FFFF - None Reference ['+IntToHex64(aInt,8)+']';
+    if wbReportMode then
+      if wbReportFormIDs then begin
+        if not Assigned(FoundSignatures) then
+          FoundSignatures := TwbFastStringListCS.CreateSorted;
+        if not FoundSignatures.Find('FFFF', i) then
+          i := FoundSignatures.Add('FFFF');
+        FoundSignatures.Objects[i] := TObject(Succ(Integer(FoundSignatures.Objects[i])));
+      end;
     Used(aElement, Result);
     Exit;
   end else if aInt = $14 then begin
@@ -12222,6 +12667,11 @@ begin
         Result := 'Found a NULL reference, expected: ' + fidcValidRefs.CommaText;
     end;
     Exit;
+  end else if aInt = $FFFFFFFF then begin
+    Found := 'FFFF';
+    if fidcValidRefs.IndexOf(Found) < 0 then
+      Result := 'Found a None (FFFFFFFF) reference, expected: ' + fidcValidRefs.CommaText;
+    Exit;
   end else if aInt = $14 then begin
     Found := 'PLYR';
     if fidcValidRefs.IndexOf(Found) < 0 then
@@ -12612,21 +13062,40 @@ begin
 end;
 
 function TwbUnionDef.GetEditInfo(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): string;
+var
+  ValueDef: IwbValueDef;
 begin
-  Result := Decide(aBasePtr, aEndPtr, aElement).
-    EditInfo[aBasePtr, aEndPtr, aElement];
+  ValueDef := Decide(aBasePtr, aEndPtr, aElement);
+  if Assigned(ValueDef) then
+    Result := ValueDef.EditInfo[aBasePtr, aEndPtr, aElement]
+  else
+    Result := '';
 end;
 
 function TwbUnionDef.GetEditType(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): TwbEditType;
+var
+  ValueDef: IwbValueDef;
 begin
-  Result := Decide(aBasePtr, aEndPtr, aElement).
-    EditType[aBasePtr, aEndPtr, aElement];
+  ValueDef := Decide(aBasePtr, aEndPtr, aElement);
+  if Assigned(ValueDef) then
+    Result := ValueDef.EditType[aBasePtr, aEndPtr, aElement]
+  else
+    Result := etDefault;
 end;
 
 function TwbUnionDef.GetIsEditable(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): Boolean;
+var
+  ValueDef: IwbValueDef;
 begin
-  Result := wbIsInternalEdit or
-    Decide(aBasePtr, aEndPtr, aElement).IsEditable[aBasePtr, aEndPtr, aElement];
+  Result := wbIsInternalEdit;
+  if not Result then
+  begin
+    ValueDef := Decide(aBasePtr, aEndPtr, aElement);
+    if Assigned(ValueDef) then
+      Result := ValueDef.IsEditable[aBasePtr, aEndPtr, aElement]
+    else
+      Result := False;
+  end;
 end;
 
 function TwbUnionDef.GetIsVariableSizeInternal: Boolean;
@@ -12652,8 +13121,14 @@ begin
 end;
 
 function TwbUnionDef.GetLinksTo(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): IwbElement;
+var
+  ValueDef: IwbValueDef;
 begin
-  Result := Decide(aBasePtr, aEndPtr, aElement).LinksTo[aBasePtr, aEndPtr, aElement];
+  ValueDef := Decide(aBasePtr, aEndPtr, aElement);
+  if Assigned(ValueDef) then
+    Result := ValueDef.LinksTo[aBasePtr, aEndPtr, aElement]
+  else
+    Result := nil;
 end;
 
 function TwbUnionDef.GetMember(aIndex: Integer): IwbValueDef;
@@ -12678,10 +13153,16 @@ begin
 //    wbProgressCallback('Found a union with a negative size! (1) '+IntToHex64(Cardinal(aBasePtr), 8)+
 //      ' > '+IntToHex64(Cardinal(aEndPtr), 8)+'  for '+noName);
 //  end;
-  aMember := Decide(aBasePtr, aEndPtr, aElement);
+  if GetIsVariableSize then
+    aMember := Decide(aBasePtr, aEndPtr, aElement)
+  else
+    aMember := nil;;
   if not Assigned(aMember) then begin
-    Result := udMembers[0].Size[aBasePtr, aEndPtr, aElement];
-    if Result > 0 then
+    if Length(udMembers)>0 then
+      Result := udMembers[0].Size[aBasePtr, aEndPtr, aElement]
+    else
+      Result := Low(Integer);
+    if (Result > 0) and GetIsVariableSize then
       for i := 1 to High(udMembers) do
         if Result <> High(Integer) then begin
           Size := udMembers[i].Size[aBasePtr, aEndPtr, aElement];
@@ -12744,31 +13225,58 @@ begin
 end;
 
 function TwbUnionDef.SetToDefault(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): Boolean;
+var
+  ValueDef: IwbValueDef;
 begin
-  Result := Decide(aBasePtr, aEndPtr, aElement).SetToDefault(aBasePtr, aEndPtr, aElement);
+  ValueDef := Decide(aBasePtr, aEndPtr, aElement);
+  if Assigned(ValueDef) then
+    Result := ValueDef.SetToDefault(aBasePtr, aEndPtr, aElement)
+  else
+    Result := False;
 end;
 
-function TwbUnionDef.ToEditValue(aBasePtr, aEndPtr: Pointer;
-  const aElement: IwbElement): string;
+function TwbUnionDef.ToEditValue(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): string;
+var
+  ValueDef: IwbValueDef;
 begin
-  Result := Decide(aBasePtr, aEndPtr, aElement).
-    EditValue[aBasePtr, aEndPtr, aElement];
+  ValueDef := Decide(aBasePtr, aEndPtr, aElement);
+  if Assigned(ValueDef) then
+    Result := ValueDef.EditValue[aBasePtr, aEndPtr, aElement]
+  else
+    Result := '';
 end;
 
 function TwbUnionDef.ToNativeValue(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): Variant;
+var
+  ValueDef: IwbValueDef;
 begin
-  Result := Decide(aBasePtr, aEndPtr, aElement).
-    NativeValue[aBasePtr, aEndPtr, aElement];
+  ValueDef := Decide(aBasePtr, aEndPtr, aElement);
+  if Assigned(ValueDef) then
+    Result := ValueDef.NativeValue[aBasePtr, aEndPtr, aElement]
+  else
+    Result := '';
 end;
 
 function TwbUnionDef.ToSortKey(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement; aExtended: Boolean): string;
+var
+  ValueDef: IwbValueDef;
 begin
-  Result := Decide(aBasePtr, aEndPtr, aElement).ToSortKey(aBasePtr, aEndPtr, aElement, aExtended);
+  ValueDef := Decide(aBasePtr, aEndPtr, aElement);
+  if Assigned(ValueDef) then
+    Result := ValueDef.ToSortKey(aBasePtr, aEndPtr, aElement, aExtended)
+  else
+    Result := '';
 end;
 
 function TwbUnionDef.ToString(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): string;
+var
+  ValueDef: IwbValueDef;
 begin
-  Result := Decide(aBasePtr, aEndPtr, aElement).ToString(aBasePtr, aEndPtr, aElement);
+  ValueDef := Decide(aBasePtr, aEndPtr, aElement);
+  if Assigned(ValueDef) then
+    Result := ValueDef.ToString(aBasePtr, aEndPtr, aElement)
+  else
+    Result := '';
   Used(aElement, Result);
 end;
 
@@ -13183,7 +13691,7 @@ begin
   SetLength(s, Len);
   if Len > 0 then
     Move(aBasePtr^, s[1], Len);
-  Result := s;
+  Result := wbAnsiToString(s, aElement);
   Used(aElement, Result);
 end;
 
@@ -13290,7 +13798,7 @@ begin
     if (Cardinal(aEndPtr) - Cardinal(aBasePtr)) <> 4 then
       Result := '< Error: lstring ID should be Int32 value >'
     else
-      Result := AnsiString(wbLocalizationHandler.GetValue(PCardinal(aBasePtr)^, aElement))
+      Result := wbStringToAnsi(wbLocalizationHandler.GetValue(PCardinal(aBasePtr)^, aElement), aElement)
   end else
     Result := inherited ToStringNative(aBasePtr, aEndPtr, aElement);
 end;
@@ -13661,7 +14169,7 @@ begin
   with aSource as TwbStructCDef do
     Self.Create(defPriority, defRequired, noName, stMembers, stSortKey,
       stExSortKey, stOptionalFromElement, noDontShow, noAfterLoad, noAfterSet,
-      scSizeCallback, scGetChapterType, scGetChapterTypeName, defGetCP).defSource := aSource;
+      scSizeCallback, scGetChapterType, scGetChapterTypeName, scGetChapterName, defGetCP).defSource := aSource;
 end;
 
 constructor TwbStructCDef.Create(aPriority: TwbConflictPriority;
@@ -13676,12 +14184,15 @@ constructor TwbStructCDef.Create(aPriority: TwbConflictPriority;
                                  aSizeCallBack        : TwbSizeCallback;
                                  aGetChapterType      : TwbGetChapterTypeCallback;
                                  aGetChapterTypeName  : TwbGetChapterTypeNameCallback;
+                                 aGetChapterName      : TwbGetChapterNameCallback;
                                  aGetCP               : TwbGetConflictPriority);
 begin
   scSizeCallback := aSizeCallback;
   scGetChapterType := aGetChapterType;
   scGetChapterTypeName := aGetChapterTypeName;
+  scGetChapterName := aGetChapterName;
   inherited Create(aPriority, aRequired, aName, aMembers, aSortKey, aExSortKey, [], aOptionalFromElement, aDontShow, aAfterLoad, aAfterSet, aGetCP);
+  noTreeBranch := False;
 end;
 
 function TwbStructCDef.GetDefType: TwbDefType;
@@ -13702,6 +14213,17 @@ begin
     CompressedSize := -1;
     Result := 0;
   end;
+end;
+
+function TwbStructCDef.GetChapterName(aBasePtr, aEndPtr: Pointer;
+  const aElement: IwbElement): String;
+begin
+  if Assigned(scGetChapterName) then
+    Result := scGetChapterName(aBasePtr, aEndPtr, aElement)
+  else if Assigned(scGetChapterTypeName) then
+    Result := scGetChapterTypeName(aBasePtr, aEndPtr, aElement)
+  else
+    Result := GetName;
 end;
 
 function TwbStructCDef.GetChapterType(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): Integer;
@@ -13777,16 +14299,26 @@ end;
 
 procedure TwbIntegerDefFormaterUnion.BuildRef(aInt     : Int64;
                                         const aElement : IwbElement);
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Decide(aElement).BuildRef(aInt, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    IntegerDef.BuildRef(aInt, aElement);
 end;
 
 function TwbIntegerDefFormaterUnion.CanAssign(const aElement : IwbElement;
                                                     aIndex   : Integer;
                                               const aDef     : IwbDef)
                                                              : Boolean;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).CanAssign(aElement, aIndex, aDef);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.CanAssign(aElement, aIndex, aDef)
+  else
+    Result := False;
 end;
 
 function TwbIntegerDefFormaterUnion.CanContainFormIDs: Boolean;
@@ -13817,8 +14349,14 @@ function TwbIntegerDefFormaterUnion.CompareExchangeFormID(var aInt       : Int64
                                                               aNewFormID : Cardinal;
                                                         const aElement   : IwbElement)
                                                                          : Boolean;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).CompareExchangeFormID(aInt, aOldFormID, aNewFormID, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.CompareExchangeFormID(aInt, aOldFormID, aNewFormID, aElement)
+  else
+    Result := False;
 end;
 
 constructor TwbIntegerDefFormaterUnion.Create(aPriority : TwbConflictPriority;
@@ -13838,22 +14376,38 @@ end;
 
 function TwbIntegerDefFormaterUnion.Decide(const aElement : IwbElement)
                                                           : IwbIntegerDefFormater;
+var
+  i: Integer;
 begin
-  Result := idfuMembers[idfuDecider(aElement)];
+  i := idfuDecider(aElement);
+  if (i>=0) and (i<Length(idfuMembers)) then
+    Result := idfuMembers[i]
+  else
+    Result := nil;
 end;
 
 procedure TwbIntegerDefFormaterUnion.FindUsedMasters(aInt     : Int64;
                                                      aMasters : PwbUsedMasters;
                                                const aElement : IwbElement);
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Decide(aElement).FindUsedMasters(aInt, aMasters, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    IntegerDef.FindUsedMasters(aInt, aMasters, aElement);
 end;
 
 function TwbIntegerDefFormaterUnion.FromEditValue(const aValue   : string;
                                                   const aElement : IwbElement)
                                                                  : Int64;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).FromEditValue(aValue, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.FromEditValue(aValue, aElement)
+  else
+    Result := 0;
 end;
 
 function TwbIntegerDefFormaterUnion.GetDefType: TwbDefType;
@@ -13864,34 +14418,59 @@ end;
 function TwbIntegerDefFormaterUnion.GetEditInfo(aInt     : Int64;
                                           const aElement : IwbElement)
                                                          : string;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).GetEditInfo(aInt, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.GetEditInfo(aInt, aElement)
+  else
+    Result := '';
 end;
 
 function TwbIntegerDefFormaterUnion.GetEditType(aInt     : Int64;
                                           const aElement : IwbElement)
                                                          : TwbEditType;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).GetEditType(aInt, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.GetEditType(aInt, aElement)
+  else
+    Result := etDefault;
 end;
 
 function TwbIntegerDefFormaterUnion.GetIsEditable(aInt     : Int64;
                                             const aElement : IwbElement)
                                                            : Boolean;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).GetIsEditable(aInt, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.GetIsEditable(aInt, aElement)
+  else
+    Result := False;
 end;
 
 function TwbIntegerDefFormaterUnion.GetLinksTo(aInt     : Int64;
                                          const aElement : IwbElement)
                                                         : IwbElement;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).GetLinksTo(aInt, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.GetLinksTo(aInt, aElement)
+  else
+    Result := nil;
 end;
 
 function TwbIntegerDefFormaterUnion.GetMember(aIndex: Integer): IwbIntegerDefFormater;
 begin
-  Result := idfuMembers[aIndex];
+  if (aIndex>=0) and (aIndex<Length(idfuMembers)) then
+    Result := idfuMembers[aIndex];
 end;
 
 function TwbIntegerDefFormaterUnion.GetMemberCount: Integer;
@@ -13914,8 +14493,14 @@ function TwbIntegerDefFormaterUnion.MasterCountUpdated(aInt     : Int64;
                                                        aNew     : Byte;
                                                  const aElement : IwbElement)
                                                                 : Int64;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).MasterCountUpdated(aInt, aOld, aNew, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.MasterCountUpdated(aInt, aOld, aNew, aElement)
+  else
+    Result := 0;
 end;
 
 function TwbIntegerDefFormaterUnion.MasterIndicesUpdated(aInt     : Int64;
@@ -13923,8 +14508,14 @@ function TwbIntegerDefFormaterUnion.MasterIndicesUpdated(aInt     : Int64;
                                                    const aNew     : TBytes;
                                                    const aElement : IwbElement)
                                                                   : Int64;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).MasterIndicesUpdated(aInt, aOld, aNew, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.MasterIndicesUpdated(aInt, aOld, aNew, aElement)
+  else
+    Result := 0;
 end;
 
 procedure TwbIntegerDefFormaterUnion.Report(const aParents: TwbDefPath);
@@ -13936,22 +14527,40 @@ end;
 function TwbIntegerDefFormaterUnion.ToEditValue(aInt     : Int64;
                                           const aElement : IwbElement)
                                                          : string;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).ToEditValue(aInt, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.ToEditValue(aInt, aElement)
+  else
+    Result := '';
 end;
 
 function TwbIntegerDefFormaterUnion.ToSortKey(aInt     : Int64;
                                         const aElement : IwbElement)
                                                        : string;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).ToSortKey(aInt, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.ToSortKey(aInt, aElement)
+  else
+    Result := '';
 end;
 
 function TwbIntegerDefFormaterUnion.ToString(aInt     : Int64;
                                        const aElement : IwbElement)
                                                       : string;
+var
+  IntegerDef: IwbIntegerDefFormater;
 begin
-  Result := Decide(aElement).ToString(aInt, aElement);
+  IntegerDef := Decide(aElement);
+  if Assigned(IntegerDef) then
+    Result := IntegerDef.ToString(aInt, aElement)
+  else
+    Result := '';
 end;
 
 function wbFindRecordDef(const aSignature : TwbSignature;
@@ -14135,6 +14744,27 @@ begin
         Result := True;
         Exit;
       end;
+end;
+
+function wbStr4ToString(aInt: Int64): string;
+var
+  U32  : Cardinal;
+  Temp : String;
+  i    : Integer;
+begin
+  if aInt=0 then
+    Result := '    '
+  else begin
+    U32 := aInt;
+    Result := PwbSignature(@U32)^;
+    if Length(Result)=4 then begin
+      Temp := Result;
+      for i := 1 to 4 do Result[i] := Temp[5-i];
+    end else begin
+      Result := '    ';
+      // wbProgressCallback('Found a str4 that does not have 4 characters! (1) '+IntToHex64(aInt, 8));
+    end;
+  end;
 end;
 
 initialization

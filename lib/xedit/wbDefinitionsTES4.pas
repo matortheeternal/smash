@@ -18,6 +18,30 @@ unit wbDefinitionsTES4;
 
 interface
 
+uses
+  wbInterface;
+
+var
+	wbPKDTFlags: IwbFlagsDef;
+	wbServiceFlags: IwbFlagsDef;
+
+	wbAxisEnum: IwbEnumDef;
+	wbBlendModeEnum: IwbEnumDef;
+	wbBlendOpEnum: IwbEnumDef;
+	wbCrimeTypeEnum: IwbEnumDef;
+	wbFormTypeEnum: IwbEnumDef;
+	wbFunctionsEnum: IwbEnumDef;
+	wbMagicSchoolEnum: IwbEnumDef;
+	wbMusicEnum: IwbEnumDef;
+	wbOBMEResolutionInfo: IwbEnumDef;
+	wbPKDTType: IwbEnumDef;
+	wbQuadrantEnum: IwbEnumDef;
+	wbSexEnum: IwbEnumDef;
+	wbSkillEnum: IwbEnumDef;
+	wbSoulGemEnum: IwbEnumDef;
+	wbSpecializationEnum: IwbEnumDef;
+	wbZTestFuncEnum: IwbEnumDef;
+
 procedure DefineTES4;
 
 implementation
@@ -28,7 +52,6 @@ uses
   SysUtils,
   Math,
   Variants,
-  wbInterface,
   wbHelpers;
 
 const
@@ -276,10 +299,6 @@ var
   wbXOWN: IwbSubRecordDef;
   wbXGLB: IwbSubRecordDef;
   wbXRGD: IwbSubRecordDef;
-  wbSpecializationEnum: IwbEnumDef;
-  wbOBMEResolutionInfo: IwbEnumDef;
-  wbSoulGemEnum: IwbEnumDef;
-  wbMusicEnum: IwbEnumDef;
   wbSLSD: IwbSubRecordDef;
   wbBodyDataIndex: IwbSubRecordDef;
   wbSPLO: IwbSubRecordDef;
@@ -311,25 +330,11 @@ var
   wbXLOD: IwbSubRecordDef;
   wbXESP: IwbSubRecordDef;
   wbICON: IwbSubRecordDef;
-  wbCrimeTypeEnum: IwbEnumDef;
-  wbFormTypeEnum: IwbEnumDef;
-  wbSexEnum: IwbEnumDef;
-  wbAxisEnum: IwbEnumDef;
-  wbServiceFlags: IwbFlagsDef;
-  wbSkillEnum: IwbEnumDef;
-  wbPKDTType: IwbEnumDef;
-  wbPKDTFlags: IwbFlagsDef;
-  wbQuadrantEnum: IwbEnumDef;
-  wbBlendModeEnum: IwbEnumDef;
-  wbBlendOpEnum: IwbEnumDef;
-  wbZTestFuncEnum: IwbEnumDef;
   wbEFID: IwbSubRecordDef;
   wbEFIDOBME: IwbSubRecordDef;
   wbEFIT: IwbSubRecordDef;
   wbEFITOBME: IwbSubRecordDef;
   wbEFIX: IwbSubRecordDef;
-  wbMagicSchoolEnum: IwbEnumDef;
-  wbFunctionsEnum: IwbEnumDef;
   wbSCIT: IwbSubRecordStructDef;
   wbSCITOBME: IwbSubRecordStructDef;
 //  wbEffects: IwbSubRecordUnionDef;
@@ -960,21 +965,6 @@ const
 var
   wbCTDAFunctionEditInfo : string;
 
-function CmpU32(a, b : Cardinal) : Integer;
-asm
-  xor ecx, ecx
-  cmp eax, edx
-  ja @@GT
-  je @@EQ
-@@LT:
-  dec ecx
-  dec ecx
-@@GT:
-  inc ecx
-@@EQ:
-  mov eax, ecx
-end;
-
 function wbCTDAParamDescFromIndex(aIndex: Integer): PCTDAFunction;
 var
   L, H, I, C: Integer;
@@ -985,7 +975,7 @@ begin
   H := High(wbCTDAFunctions);
   while L <= H do begin
     I := (L + H) shr 1;
-    C := CmpU32(wbCTDAFunctions[I].Index, aIndex);
+    C := CmpW32(wbCTDAFunctions[I].Index, aIndex);
     if C < 0 then
       L := I + 1
     else begin
@@ -1361,6 +1351,8 @@ begin
 
   if not Supports(Param1.LinksTo, IwbMainRecord, MainRecord) then
     Exit;
+
+  MainRecord := MainRecord.WinningOverride;
 
   if MainRecord.Signature <> QUST then begin
     case aType of
@@ -1888,7 +1880,7 @@ begin
   Result := Container.ElementByName['Type'].NativeValue;
 end;
 
-function wbCalcPGRRSize(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
+function wbCalcPGRRSize(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Cardinal;
 var
   Index: Integer;
 
@@ -1959,7 +1951,7 @@ begin
     Result := True;
 end;
 
-function wbOffsetDataColsCounter(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
+function wbOffsetDataColsCounter(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Cardinal;
 var
   Container : IwbDataContainer;
   Element   : IwbElement;

@@ -89,7 +89,7 @@ begin
       try
         plugin := TPlugin.Create;
         plugin.filename := slPlugins[i];
-        plugin._File := wbFile(wbDataPath + slPlugins[i], i, '', false, false);
+        plugin._File := wbFile(wbDataPath + slPlugins[i], i, '', False, False);
         plugin._File._AddRef;
         plugin.GetMsData;
         PluginsList.Add(Pointer(plugin));

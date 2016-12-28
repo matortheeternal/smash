@@ -27,12 +27,14 @@ var
   wbScriptToRun        : string;
   wbBackupPath         : string;
   wbTempPath           : string;
+  wbSavePath           : string;
   wbMyGamesTheGamePath : string;
   wbPluginsFileName    : String;
   wbSettingsFileName   : string;
   wbModGroupFileName   : string;
   wbPluginToUse        : string;  // Passed a specific plugin as parameter
   wbLogFile            : string;  // Optional log file for this session
+  wbMyProfileName      : string;
 
   wbMasterUpdateDone   : Boolean;
   wbDontSave           : Boolean;
@@ -49,6 +51,7 @@ function wbFindNextValidCmdLinePlugin(var startingIndex : integer; out aValue  :
 function wbFindCmdLineParam(const aSwitch : string; out aValue : string): Boolean; overload;
 
 function wbLoadMOHookFile: Boolean;
+procedure SwitchToCoSave;
 
 implementation
 
@@ -65,10 +68,16 @@ uses
   wbInterface,
   wbImplementation,
   wbDefinitionsFNV,
+  wbDefinitionsFNVSaves,
   wbDefinitionsFO3,
+  wbDefinitionsFO3Saves,
+  wbDefinitionsFO4,
+  wbDefinitionsFO4Saves,
   wbDefinitionsTES3,
   wbDefinitionsTES4,
-  wbDefinitionsTES5;
+  wbDefinitionsTES4Saves,
+  wbDefinitionsTES5,
+  wbDefinitionsTES5Saves;
 
 function wbFindCmdLineParam(const aSwitch     : string;
                             const aChars      : TSysCharSet;
@@ -173,7 +182,7 @@ begin
     Result := wbFindNextValidCmdLineFileName(startingIndex, aValue, defaultPath);
   until not Result or wbCheckForPluginExtension(aValue);
   if Result  then
-    if (AnsiCompareText(ExpandFileName(ExtractFilePath(aValue)), ExpandFileName(defaultPath)) = 0) then begin
+    if (AnsiCompareText(ExtractFilePath(ExpandFileName(aValue)), ExpandFileName(defaultPath)) = 0) then begin
       aValue := ExtractFileName(aValue);
       if not Assigned(wbPluginsToUse) then wbPluginsToUse := TStringList.Create;
       wbPluginsToUse.Add(aValue);
@@ -213,9 +222,9 @@ end;
 
 function CheckAppPath: string;
 const
-  //gmFNV, gmFO3, gmTES3, gmTES4, gmTES5
+  //gmFNV, gmFO3, gmTES3, gmTES4, gmTES5, gmSSE, gmFO4
   ExeName : array[TwbGameMode] of string =
-    ('FalloutNV.exe', 'Fallout3.exe', 'Morrowind.exe', 'Oblivion.exe', 'TESV.exe');
+    ('FalloutNV.exe', 'Fallout3.exe', 'Morrowind.exe', 'Oblivion.exe', 'TESV.exe', 'SkyrimSE.exe', 'Fallout4.exe');
 var
   s: string;
 begin
@@ -231,6 +240,7 @@ begin
 end;
 
 {===SafeLoadLibrary============================================================}
+{$IFDEF CPUX86}
 function TestAndClearFPUExceptions(AExceptionMask: Word): Boolean;
 asm
       PUSH    ECX
@@ -265,6 +275,7 @@ begin
   end;
 end;
 {==============================================================================}
+{$ENDIF CPUX86}
 
 
 function wbLoadMOHookFile: Boolean;
@@ -291,7 +302,8 @@ const
   sBethRegKey             = '\SOFTWARE\Bethesda Softworks\';
   sBethRegKey64           = '\SOFTWARE\Wow6432Node\Bethesda Softworks\';
 var
-  s : String;
+  s       : String;
+  IniFile : TIniFile;
 begin
   wbModGroupFileName := wbProgramPath + wbAppName + wbToolName + '.modgroups';
 
@@ -309,10 +321,10 @@ begin
     if wbDataPath = '' then with TRegistry.Create do try
       RootKey := HKEY_LOCAL_MACHINE;
 
-      if not OpenKeyReadOnly(sBethRegKey + wbGameName + '\') then
-        if not OpenKeyReadOnly(sBethRegKey64 + wbGameName + '\') then begin
+      if not OpenKeyReadOnly(sBethRegKey + wbGameName2 + '\') then
+        if not OpenKeyReadOnly(sBethRegKey64 + wbGameName2 + '\') then begin
           s := 'Fatal: Could not open registry key: ' + sBethRegKey + wbGameName + '\';
-          if wbGameMode = gmTES5 then
+//          if wbGameMode = gmTES5 then // All game exists on steam now
             ShowMessage(s+#13+#10+'This can happen after Steam updates, run game''s launcher to restore registry settings');
           wbDontSave := True;
           Exit;
@@ -321,8 +333,8 @@ begin
       wbDataPath := ReadString('Installed Path');
 
       if wbDataPath = '' then begin
-        s := 'Fatal: Could not determine '+wbGameName+' installation path, no "Installed Path" registry key';
-        if wbGameMode = gmTES5 then
+        s := 'Fatal: Could not determine '+wbGameName2+' installation path, no "Installed Path" registry key';
+//        if wbGameMode = gmTES5 then
           ShowMessage(s+#13+#10+'This can happen after Steam updates, run game''s launcher to restore registry settings');
         wbDontSave := True;
       end;
@@ -346,18 +358,37 @@ begin
   wbMOHookFile := wbDataPath + '..\Mod Organizer\hook.dll';
 
   if not wbFindCmdLineParam('I', wbTheGameIniFileName) then begin
-    wbTheGameIniFileName := GetCSIDLShellFolder(CSIDL_PERSONAL);
-    if wbTheGameIniFileName = '' then begin
+    wbMyProfileName := GetCSIDLShellFolder(CSIDL_PERSONAL);
+    if wbMyProfileName = '' then begin
       ShowMessage('Fatal: Could not determine my documents folder');
       Exit;
     end;
-    wbMyGamesTheGamePath := wbTheGameIniFileName + 'My Games\'+ wbGameName +'\';
+    wbMyGamesTheGamePath := wbMyProfileName + 'My Games\'+ wbGameName2 +'\';
 
     if wbGameMode in [gmFO3, gmFNV] then
       wbTheGameIniFileName := wbMyGamesTheGamePath + 'Fallout.ini'
+    else if wbGameMode = gmFO4 then
+      wbTheGameIniFileName := wbMyGamesTheGamePath + 'Fallout4.ini'
     else
       wbTheGameIniFileName := wbMyGamesTheGamePath + wbGameName + '.ini';
   end;
+
+  if not wbFindCmdLineParam('G', wbSavePath) then begin
+    if wbMyGamesTheGamePath = '' then
+      wbMyGamesTheGamePath := ExtractFilePath(wbTheGameIniFileName);
+
+    s := 'Saves\';
+    if FileExists(wbTheGameIniFileName) then begin
+      IniFile := TIniFile.Create(wbTheGameIniFileName);
+      try
+        s := IniFile.ReadString('General', 'SLocalSavePath', s);
+      finally
+        FreeAndNil(IniFile);
+      end;
+    end;
+    wbSavePath := wbMyGamesTheGamePath + s;
+  end;
+  wbSavePath := IncludeTrailingPathDelimiter(wbSavePath);
 
   wbParamIndex := ParamIndex;
   if not wbFindCmdLineParam('P', wbPluginsFileName) then
@@ -371,7 +402,7 @@ begin
         Exit;
       end;
 
-      wbPluginsFileName := wbPluginsFileName + wbGameName + '\Plugins.txt';
+      wbPluginsFileName := wbPluginsFileName + wbGameName2 + '\Plugins.txt';
     end;
 
   // settings in the ini file next to app, or in the same folder with plugins.txt
@@ -391,15 +422,75 @@ end;
 
 var
   wbForcedModes: string;
+  AppGameMode, AppToolMode, AppSourceMode: string;
+
+procedure DetectAppMode;
+const
+  SourceModes : array [1..2] of string = ('plugins', 'saves');
+  GameModes: array [1..6] of string = ('tes4', 'tes5', 'sse', 'fo3', 'fnv', 'fo4');
+  ToolModes: array [1..12] of string = (
+    'edit', 'view', 'lodgen', 'script', 'translate',
+    'setesm', 'clearesm', 'sortandclean', 'sortandcleanmasters',
+    'checkforerrors', 'checkforitm', 'checkfordr');
+var
+  s, p: string;
+begin
+  // Detecting game mode
+  // check command line params first for mode overrides
+  // they should take precendence over application name detection
+  // AppSourceMode := SourceModes[1];
+  for s in SourceModes do
+    if FindCmdLineSwitch(s) or wbFindCmdLineParam(s, p) or (Pos(s, wbForcedModes) <> 0) then begin
+      AppSourceMode := s;
+      Break;
+    end;
+  // if no overrrides, then check by executable name
+  if AppSourceMode = '' then
+    for s in SourceModes do
+      if (Pos(s, LowerCase(ExtractFileName(ParamStr(0)))) <> 0) or (Pos(s, wbForcedModes) <> 0) then begin
+        AppSourceMode := s;
+        Break;
+      end;
+  // if still nothing, then default value
+  if AppSourceMode = '' then
+    AppSourceMode := 'plugins';
+
+  for s in GameModes do
+    if FindCmdLineSwitch(s) or wbFindCmdLineParam(s, p) or (Pos(s, wbForcedModes) <> 0) then begin
+      AppGameMode := s;
+      Break;
+    end;
+  // if no overrrides, then check by executable name
+  if AppGameMode = '' then
+    for s in GameModes do
+      if (Pos(s, LowerCase(ExtractFileName(ParamStr(0)))) <> 0) or (Pos(s, wbForcedModes) <> 0) then begin
+        AppGameMode := s;
+        Break;
+      end;
+  // if still nothing, then default value
+  if AppGameMode = '' then
+    AppGameMode := 'fo4';
+
+  // the same for tool mode
+  for s in ToolModes do
+    if FindCmdLineSwitch(s) or wbFindCmdLineParam(s, p) or (Pos(s, wbForcedModes) <> 0) then begin
+      AppToolMode := s;
+      Break;
+    end;
+  if AppToolMode = '' then
+    for s in ToolModes do
+      if (Pos(s, LowerCase(ExtractFileName(ParamStr(0)))) <> 0) or (Pos(s, wbForcedModes) <> 0) then begin
+        AppToolMode := s;
+        Break;
+      end;
+  if AppToolMode = '' then
+    AppToolMode := 'edit';
+end;
 
 function isMode(aMode: String): Boolean;
-var
-  s: string;
 begin
-  Result := (Pos(Uppercase(aMode), UpperCase(wbForcedModes)) <> 0) or
-            FindCmdLineSwitch(aMode) or
-            wbFindCmdLineParam(aMode, s) or
-            (Pos(Uppercase(aMode), UpperCase(ExtractFileName(ParamStr(0)))) <> 0);
+  aMode := LowerCase(aMode);
+  Result := (AppGameMode = aMode) or (AppToolMode = aMode) or (AppSourceMode = aMode);
 end;
 
 // Force app modes
@@ -410,6 +501,7 @@ var
 begin
   Result := False;
   // there is a game specific script provided to execute
+  // go into 'script' tool mode and detect game mode by script's extension
   i := 1;
   if wbFindCmdLineParam('script', s) or wbFindNextValidCmdLineFileName(i, s) then begin
     if not FileExists(s) then
@@ -429,18 +521,21 @@ var
   s: string;
 begin
   wbReportMode := False;
+  wbEditAllowed := True;
+  wbDontSave    := False;
+
+  CheckForcedMode;
+  DetectAppMode;
 
   if isMode('Saves') then begin
     wbToolSource := tsSaves;
     wbSourceName := 'Saves';
+    wbUseFalsePlugins := True;
   end else begin // defaults to plugin
     wbToolSource := tsPlugins;
     wbSourceName := 'Plugins';
   end;
 
-  wbEditAllowed := True;
-  wbDontSave    := False;
-  CheckForcedMode;
   if isMode('View') then begin
     wbToolMode    := tmView;
     wbToolName    := 'View';
@@ -497,7 +592,7 @@ begin
       ShowMessage('Application '+wbGameName+' does not currently support '+wbToolName);
       Exit;
     end;
-    if not (wbToolSource in [tsPlugins]) then begin
+    if not (wbToolSource in [tsPlugins, tsSaves]) then begin
       ShowMessage('Application '+wbGameName+' does not currently support '+wbSourceName);
       Exit;
     end;
@@ -545,14 +640,47 @@ begin
       ShowMessage('Application '+wbGameName+' does not currently support '+wbToolName);
       Exit;
     end;
-    if not (wbToolSource in [tsPlugins]) then begin
+    if not (wbToolSource in [tsPlugins, tsSaves]) then begin
+      ShowMessage('Application '+wbGameName+' does not currently support '+wbSourceName);
+      Exit;
+    end;
+  end else if isMode('SSE') then begin
+    wbGameMode := gmSSE;
+    wbAppName := 'SSE';
+    wbGameName := 'Skyrim';
+    wbGameName2 := 'Skyrim Special Edition';
+    if not (wbToolMode in wbAlwaysMode) and not (wbToolMode in [tmTranslate]) then begin
+      ShowMessage('Application '+wbGameName+' does not currently support '+wbToolName);
+      Exit;
+    end;
+    if not (wbToolSource in [tsPlugins, tsSaves]) then begin
+      ShowMessage('Application '+wbGameName+' does not currently support '+wbSourceName);
+      Exit;
+    end;
+  end else if isMode('FO4') then begin
+    wbGameMode := gmFO4;
+    wbAppName := 'FO4';
+    wbGameName := 'Fallout4';
+    wbArchiveExtension := '.ba2';
+    if not (wbToolMode in wbAlwaysMode) and not (wbToolMode in [tmTranslate]) then begin
+      ShowMessage('Application '+wbGameName+' does not currently support '+wbToolName);
+      Exit;
+    end;
+    if not (wbToolSource in [tsPlugins, tsSaves]) then begin
       ShowMessage('Application '+wbGameName+' does not currently support '+wbSourceName);
       Exit;
     end;
   end else begin
-    ShowMessage('Application name must contain FNV, FO3, TES4 or TES5 to select game.');
+    ShowMessage('Application name must contain FNV, FO3, FO4, SSE, TES4 or TES5 to select game.');
     Exit;
   end;
+  if (wbToolSource = tsSaves) and (wbToolMode = tmEdit) then begin
+    ShowMessage('Application '+wbGameName+' does not currently support '+wbSourceName+' in '+wbToolName+' mode.');
+    Exit;
+  end;
+
+  if wbGameName2 = '' then
+    wbGameName2 := wbGameName;
 
   DoInitPath(wbParamIndex);
 
@@ -577,30 +705,68 @@ begin
     wbLoadBSAs := True; // localization won't work otherwise
     wbHideIgnored := False; // to show Form Version
     ReadSettings;
+  end else if wbGameMode = gmSSE then begin
+    wbVWDInTemporary := True;
+    wbLoadBSAs := True; // localization won't work otherwise
+    wbHideIgnored := False; // to show Form Version
+    ReadSettings;
+  end else if wbGameMode = gmFO4 then begin
+    wbVWDInTemporary := True;
+    wbVWDAsQuestChildren := True;
+    wbLoadBSAs := True; // localization won't work otherwise
+    wbHideIgnored := False; // to show Form Version
+    ReadSettings;
+    //wbCreateContainedIn := False;
   end else begin
     Exit;
   end;
 
-  if wbGameMode = gmFNV then
-    DefineFNV
-  else if wbGameMode = gmFO3 then
-    DefineFO3
-  else if wbGameMode = gmTES3 then
-    DefineTES3
-  else if wbGameMode = gmTES4 then
-    DefineTES4
-  else if wbGameMode = gmTES5 then
-    case wbToolSource of
+  case wbGameMode of
+    gmFNV:  case wbToolSource of
+      tsSaves:   DefineFNVSaves;
+      tsPlugins: DefineFNV;
+    end;
+    gmFO3:  case wbToolSource of
+      tsSaves:   DefineFO3Saves;
+      tsPlugins: DefineFO3;
+    end;
+    gmFO4:  case wbToolSource of
+      tsSaves:   DefineFO4Saves;
+      tsPlugins: DefineFO4;
+    end;
+    gmTES3: case wbToolSource of
+      tsPlugins: DefineTES3;
+    end;
+    gmTES4: case wbToolSource of
+      tsSaves:   DefineTES4Saves;
+      tsPlugins: DefineTES4;
+    end;
+    gmTES5: case wbToolSource of
+      tsSaves:   DefineTES5Saves;
+      tsPlugins: DefineTES5;
+    end;
+    gmSSE: case wbToolSource of
+      tsSaves:   DefineTES5Saves;
       tsPlugins: DefineTES5;
     end
-  else begin
-    ShowMessage('Application name must contain FNV, FO3, TES4 or TES5 to select game.');
+  else
+    ShowMessage('Application name must contain FNV, FO3, FO4, SSE, TES4 or TES5 to select game.');
     Exit;
   end;
 
-  wbLanguage := 'English';
+  case wbGameMode of
+    gmTES5, gmSSE:
+      wbLanguage := 'English';
+    gmFO4:
+      wbLanguage := 'En';
+  end;
   if wbFindCmdLineParam('l', s) then
     wbLanguage := s;
+
+  if wbFindCmdLineParam('cp', s) then begin
+    if SameText(s, 'utf-8') then
+      wbStringEncoding := seUTF8;
+  end;
 
   if FindCmdLineSwitch('speed') then
     wbSpeedOverMemory := True;
@@ -638,7 +804,7 @@ begin
   if FindCmdLineSwitch('IKnowWhatImDoing') then
     wbIKnowWhatImDoing := True;
 
-  if FindCmdLineSwitch('quickclean') then
+  if FindCmdLineSwitch('quickclean') and (wbToolSource in [tsPlugins]) then
     wbQuickClean := wbIKnowWhatImDoing;
 
   if FindCmdLineSwitch('TrackAllEditorID') then
@@ -689,6 +855,9 @@ begin
   {$IFDEF LiteVersion}
   wbApplicationTitle := wbApplicationTitle + ' Lite';
   {$ENDIF}
+  {$IFDEF WIN64}
+  wbApplicationTitle := wbApplicationTitle + ' x64';
+  {$ENDIF WIN64}
 
   if FindCmdLineSwitch('fixuppgrd') then
     wbFixupPGRD := True;
@@ -699,6 +868,17 @@ begin
     wbAssociateWithExtension('.' + wbAppName + 'pas', wbAppName + 'Script', wbAppName + wbToolName + ' script');
   except end;
 
+end;
+
+procedure SwitchToCoSave;
+begin
+  case wbGameMode of
+    gmFNV:  SwitchToFNVCoSave;
+    gmFO3:  SwitchToFO3CoSave;
+    gmTES4: SwitchToTES4CoSave;
+    gmTES5: SwitchToTES5CoSave;
+    gmSSE:  SwitchToTES5CoSave;
+  end;
 end;
 
 initialization

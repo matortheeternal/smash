@@ -258,7 +258,7 @@ begin
 
   // load plugin headers for each plugin in @sl
   for i := 0 to Pred(sl.Count) do try
-    aFile := wbFile(wbDataPath + sl[i], -1, '', True, False);
+    aFile := wbFile(wbDataPath + sl[i], -1, '', False, True);
     plugin := TBasePlugin.Create;
     plugin._File := aFile;
     HeaderList.Add(plugin);

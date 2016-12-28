@@ -31,7 +31,8 @@ uses
   {$IFDEF USE_CODESITE}
   CodeSiteLogging,
   {$ENDIF}
-  Zlibex;
+  Zlibex,
+  lz4;
 
 const
   DefaultVCS1 = 0;
@@ -45,7 +46,7 @@ var
 
 procedure wbMastersForFile(const aFileName: string; aMasters: TStrings);
 function wbFile(const aFileName: string; aLoadOrder: Integer = -1; aCompareTo: string = '';
-  aOnlyHeader: Boolean = False; IsTemporary: Boolean = False): IwbFile;
+  IsTemporary: Boolean = False; aOnlyHeader: Boolean = False): IwbFile;
 function wbNewFile(const aFileName: string; aLoadOrder: Integer): IwbFile;
 procedure wbFileForceClosed;
 
@@ -143,24 +144,29 @@ var
   Container   : IwbContainer;
   Target      : IwbElement;
 begin
-  if (wbCurrentTick>0) and (wbCurrentTick+500<GetTickCount) then begin
-    wbProgressCallback('');
-    wbCurrentTick := GetTickCount;
-  end;
-  Container := aSource.Container;
-  if Assigned(Container) then begin
-    if Supports(Container, IwbMainRecord, MainRecord) then
-      Container := MainRecord.HighestOverrideOrSelf[aFile.LoadOrder];
-    Target := wbCopyElementToFile(Container, aFile, False, False, aPrefixRemove, aPrefix, aSuffix)
-  end else begin
-    Result := aFile;
-    Exit;
-  end;
+  Inc(wbCopyIsRunning);
+  try
+    if (wbCurrentTick>0) and (wbCurrentTick+500<GetTickCount) then begin
+      wbProgressCallback('');
+      wbCurrentTick := GetTickCount;
+    end;
+    Container := aSource.Container;
+    if Assigned(Container) then begin
+      if Supports(Container, IwbMainRecord, MainRecord) then
+        Container := MainRecord.HighestOverrideOrSelf[aFile.LoadOrder];
+      Target := wbCopyElementToFile(Container, aFile, False, False, aPrefixRemove, aPrefix, aSuffix)
+    end else begin
+      Result := aFile;
+      Exit;
+    end;
 
-  if Assigned(Target) then
-    Result := Target.AddIfMissing(aSource, aAsNew, aDeepCopy, aPrefixRemove, aPrefix, aSuffix)
-  else
-    Result := nil;
+    if Assigned(Target) then
+      Result := Target.AddIfMissing(aSource, aAsNew, aDeepCopy, aPrefixRemove, aPrefix, aSuffix)
+    else
+      Result := nil;
+  finally
+    Dec(wbCopyIsRunning);
+  end;
 end;
 
 function wbCopyElementToRecord(const aSource: IwbElement; aMainRecord: IwbMainRecord; aAsNew, aDeepCopy: Boolean): IwbElement;
@@ -389,6 +395,9 @@ type
     procedure AfterConstruction; override;
     class function NewInstance: TObject; override;
     procedure FreeInstance; override;
+
+    function GetTreeHead: Boolean;              // Is the element expected to be a "header record" in the tree navigator
+    function GetTreeBranch: Boolean;            // Is the element expected to show in the tree navigator
   end;
 
   TDynElementInternals = array of IwbElementInternal;
@@ -622,6 +631,7 @@ type
     function GetHeader: IwbMainRecord;
 
     function GetLoadOrder: Integer;
+    procedure ForceLoadOrder(aValue: Integer);
     procedure SetLoadOrder(aValue: Integer);
 
     function LoadOrderFormIDtoFileFormID(aFormID: Cardinal): Cardinal;
@@ -643,7 +653,13 @@ type
     function GetIsLocalized: Boolean;
     procedure SetIsLocalized(Value: Boolean);
 
+    function GetNextObjectID: Cardinal;
+    procedure SetNextObjectID(aObjectID: Cardinal);
+
     function GetIsNotPlugin: Boolean;
+    function GetHasNoFormID: Boolean;
+    procedure SetHasNoFormID(Value: Boolean);
+
     {---IwbFileInternal---}
     procedure AddMainRecord(const aRecord: IwbMainRecord);
     procedure RemoveMainRecord(const aRecord: IwbMainRecord);
@@ -730,6 +746,7 @@ type
     function GetDontCompare: Boolean;
     function GetDontSave: Boolean;
     function IsValidOffset(aBasePtr, aEndPtr: Pointer; anOffset: Integer): Boolean;
+    function IsLocalOffset(anOffset: Integer): Boolean;
 
     {--- IwbDataContainerInternal ---}
     procedure UpdateStorageFromElements; virtual;
@@ -827,6 +844,8 @@ type
     mrsSearchedChildGroup,
     mrsHasVWDMeshChecked,
     mrsHasVWDMesh,
+    mrsHasPrecombinedMeshChecked,
+    mrsHasPrecombinedMesh,
     mrsBaseRecordChecked,
     mrsQuickInit,
     mrsQuickInitDone,
@@ -855,6 +874,8 @@ type
     mrFullName         : string;
     mrStates           : TwbMainRecordStates;
     mrBaseRecordID     : Cardinal;
+    mrPrecombinedCellID: Cardinal;
+    mrPrecombinedID    : Cardinal;
     mrConflictAll      : TConflictAll;
     mrConflictThis     : TConflictThis;
     mrDataStorage      : TBytes;
@@ -994,6 +1015,8 @@ type
     procedure SetIsVisibleWhenDistant(aValue: Boolean);
     function GetHasVisibleWhenDistantMesh: Boolean;
     function GetHasMesh: Boolean;
+    function GetHasPrecombinedMesh: Boolean;
+    function GetPrecombinedMesh: string;
     function GetIsInitiallyDisabled: Boolean;
     procedure SetIsInitiallyDisabled(aValue: Boolean);
 
@@ -1245,13 +1268,14 @@ type
   protected
     szCompressedSize   : Integer;
     szUncompressedSize : Cardinal;
+    szCompressedType   : TwbStructCompression;
     procedure Init; override;
     procedure Reset; override;
 
     function GetElementType: TwbElementType; override;
     procedure DecompressIfNeeded;
-    function GetIsCompressed: Boolean;
-    property IsCompressed: Boolean read GetIsCompressed;
+    function GetIsCompressed: TwbStructCompression;
+    property IsCompressed: TwbStructCompression read GetIsCompressed;
   end;
 
   TwbFileHeader = class(TwbStruct, IwbFileHeader)
@@ -1267,6 +1291,7 @@ type
     function GetElementType: TwbElementType; override;
     function GetChapterType: Integer;
     function GetChapterTypeName: String;
+    function GetChapterName: String;
   public
     constructor Create(const aContainer  : IwbContainer;
                        const aValueDef   : IwbValueDef;
@@ -1586,6 +1611,7 @@ const
 
 function CompareFormIDs(Item1, Item2: Pointer): Integer;
 asm
+{$IFDEF WIN32}
   xor ecx, ecx
   cmp eax, edx
   ja @@GT
@@ -1597,6 +1623,19 @@ asm
   inc ecx
 @@EQ:
   mov eax, ecx
+{$ENDIF WIN32}
+{$IFDEF WIN64}
+  xor rax, rax
+  cmp rcx, rdx
+  ja @@GT
+  je @@EQ
+@@LT:
+  dec rax
+  dec rax
+@@GT:
+  inc rax
+@@EQ:
+{$ENDIF WIN64}
 end;
 
 function CompareSubRecords(Item1, Item2: Pointer): Integer;
@@ -1713,7 +1752,14 @@ var
   _File : IwbFile;
   s     : string;
   t     : string;
+  i     : Integer;
 begin
+  if not wbRequireLoadorder and IsTemporary then begin
+    for i := 0 to Pred(GetMasterCount) do
+      if SameText(ExtractFileName(aFileName), GetMaster(i).FileName) then
+        Exit;
+  end;
+
   s := ExtractFilePath(aFileName);
   t := ExtractFileName(aFileName);
   if s = '' then
@@ -1722,15 +1768,11 @@ begin
     s := IncludeTrailingPathDelimiter(s);
 
   flProgress('Adding master "' + t + '"');
-  try
-    _File := wbFile(s + t, -1, '', IsTemporary);
-    if wbRequireLoadOrder and (_File.LoadOrder < 0) then
-      raise Exception.Create('"' + GetFileName + '" requires master "' + aFileName + '" to be loaded before it.');
+  _File := wbFile(s + t, -1, '', IsTemporary, False);
+  if not (wbToolMode in [tmDump, tmExport]) and (wbRequireLoadOrder and (_File.LoadOrder < 0)) then
+    raise Exception.Create('"' + GetFileName + '" requires master "' + aFileName + '" to be loaded before it.')
+  else
     AddMaster(_File);
-  except
-    if not (wbToolMode in [tmDump, tmExport]) then
-      raise Exception.Create('"' + GetFileName + '" requires master "' + aFileName + '" to be loaded before it.');
-  end;
 end;
 
 function TwbFile.Add(const aName: string; aSilent: Boolean): IwbElement;
@@ -1909,6 +1951,9 @@ begin
 
   if not IsElementEditable(nil) then
     raise Exception.Create('File "'+GetFileName+'" is not editable');
+
+  if GetIsNotPlugin then
+    Exit;
 
   if (GetElementCount < 1) or not Supports(GetElement(0), IwbContainerElementRef, Header) then
     raise Exception.CreateFmt('Unexpected error reading file "%s"', [flFileName]);
@@ -2238,7 +2283,7 @@ begin
   flFileName := aFileName;
   Header := TwbMainRecord.Create(Self, wbHeaderSignature, 0);
   if wbGameMode = gmFNV then
-    Header.RecordBySignature['HEDR'].Elements[0].EditValue := '1.32'
+    Header.RecordBySignature['HEDR'].Elements[0].EditValue := '1.34'
   else if wbGameMode = gmFO3 then
     Header.RecordBySignature['HEDR'].Elements[0].EditValue := '0.94'
   else if wbGameMode = gmTES3 then
@@ -2246,7 +2291,11 @@ begin
   else if wbGameMode = gmTES4 then
     Header.RecordBySignature['HEDR'].Elements[0].EditValue := '1.0'
   else if wbGameMode = gmTES5 then
-    Header.RecordBySignature['HEDR'].Elements[0].EditValue := '1.7';
+    Header.RecordBySignature['HEDR'].Elements[0].EditValue := '1.7'
+  else if wbGameMode = gmSSE then
+    Header.RecordBySignature['HEDR'].Elements[0].EditValue := '1.7'
+  else if wbGameMode = gmFO4 then
+    Header.RecordBySignature['HEDR'].Elements[0].EditValue := '0.95';
   Header.RecordBySignature['HEDR'].Elements[2].EditValue := '2048';
   flLoadFinished := True;
 end;
@@ -2478,6 +2527,11 @@ begin
   flCloseFile;
 end;
 
+procedure TwbFile.ForceLoadOrder(aValue: Integer);
+begin
+  flLoadOrder := aValue;
+end;
+
 function TwbFile.GetAddList: TDynStrings;
 var
   i, j        : Integer;
@@ -2567,6 +2621,11 @@ begin
   Result := nil;
 end;
 
+function TwbFile.GetHasNoFormID: Boolean;
+begin
+  Result := GetIsNotPlugin or (fsHasNoFormID in flStates);
+end;
+
 function TwbFile.GetHeader: IwbMainRecord;
 var
   SelfRef : IwbContainerElementRef;
@@ -2596,6 +2655,11 @@ function TwbFile.GetIsESM: Boolean;
 var
   Header         : IwbMainRecord;
 begin
+  if GetIsNotPlugin then begin
+    Result := False;
+    Exit;
+  end;
+
   if (GetElementCount < 1) or not Supports(GetElement(0), IwbMainRecord, Header) then
     raise Exception.CreateFmt('Unexpected error reading file "%s"', [flFileName]);
 
@@ -2606,10 +2670,33 @@ function TwbFile.GetIsLocalized: Boolean;
 var
   Header         : IwbMainRecord;
 begin
+  if GetIsNotPlugin then begin
+    Result := False;
+    Exit;
+  end;
+
   if (GetElementCount < 1) or not Supports(GetElement(0), IwbMainRecord, Header) then
     raise Exception.CreateFmt('Unexpected error reading file "%s"', [flFileName]);
 
   Result := Header.IsLocalized;
+end;
+
+function TwbFile.GetNextObjectID: Cardinal;
+var
+  Header         : IwbContainerElementRef;
+begin
+  if (GetElementCount > 0) and Supports(GetElement(0), IwbContainerElementRef, Header) then
+    Result := Cardinal(Header.ElementNativeValues['HEDR\Next Object ID'])
+  else
+    Result := 0;
+end;
+
+procedure TwbFile.SetNextObjectID(aObjectID: Cardinal);
+var
+  Header         : IwbMainRecord;
+begin
+  if (GetElementCount > 0) and Supports(GetElement(0), IwbContainerElementRef, Header) then
+    Header.ElementNativeValues['HEDR\Next Object ID'] := aObjectID;
 end;
 
 function TwbFile.GetIsNotPlugin: Boolean;
@@ -2915,134 +3002,145 @@ begin
   if Length(cntElements) < 1 then
     raise Exception.Create('File '+GetFileName+' has no file header');
 
-  if cntElements[0].ElementType <> etMainRecord then
-    raise Exception.Create('File '+GetFileName+' has invalid record '+cntElements[0].Name+' as file header.');
+  if not GetIsNotPlugin then begin
+    if cntElements[0].ElementType <> etMainRecord then
+      raise Exception.Create('File '+GetFileName+' has invalid record '+cntElements[0].Name+' as file header.');
 
-  FileHeader := cntElements[0] as IwbMainRecord;
-  if FileHeader.Signature <> wbHeaderSignature then
-    raise Exception.Create('File '+GetFileName+' has invalid record '+cntElements[0].Name+' with invalid signature as file header.');
+    FileHeader := cntElements[0] as IwbMainRecord;
+    if FileHeader.Signature <> wbHeaderSignature then
+      raise Exception.Create('File '+GetFileName+' has invalid record '+cntElements[0].Name+' with invalid signature as file header.');
 
-  HEDR := FileHeader.RecordBySignature['HEDR'];
-  if not Assigned(HEDR) then
-    raise Exception.Create('File '+GetFileName+' has a file header with missing HEDR subrecord');
+    HEDR := FileHeader.RecordBySignature['HEDR'];
+    if not Assigned(HEDR) then
+      raise Exception.Create('File '+GetFileName+' has a file header with missing HEDR subrecord');
 
-  inherited;
+    inherited;
 
-  SetLength(Groups, wbGroupOrder.Count);
-  for i := Succ(Low(cntElements)) to High(cntElements) do begin
-    if not Supports(cntElements[i], IwbGroupRecord, GroupRecord) then
-      raise Exception.Create('File '+GetFileName+' contains invalid top level record: '+ cntElements[i].Name);
-    if GroupRecord.GroupType <> 0 then
-      raise Exception.Create('File '+GetFileName+' contains invalid top level group type '+IntToStr(GroupRecord.GroupType)+' for group: '+ cntElements[i].Name);
-    if GroupRecord.SortOrder < 0 then
-      raise Exception.Create('File '+GetFileName+' contains top level group without known sort order: '+ cntElements[i].Name);
-    if GroupRecord.SortOrder > High(Groups) then
-      raise Exception.Create('File '+GetFileName+' contains top level group with invalid sort order: '+ cntElements[i].Name);
-    if Groups[GroupRecord.SortOrder] then
-      raise Exception.Create('File '+GetFileName+' contains duplicated top level group: '+ cntElements[i].Name);
-    Groups[GroupRecord.SortOrder] := True;
-  end;
+    SetLength(Groups, wbGroupOrder.Count);
+    for i := Succ(Low(cntElements)) to High(cntElements) do begin
+      if not Supports(cntElements[i], IwbGroupRecord, GroupRecord) then
+        raise Exception.Create('File '+GetFileName+' contains invalid top level record: '+ cntElements[i].Name);
+      if GroupRecord.GroupType <> 0 then
+        raise Exception.Create('File '+GetFileName+' contains invalid top level group type '+IntToStr(GroupRecord.GroupType)+' for group: '+ cntElements[i].Name);
+      if GroupRecord.SortOrder < 0 then
+        raise Exception.Create('File '+GetFileName+' contains top level group without known sort order: '+ cntElements[i].Name);
+      if GroupRecord.SortOrder > High(Groups) then
+        raise Exception.Create('File '+GetFileName+' contains top level group with invalid sort order: '+ cntElements[i].Name);
+      if Groups[GroupRecord.SortOrder] then
+        raise Exception.Create('File '+GetFileName+' contains duplicated top level group: '+ cntElements[i].Name);
+      Groups[GroupRecord.SortOrder] := True;
+    end;
 
-  if Length(cntElements) > 1 then
-    wbMergeSort(@cntElements[1],  High(cntElements), CompareSortOrder);
+    if Length(cntElements) > 1 then
+      wbMergeSort(@cntElements[1],  High(cntElements), CompareSortOrder);
 
-  RecordCount := GetCountedRecordCount;
-  if RecordCount < 1 then
-    raise Exception.Create('File '+GetFileName+' has an invalid record count');
+    RecordCount := GetCountedRecordCount;
+    if RecordCount < 1 then
+      raise Exception.Create('File '+GetFileName+' has an invalid record count');
 
-  HEDR.Elements[1].EditValue := IntToStr(Pred(RecordCount));
+    HEDR.Elements[1].EditValue := IntToStr(Pred(RecordCount));
 
-  j := 0;
-  ONAMs := nil;
-  if wbGameMode in [gmFO3, gmFNV, gmTES5] then begin
-    Include(TwbMainRecord(FileHeader).mrStates, mrsNoUpdateRefs);
-    while FileHeader.RemoveElement('ONAM') <> nil do
-      ;
-    if Supports(FileHeader.ElementByName['Master Files'], IwbContainerElementRef, MasterFiles) then
-      for i := 0 to Pred(MasterFiles.ElementCount) do begin
-        if Supports(MasterFiles.Elements[i], IwbContainerElementRef, MasterFile) then begin
+    j := 0;
+    ONAMs := nil;
+    if wbGameMode in [gmFO3, gmFNV, gmTES5, gmSSE, gmFO4] then begin
+      Include(TwbMainRecord(FileHeader).mrStates, mrsNoUpdateRefs);
+      while FileHeader.RemoveElement('ONAM') <> nil do
+        ;
+      if Supports(FileHeader.ElementByName['Master Files'], IwbContainerElementRef, MasterFiles) then
+        for i := 0 to Pred(MasterFiles.ElementCount) do begin
+          if Supports(MasterFiles.Elements[i], IwbContainerElementRef, MasterFile) then begin
+            // Fallout 4 CK creates ONAMs in ESP too
+            if FileHeader.IsESM or (wbGameMode = gmFO4) then
+              while j <= High(flRecords) do begin
+                Current := flRecords[j];
+                FormID := Current.FixedFormID;
+                FileID := FormID shr 24;
+                if FileID > i then
+                  Break;
+                Assert(FileID = i);
+                Inc(j);
 
-          if FileHeader.IsESM then
-            while j <= High(flRecords) do begin
-              Current := flRecords[j];
-              FormID := Current.FixedFormID;
-              FileID := FormID shr 24;
-              if FileID > i then
-                Break;
-              Assert(FileID = i);
-              Inc(j);
+                Signature := Current.Signature;
 
-              Signature := Current.Signature;
+                if (Signature = 'NAVM') or
+                   (Signature = 'LAND') or
+                   (Signature = 'REFR') or
+                   (Signature = 'PGRE') or
+                   (Signature = 'PMIS') or
+                   (Signature = 'ACHR') or
+                   (Signature = 'ACRE') or
+                   (Signature = 'PARW') or {>>> Skyrim <<<}
+                   (Signature = 'PBEA') or {>>> Skyrim <<<}
+                   (Signature = 'PFLA') or {>>> Skyrim <<<}
+                   (Signature = 'PCON') or {>>> Skyrim <<<}
+                   (Signature = 'PBAR') or {>>> Skyrim <<<}
+                   (Signature = 'PHZD') or {>>> Skyrim <<<}
+                   // Fallout 4 (and later games?)
+                   ((wbGameMode >= gmFO4) and (
+                     (Signature = 'SCEN') or
+                     (Signature = 'DLBR') or
+                     (Signature = 'DIAL') or
+                     (Signature = 'INFO')
+                   ))
+                then begin
 
-              if (Signature = 'NAVM') or
-                 (Signature = 'LAND') or
-                 (Signature = 'REFR') or
-                 (Signature = 'PGRE') or
-                 (Signature = 'PMIS') or
-                 (Signature = 'ACHR') or
-                 (Signature = 'ACRE') or
-                 (Signature = 'PARW') or {>>> Skyrim <<<}
-                 (Signature = 'PBEA') or {>>> Skyrim <<<}
-                 (Signature = 'PFLA') or {>>> Skyrim <<<}
-                 (Signature = 'PCON') or {>>> Skyrim <<<}
-                 (Signature = 'PBAR') or {>>> Skyrim <<<}
-                 (Signature = 'PHZD')    {>>> Skyrim <<<}
-              then begin
+                  if (not wbMasterUpdateFilterONAM) or Current.IsWinningOverride then begin
+                    // ONAMs are for overridden temporary refs only
+                    if Current.IsPersistent then
+                      Continue;
 
-                if (not wbMasterUpdateFilterONAM) or Current.IsWinningOverride then begin
-                  if not Assigned(ONAMs) then begin
-                    if not Supports(FileHeader.Add('ONAM', True), IwbContainerElementRef, ONAMs) then
-                      Assert(False);
-                    Assert(ONAMs.ElementCount = 1);
-                    NewONAM := ONAMs.Elements[0];
-                  end else
-                    NewONAM := ONAMs.Assign(High(Integer), nil, True);
+                    if not Assigned(ONAMs) then begin
+                      if not Supports(FileHeader.Add('ONAM', True), IwbContainerElementRef, ONAMs) then
+                        Assert(False);
+                      Assert(ONAMs.ElementCount = 1);
+                      NewONAM := ONAMs.Elements[0];
+                    end else
+                      NewONAM := ONAMs.Assign(High(Integer), nil, True);
 
-                  {if wbDisplayLoadOrderFormID then
-                    NewONAM.NativeValue := Current.LoadOrderFormID
-                  else}
                     NewONAM.NativeValue := FormID;
 
-                  if wbMasterUpdateFixPersistence and not Current.IsPersistent and not Current.IsMaster then begin
-                    Master := Current.Master;
-                    if Assigned(Master) then begin
-                      if Master.IsPersistent then begin
-                        flProgress('Setting Persistent: ' + Current.Name);
-                        Current.IsPersistent := True;
-                      end else
-                        for k := 0 to Pred(Master.OverrideCount) do
-                          if Current.Equals(Master.Overrides[k]) then
-                            Break
-                          else
-                            if Master.Overrides[k].IsPersistent then begin
-                              flProgress('Setting Persistent: ' + Current.Name);
-                              Current.IsPersistent := True;
-                              Break;
-                            end;
+                    if wbMasterUpdateFixPersistence and not Current.IsPersistent and not Current.IsMaster then begin
+                      Master := Current.Master;
+                      if Assigned(Master) then begin
+                        if Master.IsPersistent then begin
+                          flProgress('Setting Persistent: ' + Current.Name);
+                          Current.IsPersistent := True;
+                        end else
+                          for k := 0 to Pred(Master.OverrideCount) do
+                            if Current.Equals(Master.Overrides[k]) then
+                              Break
+                            else
+                              if Master.Overrides[k].IsPersistent then begin
+                                flProgress('Setting Persistent: ' + Current.Name);
+                                Current.IsPersistent := True;
+                                Break;
+                              end;
+                      end;
                     end;
+
                   end;
 
                 end;
 
               end;
-
-            end;
+          end;
+          if j > High(flRecords) then
+            Break;
         end;
-        if j > High(flRecords) then
-          Break;
-      end;
-    Exclude(TwbMainRecord(FileHeader).mrStates, mrsNoUpdateRefs);
-    FileHeader.UpdateRefs;
-  end;
+      Exclude(TwbMainRecord(FileHeader).mrStates, mrsNoUpdateRefs);
+      FileHeader.UpdateRefs;
+    end;
 
-  if wbClampFormID then begin
-    if Supports(FileHeader.ElementByName['Master Files'], IwbContainerElementRef, MasterFiles) then
-      k := MasterFiles.ElementCount
-    else
-      k := 0;
-    for i := Low(flRecords) to High(flRecords) do
-      flRecords[i].ClampFormID(k);
-  end;
+    if wbClampFormID then begin
+      if Supports(FileHeader.ElementByName['Master Files'], IwbContainerElementRef, MasterFiles) then
+        k := MasterFiles.ElementCount
+      else
+        k := 0;
+      for i := Low(flRecords) to High(flRecords) do
+        flRecords[i].ClampFormID(k);
+    end;
+  end else
+    inherited;
 end;
 
 function TwbFile.Reached: Boolean;
@@ -3176,7 +3274,7 @@ begin
   SortRecordsByEditorID;
   flProgress('EditorID index built');
 
-  if wbGameMode in [gmFNV, gmTES5] then begin
+  if wbGameMode in [gmFNV, gmTES5, gmSSE, gmFO4] then begin
     IsInternal := not GetIsEditable and wbBeginInternalEdit(True);
     try
       SetLength(Groups, wbGroupOrder.Count);
@@ -3232,10 +3330,22 @@ begin
   flLoadFinished := True;
 end;
 
+procedure TwbFile.SetHasNoFormID(Value: Boolean);
+begin
+  if Value or GetIsNotPlugin then
+    Include(flStates, fsHasNoFormID)
+  else
+    Exclude(flStates, fsHasNoFormID);
+end;
+
 procedure TwbFile.SetIsESM(Value: Boolean);
 var
   Header         : IwbMainRecord;
 begin
+  if GetIsNotPlugin then begin
+    Exit;
+  end;
+
   if (GetElementCount < 1) or not Supports(GetElement(0), IwbMainRecord, Header) then
     raise Exception.CreateFmt('Unexpected error reading file "%s"', [flFileName]);
 
@@ -3251,6 +3361,10 @@ procedure TwbFile.SetIsLocalized(Value: Boolean);
 var
   Header         : IwbMainRecord;
 begin
+  if GetIsNotPlugin then begin
+    Exit;
+  end;
+
   if (GetElementCount < 1) or not Supports(GetElement(0), IwbMainRecord, Header) then
     raise Exception.CreateFmt('Unexpected error reading file "%s"', [flFileName]);
 
@@ -3323,6 +3437,9 @@ var
 begin
   if not IsElementEditable(nil) then
     raise Exception.Create('File "'+GetFileName+'" is not editable');
+  if GetIsNotPlugin then
+    Exit;
+
   if (GetElementCount < 1) or not Supports(GetElement(0), IwbContainerElementRef, Header) then
     raise Exception.CreateFmt('Unexpected error reading file "%s"', [flFileName]);
 
@@ -3379,6 +3496,7 @@ type
 
 function CompareSortEntryPtrs(Item1{eax}, Item2{edx}: Pointer): Integer;
 asm
+  {$IFDEF WIN32}
   mov ecx, [eax + TwbRecordSortEntry.rseFormID]
   mov edx, [edx + TwbRecordSortEntry.rseFormID]
   xor eax, eax
@@ -3386,6 +3504,16 @@ asm
   mov ecx, -1
   cmovb eax, ecx
   seta al
+  {$ENDIF WIN32}
+  {$IFDEF WIN64}
+  mov rcx, [rcx + TwbRecordSortEntry.rseFormID]
+  mov rdx, [rdx + TwbRecordSortEntry.rseFormID]
+  xor rax, rax
+  cmp rcx, rdx
+  mov rcx, -1
+  cmovb rax, rcx
+  seta al
+  {$ENDIF WIN64}
 end;
 
 procedure TwbFile.SortRecords;
@@ -3553,28 +3681,46 @@ end;
 
 function LockedInc(var Target: Integer): Integer; register;
 asm
+  {$IFDEF WIN32}
         mov     ecx, eax
         mov     eax, 1
    lock xadd    [ecx], eax
         inc     eax
+  {$ENDIF WIN32}
+  {$IFDEF WIN64}
+        mov     rax, 1
+   lock xadd    [rcx], rax
+        inc     rax
+  {$ENDIF WIN64}
 end;
 
 function LockedDec(var Target: Integer): Integer; register;
 asm
+  {$IFDEF WIN32}
         mov     ecx, eax
         mov     eax, -1
    lock xadd    [ecx], eax
         dec     eax
+  {$ENDIF WIN32}
+  {$IFDEF WIN64}
+        mov     rax, -1
+   lock xadd    [rcx], rax
+        dec     rax
+  {$ENDIF WIN64}
 end;
 
 procedure TwbContainer.AfterConstruction;
 begin
   inherited;
-  //LockedDec(cntElementRefs);
+  {$IFDEF WIN64}
+  LockedDec(cntElementRefs);
+  {$ENDIF WIN64}
+  {$IFDEF WIN32}
   asm
          mov eax, [Self]
     lock dec dword ptr [eax + cntElementRefs]
   end;
+  {$ENDIF WIN32}
 end;
 
 function TwbContainer.AssignInternal(aIndex: Integer; const aElement: IwbElement; aOnlySK: Boolean): IwbElement;
@@ -3697,11 +3843,15 @@ procedure TwbContainer.BeforeDestruction;
 begin
   Assert(cntElementRefs = 0);
   inherited BeforeDestruction;
-  //LockedInc(cntElementRefs);
+  {$IFDEF WIN64}
+  LockedInc(cntElementRefs);
+  {$ENDIF WIN64}
+  {$IFDEF WIN32}
   asm
          mov eax, [Self]
     lock inc dword ptr [eax + cntElementRefs]
   end;
+  {$ENDIF WIN32}
 end;
 
 procedure TwbContainer.BuildRef;
@@ -3913,11 +4063,15 @@ begin
   if [csInitializing, csReseting] * cntStates <> [] then
     Exit;
 
-  //LockedInc(cntElementRefs);
+  {$IFDEF WIN64}
+  LockedInc(cntElementRefs);
+  {$ENDIF WIN64}
+  {$IFDEF WIN32}
   asm
          mov eax, [Self]
     lock inc dword ptr [eax + cntElementRefs]
   end;
+  {$ENDIF WIN32}
   try
     Include(cntStates, csReseting);
     Exclude(cntStates, csInitDone);
@@ -3925,11 +4079,15 @@ begin
     cntElementsMap := nil;
   finally
     Exclude(cntStates, csReseting);
-    //LockedDec(cntElementRefs);
+    {$IFDEF WIN64}
+    LockedDec(cntElementRefs);
+    {$ENDIF WIN64}
+    {$IFDEF WIN32}
     asm
            mov eax, [Self]
       lock dec dword ptr [eax + cntElementRefs]
     end;
+    {$ENDIF WIN32}
     Exclude(cntStates, csInit);
   end;
 end;
@@ -3937,11 +4095,15 @@ end;
 {$D-}
 function TwbContainer.ElementAddRef: Integer;
 begin
-  //LockedInc(cntElementRefs);
+  {$IFDEF WIN64}
+  LockedInc(cntElementRefs);
+  {$ENDIF WIN64}
+  {$IFDEF WIN32}
   asm
          mov eax, [Self]
     lock inc dword ptr [eax + cntElementRefs]
   end;
+  {$ENDIF WIN32}
   Result := inherited _AddRef;
 end;
 {$D+}
@@ -3956,7 +4118,10 @@ function TwbContainer.ElementRelease: Integer;
 label
   Skip;
 begin
-  //if LockedDec(cntElementRefs) = 0 then
+  {$IFDEF WIN64}
+  if LockedDec(cntElementRefs) = 0 then
+  {$ENDIF WIN64}
+  {$IFDEF WIN32}
   asm
          mov  eax, -1
          mov  ecx, [Self]
@@ -3964,6 +4129,7 @@ begin
          cmp  eax, 1
          jne  Skip
   end;
+  {$ENDIF WIN32}
   DoReset(False);
 Skip:
 
@@ -4538,7 +4704,7 @@ begin
     Exit;
   if Supports(aElement.Container, IwbContainer, Container) then begin
     for i := 0 to Pred(RecordDef.MemberCount) do
-      if RecordDef.Members[i].Name = aElement.Name then
+      if RecordDef.Members[i].Equals(aElement.Def) then
         break;
     if i < RecordDef.MemberCount then begin
       RemoveElement(aElement);
@@ -4618,7 +4784,7 @@ begin
     Exit;
   if Supports(aElement.Container, IwbContainer, Container) then begin
     for i := 0 to Pred(RecordDef.MemberCount) do
-      if RecordDef.Members[i].Name = aElement.Name then
+      if RecordDef.Members[i].Equals(aElement.Def) then
         break;
     if i < RecordDef.MemberCount then begin
       RemoveElement(aElement);
@@ -4856,6 +5022,10 @@ begin
   end;
   if aName = '..' then
     Result := GetContainer
+  else if (Length(aName) > 0) and (aName[1] = '[') and (aName[Length(aName)] = ']') then begin
+    i := StrToIntDef(Copy(aName, 2, Length(aName) - 2), 0);
+    Result := GetElement(i);
+  end
   else
     Result := GetElementByName(aName);
   if not Assigned(Result) and (Length(aName) = 4) then
@@ -5141,6 +5311,22 @@ begin
     Result := Group.Add(aName, aSilent);
 
     Exit;
+  end else if wbVWDAsQuestChildren and (GetSignature = 'QUST') and
+     (
+        SameText(s, 'DLBR') or
+        SameText(s, 'DIAL') or
+        SameText(s, 'SCEN')
+     ) then begin
+
+    Group := GetChildGroup;
+    if not Assigned(Group) then begin
+      Group := TwbGroupRecord.Create(GetContainer, 10, Self);
+      mrGroup := Group;
+    end;
+
+    Result := Group.Add(aName, aSilent);
+
+    Exit;
   end;
 
   if Assigned(mrDef) then begin
@@ -5293,7 +5479,7 @@ begin
             with TwbMainRecord(MainRecord.ElementID) do begin
               Self.mrStruct.mrsFlags := mrStruct.mrsFlags;
               Self.mrStruct.mrsVCS1 := DefaultVCS1;
-              if wbGameMode in [gmFO3, gmFNV, gmTES5] then begin
+              if wbGameMode in [gmFO3, gmFNV, gmTES5, gmSSE, gmFO4] then begin
                 Self.mrStruct.mrsVersion := mrStruct.mrsVersion;
                 Self.mrStruct.mrsVCS2 := DefaultVCS2; //mrStruct.mrsVCS2;
               end;
@@ -5302,7 +5488,7 @@ begin
         end;
 
         if Supports(Self.GetContainer, IwbGroupRecord, GroupRecord) then
-          if GroupRecord.GroupType in [1, 4..10] then
+          if wbCreateContainedIn and (GroupRecord.GroupType in [1, 4..10]) then
             with TwbContainedInElement.Create(Self) do begin
               _AddRef; _Release;
             end;
@@ -5557,7 +5743,10 @@ begin
       CELL: SearchForGroup := 6;
       DIAL: SearchForGroup := 7;
     else
-      SearchForGroup := 0;
+      if wbVWDAsQuestChildren and (GetSignature = 'QUST') then
+        SearchForGroup := 10
+      else
+        SearchForGroup := 0;
     end;
     if (SearchForGroup > 0) and Supports(GetContainer, IwbGroupRecord, ContainingGroup) then begin
       mrGroup := ContainingGroup.FindChildGroup(SearchForGroup, Self);
@@ -5727,6 +5916,7 @@ var
   i            : Integer;
   SelfRef      : IwbContainerElementRef;
   Group        : IwbGroupRecordInternal;
+  Group2       : IwbGroupRecordInternal;
   ContainerRef : IwbContainerElementRef;
   s            : string;
   Block        : Cardinal;
@@ -5743,17 +5933,22 @@ begin
   BasePtr.mrsFlags._Flags := 0;
   BasePtr.mrsFormID := aFormID;
   BasePtr.mrsVCS1 := DefaultVCS1;
-  if wbGameMode >= gmTES5 then
-    BasePtr.mrsVersion := 43
-  else
-    BasePtr.mrsVersion := 15;
+  case wbGameMode of
+    gmFO4 : BasePtr.mrsVersion := 131;
+    gmTES5: BasePtr.mrsVersion := 43;
+    gmSSE : BasePtr.mrsVersion := 44;
+    gmFNV : BasePtr.mrsVersion := 15;
+    gmFO3 : BasePtr.mrsVersion := 15;
+    else    BasePtr.mrsVersion := 15;
+  end;
   BasePtr.mrsVCS2 := DefaultVCS2;
 
   Group := nil;
   if Supports(lContainer, IwbGroupRecordInternal, Group) then
     if Group.GroupType = 8 then
       BasePtr.mrsFlags.SetPersistent(True)
-    else if Group.GroupType = 10 then
+    else if (Group.GroupType = 10) and not (wbVWDAsQuestChildren
+               and Supports(Group.Container, IwbGroupRecord, Group2) and (TwbSignature(Group2.GroupLabel) = 'QUST')) then
       BasePtr.mrsFlags.SetVisibleWhenDistant(True);
 
   if Assigned(Group) then
@@ -5879,7 +6074,7 @@ begin
   GetFlagsPtr.SetDeleted(True);
 
   if Supports(Self.GetContainer, IwbGroupRecord, GroupRecord) then
-    if GroupRecord.GroupType in [1, 4..10] then
+    if wbCreateContainedIn and (GroupRecord.GroupType in [1, 4..10]) then
       with TwbContainedInElement.Create(Self) do begin
         _AddRef; _Release;
       end;
@@ -5948,7 +6143,7 @@ begin
 
   if not (mrsQuickInit in mrStates) then begin
     if Supports(Self.GetContainer, IwbGroupRecord, GroupRecord) then
-      if GroupRecord.GroupType in [1, 4..10] then
+      if wbCreateContainedIn and (GroupRecord.GroupType in [1, 4..10]) then
         with TwbContainedInElement.Create(Self) do begin
           _AddRef; _Release;
         end;
@@ -6225,7 +6420,7 @@ var
   GroupRecord: IwbGroupRecord;
 begin
   Result := 1;
-  if Supports(Self.GetContainer, IwbGroupRecord, GroupRecord) then
+  if wbCreateContainedIn and Supports(Self.GetContainer, IwbGroupRecord, GroupRecord) then
     if GroupRecord.GroupType in [1, 4..10] then
       Inc(Result);
 end;
@@ -6257,6 +6452,11 @@ begin
     Result[9] := 'PBAR'; {>>> Skyrim <<<}
     Result[10] := 'PHZD'; {>>> Skyrim <<<}
   end else if GetSignature = 'WRLD' then begin
+  end else if wbVWDAsQuestChildren and (GetSignature = 'QUST') then begin
+    SetLength(Result, 3);
+    Result[0] := 'DIAL';
+    Result[1] := 'DLBR';
+    Result[2] := 'SCEN';
   end;
 
   j := 0;
@@ -6395,18 +6595,24 @@ var
 begin
   Result := mrGroup;
   if not Assigned(Result) and not (mrsSearchedChildGroup in mrStates) then begin
-    Include(mrStates, mrsSearchedChildGroup);
-    SearchForGroup := 0;
-    if GetSignature = 'WRLD' then
-      SearchForGroup := 1
-    else if GetSignature = 'CELL' then
-      SearchForGroup := 6
-    else if GetSignature = 'DIAL' then
-      SearchForGroup := 7;
+    try
+      Include(mrStates, mrsSearchedChildGroup);
+      SearchForGroup := 0;
+      if GetSignature = 'WRLD' then
+        SearchForGroup := 1
+      else if GetSignature = 'CELL' then
+        SearchForGroup := 6
+      else if GetSignature = 'DIAL' then
+        SearchForGroup := 7
+      else if wbVWDAsQuestChildren and (GetSignature = 'QUST') then
+        SearchForGroup := 10;
 
-    if (SearchForGroup > 0) and Supports(GetContainer, IwbGroupRecord, ContainingGroup) then
-      mrGroup := ContainingGroup.FindChildGroup(SearchForGroup, Self);
-    Result := mrGroup;
+      if (SearchForGroup > 0) and Supports(GetContainer, IwbGroupRecord, ContainingGroup) then
+        mrGroup := ContainingGroup.FindChildGroup(SearchForGroup, Self);
+      Result := mrGroup;
+    finally
+      Exclude(mrStates, mrsSearchedChildGroup);
+    end;
   end;
 end;
 
@@ -6705,6 +6911,110 @@ begin
     end;
   end;
   Result := mrsHasMesh in mrStates;
+end;
+
+function TwbMainRecord.GetHasPrecombinedMesh: Boolean;
+begin
+  if not (mrsHasPrecombinedMeshChecked in mrStates) then
+    Self.GetPrecombinedMesh;
+
+  Result := mrsHasPrecombinedMesh in mrStates;
+end;
+
+type
+  TwbPrecombinedInfo = record
+    Ref, ID: Cardinal;
+  end;
+
+var
+  PrecombinedCacheFileName: string;
+  PrecombinedCacheCellFormID: Cardinal;
+  PrecombinedCache: array of TwbPrecombinedInfo;
+
+function TwbMainRecord.GetPrecombinedMesh: string;
+var
+  Signature   : TwbSignature;
+  SelfRef     : IwbContainerElementRef;
+  Group       : IwbGroupRecord;
+  Cell        : IwbMainRecord;
+  CombinedRefs, CombinedRef: IwbContainerElementRef;
+  cnt, i      : Cardinal;
+  s: string;
+begin
+  Result := '';
+
+  if not (mrsHasPrecombinedMeshChecked in mrStates) then begin
+
+    // we need file for cache checking
+    if not Assigned(IwbElement(Self)._File) then
+      Exit;
+
+    Include(mrStates, mrsHasPrecombinedMeshChecked);
+    Self.mrPrecombinedCellID := 0;
+    Self.mrPrecombinedID := 0;
+
+    if wbGameMode <> gmFO4 then
+      Exit;
+
+    Signature := Self.GetSignature;
+
+    if (Signature <> 'REFR') and
+       (Signature <> 'PGRE') and
+       (Signature <> 'PMIS') and
+       (Signature <> 'PARW') and
+       (Signature <> 'PBEA') and
+       (Signature <> 'PFLA') and
+       (Signature <> 'PCON') and
+       (Signature <> 'PBAR') and
+       (Signature <> 'PHZD')
+    then
+      Exit;
+
+    SelfRef := Self as IwbContainerElementRef;
+
+    // markers can't be precombined
+    if Cardinal(SelfRef.ElementNativeValues['NAME']) < $800 then
+      Exit;
+
+    if Supports(SelfRef.Container, IwbGroupRecord, Group) then
+      Cell := Group.ChildrenOf;
+
+    if not Assigned(Cell) then
+      Exit;
+
+    s := IwbElement(Self)._File.Name;
+    i := Cell.FormID;
+
+    // store cell's precombined index in cache
+    if (i <> PrecombinedCacheCellFormID) or (s <> PrecombinedCacheFileName) then begin
+      PrecombinedCacheCellFormID := i;
+      PrecombinedCacheFileName := s;
+      SetLength(PrecombinedCache, 0);
+
+      if Supports(Cell.ElementByPath['XCRI\References'], IwbContainerElementRef, CombinedRefs) then begin
+        cnt := CombinedRefs.ElementCount;
+        SetLength(PrecombinedCache, cnt);
+        for i := 0 to Pred(cnt) do
+          if Supports(CombinedRefs[i], IwbContainerElementRef, CombinedRef) and (CombinedRef.ElementCount = 2) then begin
+            PrecombinedCache[i].Ref := CombinedRef.Elements[0].NativeValue;
+            PrecombinedCache[i].ID := CombinedRef.Elements[1].NativeValue;
+          end;
+      end;
+    end;
+
+    // search for ref in precombined index cache
+    if Length(PrecombinedCache) > 0 then
+      for i := Low(PrecombinedCache) to High(PrecombinedCache) do
+        if PrecombinedCache[i].Ref = Self.GetFormID then begin
+          Self.mrPrecombinedCellID := Cell.FormID and $00FFFFFF;
+          Self.mrPrecombinedID := PrecombinedCache[i].ID;
+          Include(mrStates, mrsHasPrecombinedMesh);
+          Break;
+        end;
+  end;
+
+  if mrsHasPrecombinedMesh in mrStates then
+    Result := 'Precombined\' + IntToHex(Self.mrPrecombinedCellID, 8) + '_' + IntToHex(Self.mrPrecombinedID, 8) + '_OC.nif';
 end;
 
 function TwbMainRecord.GetHasVisibleWhenDistantMesh: Boolean;
@@ -7424,7 +7734,8 @@ begin
       (Signature = 'PHZD') or {>>> Skyrim <<<}
       (Signature = 'NAVM') or
       (Signature = 'ROAD') or
-      (Signature = 'LAND');
+      (Signature = 'LAND') or
+      (wbVWDAsQuestChildren and ((Signature = 'DLBR') or (Signature = 'DIAL') or (Signature = 'SCEN')));
 end;
 
 procedure TwbMainRecord.MakeHeaderWriteable;
@@ -7669,7 +7980,7 @@ begin
         if (GetSignature <> 'INFO') then
           raise Exception.Create('Record ' + GetName + ' can not be contained in ' + GroupRecord.Name);
       end;
-      8, 10: begin {Persistent and Visible when Distant}
+      8, 10: begin {Persistent and Visible when Distant/Quest Children}
         if (GetSignature <> 'REFR') and
            (GetSignature <> 'ACHR') and
            (GetSignature <> 'ACRE') and
@@ -7682,14 +7993,15 @@ begin
            (GetSignature <> 'PBAR') and {>>> Skyrim <<<}
            (GetSignature <> 'PHZD')     {>>> Skyrim <<<}
         then
-          raise Exception.Create('Record ' + GetName + ' can not be contained in ' + GroupRecord.Name);
+          if not (wbVWDAsQuestChildren and ((GetSignature = 'DLBR') or (GetSignature = 'DIAL') or (GetSignature = 'SCEN'))) then
+            raise Exception.Create('Record ' + GetName + ' can not be contained in ' + GroupRecord.Name);
 
         case GroupRecord.GroupType of
           8:begin
             if not mrStruct.mrsFlags.IsPersistent then
               raise Exception.Create('Record ' + GetName + ' needs to have it''s Persistent flag set to be contained in ' + GroupRecord.Name);
           end;
-          10: begin
+          10: if not wbVWDAsQuestChildren then begin
             if not mrStruct.mrsFlags.IsVisibleWhenDistant then
               raise Exception.Create('Record ' + GetName + ' needs to have it''s Visible when Distant flag set to be contained in ' + GroupRecord.Name);
             if mrStruct.mrsFlags.IsPersistent then
@@ -8152,7 +8464,7 @@ begin
       GetFlagsPtr.SetDeleted(False);
 
       if Supports(Self.GetContainer, IwbGroupRecord, GroupRecord) then
-        if GroupRecord.GroupType in [1, 4..10] then
+        if wbCreateContainedIn and (GroupRecord.GroupType in [1, 4..10]) then
           with TwbContainedInElement.Create(Self) do begin
             _AddRef; _Release;
           end;
@@ -9387,47 +9699,48 @@ begin
   ValueDef := Resolve(srDef.Value, BasePtr, dcDataEndPtr, Self);
   srArraySizePrefix := 0;
 
-  if ValueDef.Name = '' then begin
-    srValueDef := ValueDef;
-    case ValueDef.DefType of
-      dtArray: begin
-        Include(srStates, srsIsArray);
-        if ArrayDoInit(ValueDef, Self, BasePtr, dcDataEndPtr, srArraySizePrefix) then
-          Include(srStates, srsSorted);
-      end;
-      dtStruct, dtStructChapter: StructDoInit(ValueDef, Self, BasePtr, dcDataEndPtr);
-      dtUnion:  begin
-        Include(srStates, srsIsUnion);
-        case UnionDoInit(ValueDef, Self, BasePtr, dcDataEndPtr) of
-          ufArray: Include(srStates, srsIsArray);
-          ufSortedArray: begin
-            Include(srStates, srsIsArray);
+  if Assigned(ValueDef) then
+    if ValueDef.Name = '' then begin
+      srValueDef := ValueDef;
+      case ValueDef.DefType of
+        dtArray: begin
+          Include(srStates, srsIsArray);
+          if ArrayDoInit(ValueDef, Self, BasePtr, dcDataEndPtr, srArraySizePrefix) then
             Include(srStates, srsSorted);
-          end;
-          ufFlags: begin
-            Include(srStates, srsIsFlags);
-            Include(srStates, srsSorted);
+        end;
+        dtStruct, dtStructChapter: StructDoInit(ValueDef, Self, BasePtr, dcDataEndPtr);
+        dtUnion:  begin
+          Include(srStates, srsIsUnion);
+          case UnionDoInit(ValueDef, Self, BasePtr, dcDataEndPtr) of
+            ufArray: Include(srStates, srsIsArray);
+            ufSortedArray: begin
+              Include(srStates, srsIsArray);
+              Include(srStates, srsSorted);
+            end;
+            ufFlags: begin
+              Include(srStates, srsIsFlags);
+              Include(srStates, srsSorted);
+            end;
           end;
         end;
+      else
+        if ValueDoInit(ValueDef, Self, BasePtr, dcDataEndPtr, Self) then begin
+          Include(srStates, srsIsFlags);
+          Include(srStates, srsSorted);
+        end;
       end;
-    else
-      if ValueDoInit(ValueDef, Self, BasePtr, dcDataEndPtr, Self) then begin
-        Include(srStates, srsIsFlags);
-        Include(srStates, srsSorted);
+      // flags are already created in the right sort order
+      if srStates * [srsSorted, srsIsFlags] = [srsSorted] then
+        Include(srStates, srsSortInvalid);
+    end else
+      case ValueDef.DefType of
+        dtArray: Element := TwbArray.Create(Self, BasePtr, dcDataEndPtr, ValueDef, '');
+        dtStruct: Element := TwbStruct.Create(Self, BasePtr, dcDataEndPtr, ValueDef, '');
+        dtStructChapter: Element := TwbChapter.Create(Self, BasePtr, dcDataEndPtr, ValueDef, '');
+        dtUnion: Element := TwbUnion.Create(Self, BasePtr, dcDataEndPtr, ValueDef, '');
+      else
+        Element := TwbValue.Create(Self, BasePtr, dcDataEndPtr, ValueDef, '');
       end;
-    end;
-    // flags are already created in the right sort order
-    if srStates * [srsSorted, srsIsFlags] = [srsSorted] then
-      Include(srStates, srsSortInvalid);
-  end else
-    case ValueDef.DefType of
-      dtArray: Element := TwbArray.Create(Self, BasePtr, dcDataEndPtr, ValueDef, '');
-      dtStruct: Element := TwbStruct.Create(Self, BasePtr, dcDataEndPtr, ValueDef, '');
-      dtStructChapter: Element := TwbChapter.Create(Self, BasePtr, dcDataEndPtr, ValueDef, '');
-      dtUnion: Element := TwbUnion.Create(Self, BasePtr, dcDataEndPtr, ValueDef, '');
-    else
-      Element := TwbValue.Create(Self, BasePtr, dcDataEndPtr, ValueDef, '');
-    end;
 
   if Assigned(dcDataEndPtr) and Assigned(BasePtr) and (BasePtr <> dcDataEndPtr) then begin
     HasUnusedData := not SameText(ValueDef.Name, 'Unused');
@@ -9438,7 +9751,7 @@ begin
           HasUnusedData := True;
           Break;
         end;
-        Inc(Cardinal(BasePtr));
+        Inc(PByte(BasePtr));
       end;
     end;
     if HasUnusedData then begin
@@ -9714,7 +10027,7 @@ begin
   Assert( SizeAvailable >= SizeNeeded );
 
   BasePtr := aBasePtr;
-  Inc(Cardinal(aBasePtr), SizeNeeded );
+  Inc(PByte(aBasePtr), SizeNeeded );
   inherited;
 
   Assert(srStruct.srsDataSize = Cardinal( dcDataEndPtr ) - Cardinal( dcDataBasePtr ));
@@ -9822,7 +10135,7 @@ begin
 
   BasePtr := aBasePtr;
   Move(dcBasePtr^, aBasePtr^, SizeNeeded);
-  Inc(Cardinal(aBasePtr), SizeNeeded );
+  Inc(PByte(aBasePtr), SizeNeeded );
   inherited;
 
   if not Assigned(dcEndPtr) then
@@ -10105,7 +10418,10 @@ begin
           (Signature <> 'ACRE') and
           (Signature <> 'ACHR') then
          Exit;
-   10: if (Signature <> 'REFR') then
+   10: if (not wbVWDAsQuestChildren and (Signature <> 'REFR')) or
+          (wbVWDAsQuestChildren and
+             not ((Signature = 'REFR') or (Signature = 'DLBR') or (Signature = 'DIAL') or (Signature = 'SCEN')))
+       then
          Exit;
   else
     Exit;
@@ -10157,9 +10473,9 @@ var
   i         : Integer;
 begin
   if esUnsaved in aElement.ElementStates then  // Let's not penalised too much loading time.
-    if TwbSignature(grStruct.grsLabel) = 'DIAL' then  // Issue 86: https://code.google.com/p/skyrim-plugin-decoding-project/issues/detail?id=86
+    if ((TwbSignature(grStruct.grsLabel) = 'DIAL') or wbVWDAsQuestChildren) then  // Issue 86: https://code.google.com/p/skyrim-plugin-decoding-project/issues/detail?id=86
       if Supports(aElement, IwbGroupRecord, DialGroup) then // The DIAL GRUP must immediatly follow corresponding DIAL MainRecord.
-        if DialGroup.GroupType = 7 then
+        if DialGroup.GroupType = 7 then // Let's hope nobody messes up the groupType
           if Supports(Self, IwbContainer, Container) then
             if Container.ElementCount > 0 then
               for i := 0 to Pred(Container.ElementCount) - 1 do  // If we are reading the plugins and at the end don't bother moving data around.
@@ -10244,6 +10560,27 @@ begin
           Result := MainRecord.ChildGroup;
           if not Assigned(Result) then
             Result := TwbGroupRecord.Create(Self, 1, MainRecord);
+
+          GroupRecord2 := Result as IwbGroupRecord;
+          if aDeepCopy then
+            for i := 0 to Pred(GroupRecord.ElementCount) do
+              GroupRecord2.AddIfMissing(GroupRecord.Elements[i], aAsNew, aDeepCopy, aPrefixRemove, aPrefix, aSuffix);
+
+          Exit;
+        end;
+      end else if wbVWDAsQuestChildren and (TwbSignature(grStruct.grsLabel) = 'QUST') then begin
+        if Supports(aElement, IwbGroupRecord, GroupRecord) then begin
+          if GroupRecord.GroupType <> 10 then
+            raise Exception.Create('Can''t add '+GroupRecord.Name+' to top level group with signature ' + TwbSignature(grStruct.grsLabel));
+          MainRecord := GroupRecord.ChildrenOf;
+          if not Assigned(MainRecord) then
+            raise Exception.Create('Can''t find record for '+ GroupRecord.Name);
+          MainRecord := MainRecord.HighestOverrideOrSelf[GetFile.LoadOrder];
+          MainRecord := AddIfMissingInternal(MainRecord, aAsNew, True, aPrefixRemove, aPrefix, aSuffix) as IwbMainRecord;
+          Assert(Assigned(MainRecord));
+          Result := MainRecord.ChildGroup;
+          if not Assigned(Result) then
+            Result := TwbGroupRecord.Create(Self, 10, MainRecord);
 
           GroupRecord2 := Result as IwbGroupRecord;
           if aDeepCopy then
@@ -10496,6 +10833,26 @@ begin
         Result.BuildRef;
     end;
     8, 9, 10: begin
+      if wbVWDAsQuestChildren and Supports(aElement, IwbGroupRecord, GroupRecord) then begin
+        if GroupRecord.GroupType <> 7 then
+          raise Exception.Create('Can''t add '+GroupRecord.Name+' to top level group with signature ' + TwbSignature(grStruct.grsLabel));
+        MainRecord := GroupRecord.ChildrenOf;
+        if not Assigned(MainRecord) then
+          raise Exception.Create('Can''t find record for '+ GroupRecord.Name);
+        MainRecord := MainRecord.HighestOverrideOrSelf[GetFile.LoadOrder];
+        MainRecord := AddIfMissingInternal(MainRecord, aAsNew, True, aPrefixRemove, aPrefix, aSuffix) as IwbMainRecord;
+        Assert(Assigned(MainRecord));
+        Result := MainRecord.ChildGroup;
+        if not Assigned(Result) then
+          Result := TwbGroupRecord.Create(Self, 7, MainRecord);
+
+        GroupRecord2 := Result as IwbGroupRecord;
+        if aDeepCopy then
+          for i := 0 to Pred(GroupRecord.ElementCount) do
+            GroupRecord2.AddIfMissing(GroupRecord.Elements[i], aAsNew, aDeepCopy, aPrefixRemove, aPrefix, aSuffix);
+
+        Exit;
+      end;
       if not Supports(aElement, IwbMainRecord, MainRecord) then
         raise Exception.Create('Only main records can be added to ' + GetName);
       if (MainRecord.Signature <> 'REFR') and
@@ -10510,8 +10867,16 @@ begin
          (MainRecord.Signature <> 'PBAR') and {>>> Skyrim <<<}
          (MainRecord.Signature <> 'PHZD')     {>>> Skyrim <<<}
       then
-        if (grStruct.grsGroupType <> 9) or ((MainRecord.Signature <> 'PGRD') and (MainRecord.Signature <> 'LAND') and (MainRecord.Signature <> 'NAVM')) then
+        // check any non reference record
+        if not (
+          // DIAL, DLBR and SCEN can be added to child group 10 (quest children)
+          (wbVWDAsQuestChildren and (grStruct.grsGroupType = 10) and ((MainRecord.Signature = 'DLBR') or (MainRecord.Signature = 'DIAL') or (MainRecord.Signature = 'SCEN')))
+          or
+          // PGRD, LAND and NAVM can be added to child group 9 (temporary)
+          (grStruct.grsGroupType = 9) and ((MainRecord.Signature = 'PGRD') or (MainRecord.Signature = 'LAND') or (MainRecord.Signature = 'NAVM'))
+        ) then
           raise Exception.Create('Can''t add main record with signature '+MainRecord.Signature+' to ' + GetName);
+
       if aAsNew then
         FormID := GetFile.NewFormID
       else begin
@@ -10578,7 +10943,11 @@ begin
 
   case aType of
     1: Assert(aMainRecord.Signature = 'WRLD');
-    6, 8, 9, 10: Assert(aMainRecord.Signature = 'CELL');
+    6, 8, 9: Assert(aMainRecord.Signature = 'CELL');
+    10: Assert(
+      (aMainRecord.Signature = 'CELL') or
+      (wbVWDAsQuestChildren and (aMainRecord.Signature = 'QUST'))
+    );
     7: Assert(aMainRecord.Signature = 'DIAL');
   end;
 
@@ -10719,7 +11088,13 @@ begin
          Result[9] := 'PBAR'; {>>> Skyrim <<<}
          Result[10] := 'PHZD'; {>>> Skyrim <<<}
        end;
-    10: begin
+    10: if wbVWDAsQuestChildren then begin
+         SetLength(Result, 3);
+         Result[0] := 'DIAL';
+         Result[1] := 'DLBR';
+         Result[2] := 'SCEN';
+      end
+      else begin
          SetLength(Result, 1);
          Result[0] := 'REFR';
        end;
@@ -10817,7 +11192,10 @@ begin
     7: Result := Result + ' Topic Children of ';
     8: Result := Result + ' Cell Persistent Children of ';
     9: Result := Result + ' Cell Temporary Children of ';
-    10: Result := Result + ' Cell Visible Distant Children of ';
+    10: if wbVWDAsQuestChildren then
+      Result := Result + ' Quest Children of '
+    else
+      Result := Result + ' Cell Visible Distant Children of ';
   else
     Result := Result + ' Unknown type: ' + IntToStr(grStruct.grsGroupType);
     Exit;
@@ -10853,7 +11231,10 @@ begin
     7: Result := 'Children of ' + IntToHex(grStruct.grsLabel, 8);
     8: Result := 'Persistent';
     9: Result := 'Temporary';
-    10: Result := 'Visible when Distant';
+    10: if wbVWDAsQuestChildren then
+      Result := 'Children of ' + IntToHex(grStruct.grsLabel, 8)
+    else
+      Result := 'Visible when Distant';
   else
     Result := Result + ' Unknown type: ' + IntToStr(grStruct.grsGroupType);
   end;
@@ -11302,7 +11683,8 @@ begin
   Include(grStates, gsSorting);
   try
     ChildrenOf := GetChildrenOf;
-    if Assigned(ChildrenOf) and (ChildrenOf.Signature = 'DIAL') then begin
+    // there is no PNAM in Fallout 4, looks like INFOs are no longer linked lists
+    if (wbGameMode <> gmFO4) and Assigned(ChildrenOf) and (ChildrenOf.Signature = 'DIAL') then begin
       {>>> Sorting DIAL group doesn't always work, and Skyrim.esm has a plenty of unsorted DIALs <<<}
       {>>> Also disabled for FNV, https://code.google.com/p/skyrim-plugin-decoding-project/issues/detail?id=59 <<<}
       if not wbSortGroupRecord then
@@ -11342,7 +11724,7 @@ begin
             else if not TargetRecord.IsDeleted then if wbBeginInternalEdit then try
               if not TargetRecord.ElementExists['PNAM'] then begin
                 {>>> No QSTI in Skyrim, using DIAL\QNAM <<<}
-                if wbGameMode = gmTES5 then begin
+                if wbGameMode in [ gmTES5, gmSSE ] then begin
                   Supports(TargetRecord.Container, IwbGroupRecord, g);
                   InfoQuest := g.ChildrenOf.ElementNativeValues['QNAM'];
                 end else
@@ -11350,7 +11732,7 @@ begin
                 InsertRecord := PrevRecord;
                 Inserted := False;
                 while Assigned(InsertRecord) do begin
-                  if wbGameMode = gmTES5 then begin
+                  if wbGameMode in [ gmTES5, gmSSE ] then begin
                     Supports(InsertRecord.Container, IwbGroupRecord, g);
                     InfoQuest2 := g.ChildrenOf.ElementNativeValues['QNAM'];
                   end else
@@ -11459,6 +11841,7 @@ function TwbElement.AddIfMissing(const aElement: IwbElement; aAsNew, aDeepCopy :
 {$IFDEF USE_CODESITE}
 var
   Log: Boolean;
+  Group : IwbGroupRecord;
 {$ENDIF}
 begin
   if (wbCurrentTick>0) and (wbCurrentTick+500<GetTickCount) then begin
@@ -11477,6 +11860,8 @@ begin
       CodeSite.Send('aElement.Name', aElement.Name);
       CodeSite.Send('aElement.Path', aElement.Path);
       CodeSite.Send('aElement.Value', aElement.Value);
+      if Supports(aElement, IwbGrouprecord, Group) then
+        CodeSite.Send('aGroup.Type', Group.GroupType);
     end else
         CodeSite.Send('aElement', 'nil');
   end;
@@ -11517,7 +11902,10 @@ label
   Skip;
 begin
   inherited;
-  //if LockedDec(eExternalRefs) = 0 then
+  {$IFDEF WIN64}
+  if LockedDec(eExternalRefs) = 0 then
+  {$ENDIF WIN64}
+  {$IFDEF WIN32}
   asm
          mov  eax, -1
          mov  ecx, [Self]
@@ -11525,6 +11913,7 @@ begin
          cmp  eax, 1
          jne  Skip
   end;
+  {$ENDIF WIN32}
   eContainerRef := nil;
 Skip:
   Include(eStates, esConstructionComplete);
@@ -11593,16 +11982,21 @@ end;
 procedure TwbElement.BeforeDestruction;
 begin
   Assert(eExternalRefs = 0);
-  Assert(FRefCount = 0);
+  if (FRefCount and $7FFFFFFF) <> 0 then
+    Assert(FRefCount = 0);
   Include(eStates, esDestroying);
   inherited BeforeDestruction;
-  //LockedInc(eExternalRefs);
-  //LockedInc(FRefCount);
+  {$IFDEF WIN64}
+  LockedInc(eExternalRefs);
+  LockedInc(FRefCount);
+  {$ENDIF WIN64}
+  {$IFDEF WIN32}
   asm
          mov eax, [Self]
     lock inc dword ptr [eax + eExternalRefs]
     lock inc dword ptr [eax + FRefCount]
   end;
+  {$ENDIF WIN64}
 end;
 
 function TwbElement.BeginDecide: Boolean;
@@ -11841,7 +12235,8 @@ end;
 
 procedure TwbElement.FreeInstance;
 begin
-  Assert(FRefCount = 1);
+  if (FRefCount and $7FFFFFFF) <> 1 then
+    Assert(FRefCount = 1);
   Assert(eExternalRefs = 1);
   inherited;
 end;
@@ -12181,13 +12576,24 @@ function TwbElement.GetSortKey(aExtended: Boolean): string;
 begin
   if aExtended then begin
     if not (esExtendedSortKeyValid in eStates) then begin
-      eExtendedSortKey := GetSortKeyInternal(aExtended);
+      if not (esSorting in eStates) then begin
+        Include(eStates, esSorting);
+        eExtendedSortKey := GetSortKeyInternal(aExtended);
+        Exclude(eStates, esSorting);
+      end
+      else
+        eExtendedSortKey := GetSortKeyInternal(aExtended);
       Include(eStates, esExtendedSortKeyValid);
     end;
     Result := eExtendedSortKey;
   end else begin
     if not (esSortKeyValid in eStates) then begin
-      eSortKey := GetSortKeyInternal(aExtended);
+      if not (esSorting in eStates) then begin
+        Include(eStates, esSorting);
+        eSortKey := GetSortKeyInternal(aExtended);
+        Exclude(eStates, esSorting);
+      end else
+        eSortKey := GetSortKeyInternal(aExtended);
       Include(eStates, esSortKeyValid);
     end;
     Result := eSortKey;
@@ -12207,6 +12613,26 @@ end;
 function TwbElement.GetSortPriority: Integer;
 begin
   Result := 0;
+end;
+
+function TwbElement.GetTreeBranch: Boolean;
+var
+  NamedDef: IwbNamedDef;
+begin
+  if Supports(GetDef, IwbNamedDef, NamedDef) then
+    Result := NamedDef.TreeBranch
+  else
+    Result := False;
+end;
+
+function TwbElement.GetTreeHead: Boolean;
+var
+  NamedDef: IwbNamedDef;
+begin
+  if Supports(GetDef, IwbNamedDef, NamedDef) then
+    Result := NamedDef.TreeHead
+  else
+    Result := False;
 end;
 
 function TwbElement.GetValue: string;
@@ -12667,7 +13093,10 @@ label
   Skip;
 begin
   Assert(not (esDestroying in eStates));
-  //if LockedInc(eExternalRefs) = 1 then
+  {$IFDEF WIN64}
+  if LockedInc(eExternalRefs) = 1 then
+  {$ENDIF WIN64}
+  {$IFDEF WIN32}
   asm
          mov  eax, 1
          mov  ecx, [Self]
@@ -12675,6 +13104,7 @@ begin
          cmp  eax, 0
          jne  Skip
   end;
+  {$ENDIF WIN32}
   eContainerRef := IInterface(eContainer) as IwbContainerElementRef;
 Skip:
 
@@ -12685,7 +13115,10 @@ function TwbElement._Release: Integer;
 label
   Skip;
 begin
-  //if LockedDec(eExternalRefs) = 0 then
+  {$IFDEF WIN64}
+  if LockedDec(eExternalRefs) = 0 then
+  {$ENDIF WIN64}
+  {$IFDEF WIN32}
   asm
          mov  eax, -1
          mov  ecx, [Self]
@@ -12693,6 +13126,7 @@ begin
          cmp  eax, 1
          jne  Skip
   end;
+  {$ENDIF WIN32}
   eContainerRef := nil;
 Skip:
   Result := inherited _Release;
@@ -12943,6 +13377,9 @@ begin
         SubRecord.SetDef(ElementDef as IwbSubRecordDef);
         AddElement(SubRecord);
       end;
+      dtSubRecordArray: begin
+        Element := TwbSubRecordArray.Create(Self, aContainer, aPos, ElementDef as IwbSubRecordArrayDef);
+      end;
       dtSubRecordStruct:
         Element := TwbSubRecordStruct.Create(Self, aContainer, aPos, ElementDef as IwbSubRecordStructDef);
     else
@@ -13083,7 +13520,7 @@ var
 begin
   for CurrentDefPos := 0 to Pred(srcDef.MemberCount) do begin
     CurrentDef := srcDef.Members[CurrentDefPos];
-    if (CurrentDefPos = 0) or CurrentDef.Required then begin
+    if ((CurrentDefPos = 0) and not srcDef.AllowUnordered) or CurrentDef.Required then begin
 
       if CurrentDef.DefType = dtSubRecordUnion then begin
         CurrentDef := (CurrentDef as IwbRecordDef).Members[0];
@@ -13380,7 +13817,7 @@ end;
 
 function TwbSubRecordStruct.IsElementRemoveable(const aElement: IwbElement): Boolean;
 begin
-  Result := IsElementEditable(aElement) and (Length(cntElements) > 0) and not cntElements[0].Equals(aElement);
+  Result := IsElementEditable(aElement) and (Length(cntElements) > 1) and (srcDef.AllowUnordered or not cntElements[0].Equals(aElement));
   if Result and Assigned(aElement.Def) then
     Result := not aElement.Def.Required;
 end;
@@ -13478,7 +13915,7 @@ begin
         dtUnion: Element := TwbUnion.Create(aContainer, aBasePtr, aEndPtr, ValueDef, t);
         dtString: begin
           if Assigned(aBasePtr) and (PAnsiChar(aBasePtr)^ = #0) and (ValueDef.IsVariableSize) then begin
-            Inc(Cardinal(aBasePtr));
+            Inc(PByte(aBasePtr));
             Break;
           end;
           Element := TwbValue.Create(aContainer, aBasePtr, aEndPtr, ValueDef, t);
@@ -13738,12 +14175,24 @@ begin
 end;
 
 procedure TwbArray.DoInit;
+var
+  i       : Integer;
+  Sorting : Boolean;
 begin
   inherited;
   if arrSorted and arrSortInvalid then
-    if Length(cntElements) > 1 then
-      wbMergeSort(@cntElements[0], Length(cntElements), CompareSortKeys);
-  arrSortInvalid := False;
+    if (Length(cntElements) > 1) then begin
+      Sorting := False;
+      for i := 0 to Length(cntElements)-1 do
+        if (esSorting in (cntElements[i] as IwbElementInternal).ElementStates) then begin
+          Sorting := TRue;
+          Break;
+        end;
+        if not Sorting then begin
+          wbMergeSort(@cntElements[0], Length(cntElements), CompareSortKeys);
+          arrSortInvalid := False;
+        end;
+    end;
 end;
 
 procedure TwbArray.ElementChanged(const aElement: IwbElement; aContainer: Pointer);
@@ -13770,7 +14219,7 @@ end;
 
 function TwbArray.IsElementRemoveable(const aElement: IwbElement): Boolean;
 begin
-  Result := IsElementEditable(aElement) and ((vbValueDef as IwbArrayDef).ElementCount <= 0) and (Length(cntElements)>1);
+  Result := IsElementEditable(aElement) and ((vbValueDef as IwbArrayDef).ElementCount <= 0) { and (Length(cntElements)>1)};
 end;
 
 procedure TwbArray.PrepareSave;
@@ -13883,18 +14332,29 @@ begin
 end;
 
 procedure TwbStruct.DecompressIfNeeded;
+var
+  sc : TwbStructCompression;
 begin
-  if IsCompressed then try
+  sc := IsCompressed;
+  if sc <> scNone then try
     InitDataPtr; // reset...
 
     SetLength(dcDataStorage, szUncompressedSize );
 
-    DecompressToUserBuf(
-      Pointer(Cardinal(dcDataBasePtr)),
-      GetDataSize,
-      @dcDataStorage[0],
-      PCardinal(dcDataBasePtr)^
-    );
+    case sc of
+      scNone: Assert(False);  // Getting there would be very funny :)
+      scZComp:
+        DecompressToUserBuf(
+          Pointer(Cardinal(dcDataBasePtr)),
+          GetDataSize,
+          @dcDataStorage[0],
+          PCardinal(dcDataBasePtr)^
+        );
+      scLZComp:
+        LZ4_decompress_safe(Pointer(Cardinal(dcDataBasePtr)), @dcDataStorage[0], GetDataSize, szUncompressedSize);
+      else
+        Assert(False);  // Something hasn't been updated yet.
+    end;
 
     dcDataEndPtr := Pointer( Cardinal(@dcDataStorage[0]) + szUncompressedSize );
     dcDataBasePtr := @dcDataStorage[0];
@@ -13904,16 +14364,21 @@ begin
   end;
 end;
 
-function TwbStruct.GetIsCompressed: Boolean;
+function TwbStruct.GetIsCompressed: TwbStructCompression;
 var
   szDef : IwbStructZDef;
+  lzDef : IwbStructLZDef;
 begin
   if (szCompressedSize = 0) then
-    if Supports(vbValueDef, IwbStructZDef, szDef)  then
-      szUncompressedSize := szDef.GetSizing(GetDataBasePtr, GetDataEndPtr, Self, szCompressedSize)
-    else
+    if Supports(vbValueDef, IwbStructZDef, szDef)  then begin
+      szUncompressedSize := szDef.GetSizing(GetDataBasePtr, GetDataEndPtr, Self, szCompressedSize);
+      if szUncompressedSize <> 0 then szCompressedType := scZComp;
+    end else if Supports(vbValueDef, IwbStructLZDef, lzDef)  then begin
+      szUncompressedSize := lzDef.GetSizing(GetDataBasePtr, GetDataEndPtr, Self, szCompressedSize);
+      if szUncompressedSize <> 0 then szCompressedType := scLZComp;
+    end else
       szCompressedSize := -1;
-  Result := szUncompressedSize <> 0
+  Result := szCompressedType;
 end;
 
 { TwbUnion }
@@ -14106,32 +14571,37 @@ begin
 
   ValueDef := Resolve(aValueDef, aBasePtr, aEndPtr, aElement);
 
-  if wbFlagsAsArray then
-    if Supports(ValueDef, IwbIntegerDef, IntegerDef) then
-      if Supports(IntegerDef.Formater[aElement], IwbFlagsDef, FlagsDef) then begin
+  if Assigned(ValueDef) then
+  begin
+    if wbFlagsAsArray then
+      if Supports(ValueDef, IwbIntegerDef, IntegerDef) then
+        if Supports(IntegerDef.Formater[aElement], IwbFlagsDef, FlagsDef) then begin
+          if Assigned(aBasePtr) and (FlagsDef.FlagCount > 0) then begin
+            j := IntegerDef.ToInt(aBasePtr, aEndPtr, aContainer);
+            if j <> 0 then
+              for i := 0 to Pred(FlagsDef.FlagCount) do
+                if (j and (Cardinal(1) shl i)) <> 0 then begin
+                  t := FlagsDef.Flags[i];
+                  if (t <> '') and (not wbHideUnused or not SameText(t,'Unused')) then
+                    Element := TwbFlag.Create(aContainer, aBasePtr, aEndPtr, IntegerDef, FlagsDef, i);
+                  j := j and not (Cardinal(1) shl i);
+                  if j = 0 then
+                    Break;
+                end;
+          end;
 
-        if Assigned(aBasePtr) and (FlagsDef.FlagCount > 0) then begin
-          j := IntegerDef.ToInt(aBasePtr, aEndPtr, aContainer);
-          if j <> 0 then
-            for i := 0 to Pred(FlagsDef.FlagCount) do
-              if (j and (Cardinal(1) shl i)) <> 0 then begin
-                t := FlagsDef.Flags[i];
-                if (t <> '') and (not wbHideUnused or not SameText(t,'Unused')) then
-                  Element := TwbFlag.Create(aContainer, aBasePtr, aEndPtr, IntegerDef, FlagsDef, i);
-                j := j and not (Cardinal(1) shl i);
-                if j = 0 then
-                  Break;
-              end;
+          Result := True;
+
         end;
 
-        Result := True;
-
-      end;
-
-  ValueDef.AfterLoad(aContainer);
+    ValueDef.AfterLoad(aContainer);
+  end;
 
   if wbMoreInfoForUnknown then begin
-    t := ValueDef.Name;
+    if Assigned(ValueDef) then
+      t := ValueDef.Name
+    else
+      t := '';
     if t = '' then
       t := aContainer.Def.Name;
     if SameText(t, 'Unknown') and (not Assigned(aBasePtr) or (aBasePtr <> aEndPtr)) then
@@ -14158,14 +14628,23 @@ begin
         Element := TwbArray.Create(aContainer, BasePtr, aEndPtr, wbArray('Offset '+IntToStr(i)+' AsFloat', wbFloat('AsFloat')), '', True);
         BasePtr := Pointer( Cardinal(aBasePtr) + i );
         Element := TwbArray.Create(aContainer, BasePtr, aEndPtr, wbArray('Offset '+IntToStr(i)+' AsString', wbString('AsString')), '', True);
+        if wbToolSource in [tsSaves] then begin
+          BasePtr := Pointer( Cardinal(aBasePtr) + i );
+          Element := TwbArray.Create(aContainer, BasePtr, aEndPtr, wbArray('Offset '+IntToStr(i)+' AsRefID', wbRefID('RefID')), '', True);
+          BasePtr := Pointer( Cardinal(aBasePtr) + i );
+          Element := TwbArray.Create(aContainer, BasePtr, aEndPtr, wbArray('Offset '+IntToStr(i)+' AsU6to30', wbInteger('AsU6to30', itU6to30)), '', True);
+        end;
       end;
   end;
 
-  i := ValueDef.Size[aBasePtr, aEndPtr, aContainer];
+  if assigned(ValueDef) then
+    i := ValueDef.Size[aBasePtr, aEndPtr, aContainer]
+  else
+    i := High(Integer);
   if i = Cardinal(High(Integer)) then
     aBasePtr := aEndPtr
   else if Assigned(aBasePtr) then
-    Inc(Cardinal(aBasePtr), i);
+    Inc(PByte(aBasePtr), i);
 end;
 
 
@@ -14346,16 +14825,25 @@ begin
   FilesMap.Clear;
 end;
 
+function wbExpandFileName(const aFileName: string): string;
+begin
+  if ExtractFilePath(aFileName) = '' then
+    Result := wbDataPath + ExtractFileName(aFileName)
+  else
+    Result := aFileName;
+end;
+
 function wbFile(const aFileName: string; aLoadOrder: Integer = -1; aCompareTo: string = '';
-  aOnlyHeader: Boolean = False; IsTemporary: Boolean = False): IwbFile;
+  IsTemporary: Boolean = False; aOnlyHeader: Boolean = False): IwbFile;
 var
   FileName: string;
   i: Integer;
 begin
-  if ExtractFilePath(aFileName) = '' then
+  FileName := wbExpandFileName(aFileName);
+  {if ExtractFilePath(aFileName) = '' then
     FileName := ExpandFileName('.\'+aFileName)
   else
-    FileName := ExpandFileName(aFileName);
+    FileName := ExpandFileName(aFileName);}
 
   if FilesMap.Find(FileName, i) then
     Result := IwbFile(Pointer(FilesMap.Objects[i]))
@@ -14376,10 +14864,11 @@ var
   i        : Integer;
   _File    : IwbFileInternal;
 begin
-  if ExtractFilePath(aFileName) = '' then
+  FileName := wbExpandFileName(aFileName);
+  {if ExtractFilePath(aFileName) = '' then
     FileName := ExpandFileName('.\'+aFileName)
   else
-    FileName := ExpandFileName(aFileName);
+    FileName := ExpandFileName(aFileName);}
 
   try
     if FilesMap.Find(FileName, i) then
@@ -14401,10 +14890,11 @@ var
   FileName: string;
   i: Integer;
 begin
-  if ExtractFilePath(aFileName) = '' then
+  FileName := wbExpandFileName(aFileName);
+  {if ExtractFilePath(aFileName) = '' then
     FileName := ExpandFileName('.\'+aFileName)
   else
-    FileName := ExpandFileName(aFileName);
+    FileName := ExpandFileName(aFileName);}
 
   if FilesMap.Find(FileName, i) then
     raise Exception.Create(FileName + ' exists already')
@@ -14838,7 +15328,8 @@ begin
   SizeNeeded := GetDataSize;
   if SizeNeeded > 0 then begin
     SizeAvailable := Cardinal( aEndPtr ) - Cardinal( aBasePtr );
-    Assert( SizeAvailable >= SizeNeeded );
+    if (SizeAvailable < SizeNeeded) then
+      Assert( SizeAvailable >= SizeNeeded );
 
     BasePtr := aBasePtr;
     Inc(PByte(aBasePtr), GetDataPrefixSize);
@@ -14846,12 +15337,12 @@ begin
 
     if BasePtr = aBasePtr then begin
       if not (dcfDontMerge in dcFlags) then
-        Inc(Cardinal(aBasePtr), SizeNeeded);
+        Inc(PByte(aBasePtr), SizeNeeded);
     end else
       if Cardinal(aBasePtr) - Cardinal(BasePtr) > SizeNeeded then // we overwrote something
         Assert( Cardinal(aBasePtr) - Cardinal(BasePtr) = SizeNeeded)
       else // Adjust size of data not initialized yet
-        Cardinal(aBasePtr) := Cardinal(BasePtr) + SizeNeeded;
+        aBasePtr := PByte(BasePtr) + SizeNeeded;
 
     dcDataBasePtr := BasePtr;
     dcDataEndPtr := aBasePtr;
@@ -14878,6 +15369,14 @@ begin
         if Cardinal(aEndPtr) <= Cardinal(dcEndPtr) then
           if Cardinal(aBasePtr)+anOffset < Cardinal(dcEndPtr) then
             Result := True;
+end;
+
+function TwbDataContainer.IsLocalOffset(anOffset: Integer): Boolean;
+begin
+  if Cardinal(dcDataBasePtr)+anOffset < Cardinal(dcDataEndPtr) then
+    Result := True
+  else
+    Result := False;
 end;
 
 procedure TwbDataContainer.MergeStorageInternal(var aBasePtr: Pointer; aEndPtr: Pointer);
@@ -14910,7 +15409,7 @@ begin
       Move(dcDataBasePtr^, aBasePtr^, SizeNeeded);
 
       dcDataBasePtr := aBasePtr;
-      Inc(Cardinal(aBasePtr), SizeNeeded);
+      Inc(PByte(aBasePtr), SizeNeeded);
       dcDataEndPtr := aBasePtr;
 
       BasePtr := dcDataBasePtr;
@@ -15207,19 +15706,22 @@ var
   Container: IwbDataContainer;
 begin
   Resolved := Resolve(vbValueDef, GetDataBasePtr, GetDataEndPtr, Self);
-  if (Resolved <> vbValueDef) and (Resolved.DefType in dtNonValues) then
+  if (not Assigned(Resolved)) or (Resolved <> vbValueDef) and (Resolved.DefType in dtNonValues) then
     Result := vbValueDef.Name
   else
     Result := Resolved.Name;
-  if (Resolved.DefType in dtNonValues) and (wbDumpOffset=1) then // simply display starting offset.
-    Result := Result + ' {' + IntToHex64(Cardinal(GetDataBasePtr)-wbBaseOffset, 8) + '}';
-  // something for Dump: Displaying the size in {} and the array count in []
-  //  Triggers a lot of pre calculations
-  if (Resolved.DefType in dtNonValues) and (wbDumpOffset>2) then
-    Result := Result + ' {' + IntToHex64(Cardinal(GetDataEndPtr)-wbBaseOffset, 8) + '-' + IntToHex64(Cardinal(GetDataBasePtr)-wbBaseOffset, 8) +
-      ' = ' +IntToStr(Resolved.Size[GetDataBasePtr, GetDataEndPtr, Self]) + '}';
-  if (Resolved.DefType = dtArray) and (wbDumpOffset>1) and Supports(Self, IwbDataContainer, Container) then
-    Result := Result + ' [' + IntToStr(Container.GetElementCount) + ']';
+  if Assigned(Resolved) then
+  begin
+    if (Resolved.DefType in dtNonValues) and (wbDumpOffset=1) then // simply display starting offset.
+      Result := Result + ' {' + IntToHex64(Cardinal(GetDataBasePtr)-wbBaseOffset, 8) + '}';
+    // something for Dump: Displaying the size in {} and the array count in []
+    //  Triggers a lot of pre calculations
+    if (Resolved.DefType in dtNonValues) and (wbDumpOffset>2) then
+      Result := Result + ' {' + IntToHex64(Cardinal(GetDataEndPtr)-wbBaseOffset, 8) + '-' + IntToHex64(Cardinal(GetDataBasePtr)-wbBaseOffset, 8) +
+        ' = ' +IntToStr(Resolved.Size[GetDataBasePtr, GetDataEndPtr, Self]) + '}';
+    if (Resolved.DefType = dtArray) and (wbDumpOffset>1) and Supports(Self, IwbDataContainer, Container) then
+      Result := Result + ' [' + IntToStr(Container.GetElementCount) + ']';
+  end;
   if vbNameSuffix <> '' then
     Result := Result + ' ' + vbNameSuffix;
 end;
@@ -15575,14 +16077,14 @@ end;
 procedure TwbStringListTerminator.InformStorage(var aBasePtr: Pointer; aEndPtr: Pointer);
 begin
   Assert( Cardinal(aBasePtr) < Cardinal(aEndPtr));
-  Inc(Cardinal(aBasePtr));
+  Inc(PByte(aBasePtr));
 end;
 
 procedure TwbStringListTerminator.MergeStorageInternal(var aBasePtr: Pointer; aEndPtr: Pointer);
 begin
   Assert( Cardinal(aBasePtr) < Cardinal(aEndPtr));
   PAnsiChar(aBasePtr)^ := #0;
-  Inc(Cardinal(aBasePtr));
+  Inc(PByte(aBasePtr));
 end;
 
 procedure TwbStringListTerminator.SetEditValue(const aValue: string);
@@ -15643,6 +16145,7 @@ procedure TwbContainedInElement.ContainerChanged;
 var
   MainRecord     : IwbMainRecord;
   GroupRecord    : IwbGroupRecord;
+  Grp            : TwbGroupTypes;
 begin
   if cieLockCount > 0 then
     Exit;
@@ -15657,11 +16160,14 @@ begin
   if GroupRecord.GroupType = 4 then
     if not Supports(GroupRecord.Container, IwbGroupRecord, GroupRecord) then
       Exit;
-  if GroupRecord.GroupType in [8..10] then
+
+  if wbVWDAsQuestChildren then Grp := [8..9] else Grp := [8..10];
+  if GroupRecord.GroupType in Grp then
     if not Supports(GroupRecord.Container, IwbGroupRecord, GroupRecord) then
       Exit;
 
-  if not (GroupRecord.GroupType in [1, 6, 7]) then
+  if wbVWDAsQuestChildren then Grp := [1, 6, 7, 10] else Grp := [1, 6, 7];
+  if not (GroupRecord.GroupType in Grp) then
     Exit;
 
   PCardinal(GetDataBasePtr)^ := GroupRecord.GroupLabel;
@@ -15675,22 +16181,30 @@ constructor TwbContainedInElement.Create(const aMainRecord: IwbMainRecord);
 var
   BasePtr        : Pointer;
   EndPtr         : Pointer;
-
   GroupRecord    : IwbGroupRecord;
+  Grp            : TwbGroupTypes;
 begin
+  // MainRecord must be in a group
   if not Supports(aMainRecord.Container, IwbGroupRecord, GroupRecord) then
     Assert(False);
+  // if that group is Exterior Sub-Block, then it must be in a group too, get it
   if GroupRecord.GroupType = 5 then
     if not Supports(GroupRecord.Container, IwbGroupRecord, GroupRecord) then
       Assert(False);
+  // if that group is Exterior Block, then it must be in a group too, get it
   if GroupRecord.GroupType = 4 then
     if not Supports(GroupRecord.Container, IwbGroupRecord, GroupRecord) then
       Assert(False);
-  if GroupRecord.GroupType in [8..10] then
+  // if group is persistent, temporary or vwd cell children, it should be in a group too
+  // if vwd is treated as quest children, then exclude it from check
+  if wbVWDAsQuestChildren then Grp := [8..9] else Grp := [8..10];
+  if GroupRecord.GroupType in Grp then
     if not Supports(GroupRecord.Container, IwbGroupRecord, GroupRecord) then
       Assert(False);
 
-  Assert(GroupRecord.GroupType in [1, 6, 7]);
+  // the final list of parent groups, mainrecords in those will have ContainedIn element
+  if wbVWDAsQuestChildren then Grp := [1, 6, 7, 10] else Grp := [1, 6, 7];
+  Assert(GroupRecord.GroupType in Grp);
 
   Include(dcFlags, dcfDontMerge);
   Include(dcFlags, dcfDontSave);
@@ -15907,6 +16421,7 @@ const
   WRLD : TwbSignature = 'WRLD';
   CELL : TwbSignature = 'CELL';
   DIAL : TwbSignature = 'DIAL';
+  QUST : TwbSignature = 'QUST';
 
 { TwbFileSource }
 
@@ -15923,6 +16438,9 @@ var
   MasterFiles : IwbContainerElementRef;
   fPath       : String;
   i           : Integer;
+  modOffset   : Cardinal;
+  modPtr      : Pointer;
+  mods        : TwbArray;
 begin
   if (GetElementCount <> 1) or not Supports(GetElement(0), IwbFileHeader, Header) then
     raise Exception.CreateFmt('Unexpected error reading file "%s"', [flFileName]);
@@ -15931,7 +16449,14 @@ begin
     raise Exception.CreateFmt('Expected File Magic %s, found %s in file "%s"',
       [wbFileMagic, String(Header.FileMagic), flFileName]);
 
-  MasterFiles := Header.ElementByName[wbFilePlugins] as IwbContainerElementRef;
+  if Pos('Absolute:', wbFilePlugins)=1 then begin
+    modOffset := Cardinal(flView)+StrToInt(Copy(wbFilePlugins, 10, Length(wbFilePlugins)));
+    modPtr := Pointer(modOffset);
+    mods := TwbArray.Create(nil, modPtr, flEndPtr, wbArray('Modules', wbLenString('PluginName', 2), -4), '', False);
+    Supports(mods, IwbContainerElementRef, MasterFiles);
+  end else
+    MasterFiles := Header.ElementByName[wbFilePlugins] as IwbContainerElementRef;
+
   if Assigned(MasterFiles) then
     for i := 0 to Pred(MasterFiles.ElementCount) do begin
       fPath := wbDataPath + MasterFiles[i].Value;
@@ -15995,6 +16520,9 @@ var
   Container   : IwbContainer;
   SelfRef     : IwbContainerElementRef;
   fPath       : String;
+  modOffset   : Cardinal;
+  modPtr      : Pointer;
+  mods        : TwbArray;
 
 begin
   SelfRef := Self as IwbContainerElementRef;
@@ -16015,7 +16543,14 @@ begin
   if fsOnlyHeader in flStates then
     Exit;
 
-  MasterFiles := Header.ElementByName[wbFilePlugins] as IwbContainerElementRef;
+  if Pos('Absolute:', wbFilePlugins)=1 then begin
+    modOffset := Cardinal(flView)+StrToInt(Copy(wbFilePlugins, 10, Length(wbFilePlugins)));
+    modPtr := Pointer(modOffset);
+    mods := TwbArray.Create(nil, modPtr, flEndPtr, wbArray('Modules', wbLenString('PluginName', 2), -4), '', False);
+    Supports(mods, IwbContainerElementRef, MasterFiles);
+  end else
+    MasterFiles := Header.ElementByName[wbFilePlugins] as IwbContainerElementRef;
+
   if Assigned(MasterFiles) then
     for i := 0 to Pred(MasterFiles.ElementCount) do begin
       fPath := wbDataPath + MasterFiles[i].Value;
@@ -16088,6 +16623,16 @@ begin
   cChapterSkipped := cChapterSkipped or ChaptersToSkip.Find(aValueDef.Name, Dummy);
 end;
 
+function TwbChapter.GetChapterName: String;
+var
+  Struct : IwbStructCDef;
+begin
+  if Assigned(vbValueDef) and Supports(vbValueDef, IwbStructCDef, Struct) then
+    Result := Struct.GetChapterName(dcBasePtr, dcEndPtr, Self)
+  else
+    Result := Struct.GetChapterTypeName(dcBasePtr, dcEndPtr, Self);
+end;
+
 function TwbChapter.GetChapterType: Integer;
 var
   Struct : IwbStructCDef;
@@ -16102,7 +16647,7 @@ var
   Struct : IwbStructCDef;
 begin
   if Assigned(vbValueDef) and Supports(vbValueDef, IwbStructCDef, Struct) then
-    Result := IntToStr(Struct.GetChapterType(dcBasePtr, dcEndPtr, Self))
+    Result := Struct.GetChapterTypeName(dcBasePtr, dcEndPtr, Self)
   else
     Result := IntToStr(Struct.GetChapterType(dcBasePtr, dcEndPtr, Self));
 end;
@@ -16168,6 +16713,7 @@ initialization
   wbContainedInDef[1] := wbFormIDCk('Worldspace', [WRLD], False, cpNormal, True);
   wbContainedInDef[6] := wbFormIDCk('Cell', [CELL], False, cpNormal, True);
   wbContainedInDef[7] := wbFormIDCk('Topic', [DIAL], False, cpNormal, True);
+  wbContainedInDef[10] := wbFormIDCk('Quest', [QUST], False, cpNormal, True);
 
   SubRecordOrderList := TwbFastStringList.Create;
   SubRecordOrderList.Sorted := True;
@@ -16198,4 +16744,5 @@ finalization
   wbContainedInDef[1] := nil;
   wbContainedInDef[6] := nil;
   wbContainedInDef[7] := nil;
+  wbContainedInDef[10] := nil;
 end.

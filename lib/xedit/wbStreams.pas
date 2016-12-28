@@ -61,9 +61,12 @@ type
     function Seek(const Offset: Int64; Origin: TSeekOrigin): Int64; override;
 
     function ReadSignature: TwbSignature; inline;
+    function ReadByte: Byte; inline;
+    function ReadWord: Word; inline;
     function ReadCardinal: Cardinal; inline;
     function ReadInt64: Int64; inline;
-    function ReadStringLen: string; inline;
+    function ReadStringLen(Term: Boolean = True): string; inline;
+    function ReadStringLen16: string; inline;
     function ReadStringTerm: string; inline;
 
     procedure WriteCardinal(aCardinal: Cardinal); inline;
@@ -293,7 +296,17 @@ begin
   ReadBuffer(Result, SizeOf(Result));
 end;
 
-function TwbBaseCachedFileStream.ReadStringLen: string;
+function TwbBaseCachedFileStream.ReadByte: Byte;
+begin
+  ReadBuffer(Result, SizeOf(Result));
+end;
+
+function TwbBaseCachedFileStream.ReadWord: Word;
+begin
+  ReadBuffer(Result, SizeOf(Result));
+end;
+
+function TwbBaseCachedFileStream.ReadStringLen(Term: Boolean = True): string;
 var
   Len : Byte;
   s   : AnsiString;
@@ -302,8 +315,21 @@ begin
   SetLength(s, Len);
   if Len > 0 then begin
     ReadBuffer(s[1], Len);
-    SetLength(s, Pred(Length(s)));
+    if Term then
+      SetLength(s, Pred(Length(s)));
   end;
+  Result := s;
+end;
+
+function TwbBaseCachedFileStream.ReadStringLen16: string;
+var
+  Len : Word;
+  s   : AnsiString;
+begin
+  ReadBuffer(Len, 2);
+  SetLength(s, Len);
+  if Len > 0 then
+    ReadBuffer(s[1], Len);
   Result := s;
 end;
 
