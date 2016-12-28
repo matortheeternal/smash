@@ -31,6 +31,7 @@ type
     function CreateNewProfile(name: string): TProfilePanel;
     procedure NewProfileItemClick(Sender: TObject);
     procedure LoadProfiles;
+    function ProfileExists(gameMode: Integer): Boolean;
     procedure CreateDefaultProfiles;
     procedure ProfilePopupMenuPopup(Sender: TObject);
     procedure SelectionChanged(Sender: TObject);
@@ -143,8 +144,7 @@ begin
   SelectCallback := SelectionChanged;
   DeleteCallback := DeleteClicked;
   LoadProfiles;
-  if ProfilePanels.Count = 0 then
-    CreateDefaultProfiles;
+  CreateDefaultProfiles;
   FOldWndProc := NewProfilePanel.WindowProc;
   NewProfilePanel.WindowProc := PanelWndProc;
 end;
@@ -185,6 +185,21 @@ begin
   until FindNext(info) <> 0;
 end;
 
+function TProfileForm.ProfileExists(gameMode: Integer): Boolean;
+var
+  i: Integer;
+  profile: TProfile;
+begin
+  Result := False;
+  for i := 0 to Pred(ProfilePanels.Count) do begin
+    profile := TProfilePanel(ProfilePanels[i]).GetProfile;
+    if profile.gameMode = gameMode then begin
+      Result := True;
+      break;
+    end;
+  end;
+end;
+
 procedure TProfileForm.CreateDefaultProfiles;
 var
   i: Integer;
@@ -192,8 +207,9 @@ var
   p: TProfilePanel;
 begin
   for i := Low(GameArray) to High(GameArray) do begin
+    if ProfileExists(i) then continue;
     path := GetGamePath(GameArray[i]);
-    name := GameArray[i].gameName + 'Profile';
+    name := GameArray[i].appName;
     if path <> '' then begin
       p := CreateNewProfile(name);
       p.SetGame(i);
