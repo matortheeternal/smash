@@ -169,6 +169,7 @@ object OptionsForm: TOptionsForm
         Margins.Bottom = 6
         Align = alCustom
         Caption = 'Submissions'
+        Enabled = False
         TabOrder = 2
         object lblUsername: TLabel
           Left = 12
@@ -188,7 +189,7 @@ object OptionsForm: TOptionsForm
           Alignment = taCenter
           Anchors = [akLeft, akTop, akRight]
           AutoSize = False
-          Caption = 'Invalid username'
+          Caption = 'N/A'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clRed
           Font.Height = -11
@@ -212,6 +213,7 @@ object OptionsForm: TOptionsForm
           Width = 187
           Height = 21
           Align = alCustom
+          Enabled = False
           TabOrder = 0
           OnChange = edUsernameChange
         end
@@ -225,6 +227,7 @@ object OptionsForm: TOptionsForm
           Align = alCustom
           Anchors = [akTop, akRight]
           Caption = 'Check'
+          Enabled = False
           ParentShowHint = False
           ShowHint = True
           TabOrder = 1
@@ -823,7 +826,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C010101000800580110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C0101010008005C0110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
