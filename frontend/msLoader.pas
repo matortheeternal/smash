@@ -25,6 +25,7 @@ uses
   procedure RemoveCommentsAndEmpty(var sl: TStringList);
   procedure RemoveMissingFiles(var sl: TStringList);
   procedure RemoveSmashedPatches(var sl: TStringList);
+  procedure FixLoadOrder(var sl: TStringList; filename: String; index: Integer);
   procedure AddMissingFiles(var sl: TStringList);
   procedure GetPluginDates(var sl: TStringList);
   function PluginListCompare(List: TStringList; Index1, Index2: Integer): Integer;
@@ -36,7 +37,7 @@ var
 implementation
 
 uses
-  SysUtils, IniFiles, ShlObj, Controls,
+  SysUtils, StrUtils, IniFiles, ShlObj, Controls,
   // mte units
   mteTracker, mteLogger, mteLogging, mtePluginSelectionForm,
   // mp units
@@ -45,7 +46,7 @@ uses
   // xEdit units
   wbHelpers, wbInterface, wbImplementation, wbBSA,
   wbDefinitionsFNV, wbDefinitionsFO3, wbDefinitionsTES3, wbDefinitionsTES4,
-  wbDefinitionsTES5;
+  wbDefinitionsTES5, wbDefinitionsFO4;
 
 
 {******************************************************************************}
@@ -84,7 +85,10 @@ begin
 
   // SET GAME VARS
   SetGame(CurrentProfile.gameMode);
-  wbVWDInTemporary := wbGameMode in [gmTES5, gmFO3, gmFNV];
+  wbVWDInTemporary := wbGameMode in [gmSSE, gmTES5, gmFO3, gmFNV];
+  wbVWDAsQuestChildren := wbGameMode = gmFO4;
+  wbArchiveExtension := IfThen(wbGameMode = gmFO4, '.ba2', '.bsa');
+  wbLoadBSAs := wbGameMode in [gmFO4, gmSSE, gmTES5, gmTES4];
   Logger.Write('GENERAL', 'Game', 'Using '+wbGameName);
   Logger.Write('GENERAL', 'Path', 'Using '+wbDataPath);
   Logger.Write('GENERAL', 'GameIni', 'Using '+wbTheGameIniFileName);
@@ -100,6 +104,7 @@ begin
   wbSortSubRecords := True;
   wbDisplayShorterNames := True;
   wbHideUnused := True;
+  wbHideIgnored := False;
   wbFlagsAsArray := True;
   wbRequireLoadOrder := True;
   wbLanguage := settings.language;
@@ -173,22 +178,23 @@ begin
   RemoveMissingFiles(slLoadOrder);
   AddMissingFiles(slLoadOrder);
 
-  // if GameMode is not Skyrim and user isn't using MO,
-  // sort by date modified else add Update.esm and
-  // Skyrim.esm to load order if they're missing
-  if wbGameMode <> gmTES5 then begin
+  // if GameMode is not Skyrim, SkyrimSE or Fallout 4 and user
+  // isn't using MO, sort by date modified else add base masters
+  // to load order if missing
+  if (wbGameMode = gmTES5) or (wbGameMode = gmSSE) then begin
+    FixLoadOrder(slLoadOrder, 'Skyrim.esm', 0);
+    FixLoadOrder(slLoadOrder, 'Update.esm', 1);
+  end
+  else if (wbGameMode = gmFO4) then begin
+    FixLoadOrder(slLoadOrder, 'Fallout4.esm', 0);
+  end
+  else begin
     if not settings.usingMO then begin
       GetPluginDates(slPlugins);
       GetPluginDates(slLoadOrder);
       slPlugins.CustomSort(PluginListCompare);
       slLoadOrder.CustomSort(PluginListCompare);
     end;
-  end
-  else begin
-    if slLoadOrder.IndexOf('Update.esm') = -1 then
-      slLoadOrder.Insert(0, 'Update.esm');
-    if slLoadOrder.IndexOf('Skyrim.esm') = -1 then
-      slLoadOrder.Insert(0, 'Skyrim.esm');
   end;
 
   // DISPLAY PLUGIN SELECTION FORM
@@ -226,6 +232,7 @@ var
 begin
   ProgramStatus.GameMode := GameArray[id];
   wbGameName := ProgramStatus.GameMode.gameName;
+  wbGameName2 := ProgramStatus.GameMode.regName;
   wbGameMode := ProgramStatus.GameMode.gameMode;
   wbAppName := ProgramStatus.GameMode.appName;
   wbDataPath := CurrentProfile.gamePath + 'Data\';
@@ -237,8 +244,7 @@ begin
   // find game ini inside the user's documents folder.
   sMyDocumentsPath := GetCSIDLShellFolder(CSIDL_PERSONAL);
   if sMyDocumentsPath <> '' then begin
-    sIniPath := sMyDocumentsPath + 'My Games\' + wbGameName + '\';
-
+    sIniPath := sMyDocumentsPath + 'My Games\' + wbGameName2 + '\';
     if wbGameMode in [gmFO3, gmFNV] then
       wbTheGameIniFileName := sIniPath + 'Fallout.ini'
     else
@@ -270,20 +276,20 @@ const
     'Uninstall\Steam App ';
 var
   i: Integer;
-  gameName: string;
+  regName: string;
   keys, appIDs: TStringList;
 begin
   Result := '';
 
   // initialize variables
-  gameName := mode.gameName;
+  regName := mode.regName;
   keys := TStringList.Create;
   appIDs := TStringList.Create;
   appIDs.CommaText := mode.appIDs;
 
   // add keys to check
-  keys.Add(sBethRegKey + gameName + '\Installed Path');
-  keys.Add(sBethRegKey64 + gameName + '\Installed Path');
+  keys.Add(sBethRegKey + regName + '\Installed Path');
+  keys.Add(sBethRegKey64 + regName + '\Installed Path');
   for i := 0 to Pred(appIDs.Count) do begin
     keys.Add(sSteamRegKey + appIDs[i] + '\InstallLocation');
     keys.Add(sSteamRegKey64 + appIDs[i] + '\InstallLocation');
@@ -309,6 +315,8 @@ begin
     gmFNV: DefineFNV;
     gmTES4: DefineTES4;
     gmFO3: DefineFO3;
+    gmFO4: DefineFO4;
+    gmSSE: DefineTES5;
   end;
 end;
 
@@ -450,16 +458,19 @@ end;
 { Remove comments and empty lines from a stringlist }
 procedure RemoveCommentsAndEmpty(var sl: TStringList);
 var
-  i, j: integer;
+  i, j, k: integer;
   s: string;
 begin
   for i := Pred(sl.Count) downto 0 do begin
     s := Trim(sl.Strings[i]);
     j := Pos('#', s);
+    k := Pos('*', s);
     if j > 0 then
       System.Delete(s, j, High(Integer));
-    if Trim(s) = '' then
+    if s = '' then
       sl.Delete(i);
+    if k = 1 then
+      sl[i] := Copy(s, 2, Length(s));
   end;
 end;
 
@@ -481,6 +492,18 @@ begin
   for i := Pred(sl.Count) downto 0 do
     if Assigned(TPatchHelpers.PatchByFilename(PatchesList, sl[i])) then
       sl.Delete(i);
+end;
+
+{ Forces a plugin to load at a specific position }
+procedure FixLoadOrder(var sl: TStringList; filename: String; index: Integer);
+var
+  oldIndex: Integer;
+begin
+  oldIndex := sl.IndexOf(filename);
+  if oldIndex <> index then begin
+    sl.Delete(oldIndex);
+    sl.Insert(index, filename);
+  end;
 end;
 
 { Add missing *.esp and *.esm files to list }
