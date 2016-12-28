@@ -320,6 +320,18 @@ begin
   end;
 end;
 
+procedure LoadBSAFile(sFileName: String);
+var
+  sFileExt: String;
+begin
+  sFileExt := ExtractFileExt(sFileName);
+  Logger.Write('LOAD', 'Resources', 'Loading resources from ' + sFileName);
+  if sFileExt = '.bsa' then
+    wbContainerHandler.AddBSA(wbDataPath + sFileName)
+  else if sFileExt = '.ba2' then
+    wbContainerHandler.AddBA2(wbDataPath + sFileName);
+end;
+
 { Loads all of the BSAs specified in the game ini and by plugins }
 procedure LoadBSAs;
 var
@@ -335,10 +347,8 @@ begin
     slErrors:= TStringList.Create;
     try
       FindBSAs(wbTheGameIniFileName, wbDataPath, slBSAFileNames, slErrors);
-      for i := 0 to slBSAFileNames.Count - 1 do begin
-        Logger.Write('LOAD', 'Resources', 'Loading resources from ' + slBSAFileNames[i]);
-        wbContainerHandler.AddBSA(wbDataPath + slBSAFileNames[i]);
-      end;
+      for i := 0 to slBSAFileNames.Count - 1 do
+        LoadBSAFile(slBSAFileNames[i]);
       for i := 0 to slErrors.Count - 1 do
         Logger.Write('ERROR', 'Load', slErrors[i] + ' was not found');
 
@@ -346,18 +356,15 @@ begin
         slBSAFileNames.Clear;
         slErrors.Clear;
         plugin := TPlugin(PluginsList[modIndex]);
-        bIsTES5 := wbGameMode = gmTES5;
+        bIsTES5 := wbGameMode in [gmTES5, gmSSE];
 
-        HasBSAs(ChangeFileExt(plugin.filename, ''),
-          wbDataPath, bIsTES5, bIsTES5, slBSAFileNames, slErrors);
-        for i := 0 to slBSAFileNames.Count - 1 do begin
-          Logger.Write('LOAD', 'Resources', 'Loading resources from ' + slBSAFileNames[i]);
-          wbContainerHandler.AddBSA(wbDataPath + slBSAFileNames[i]);
-        end;
+        HasBSAs(ChangeFileExt(plugin.filename, ''), wbDataPath, bIsTES5,
+          bIsTES5, slBSAFileNames, slErrors);
+        for i := 0 to slBSAFileNames.Count - 1 do
+          LoadBSAFile(slBSAFileNames[i]);
         for i := 0 to slErrors.Count - 1 do
           Logger.Write('ERROR', 'Load', slErrors[i] + ' was not found');
       end;
-
     finally
       slErrors.Free;
     end;
