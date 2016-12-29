@@ -46,6 +46,7 @@ type
         edPatchDirectory: TEdit;
         lblDestinationDirectory: TLabel;
         btnBrowsePatchDirectory: TSpeedButton;
+        kbMergeRedundant: TCheckBox;
         gbDebug: TGroupBox;
         kbDebugPatchStatus: TCheckBox;
         kbDebugMasters: TCheckBox;
@@ -92,10 +93,11 @@ type
         edModOrganizerPath: TEdit;
         lblModOrganizerModsPath: TLabel;
         edModOrganizerModsPath: TEdit;
+        lblModOrganizerInstanceName: TLabel;
+        edModOrganizerInstanceName: TEdit;
         [FormSection('DontTranslate')]
           btnBrowseMO: TSpeedButton;
           btnBrowseMOMods: TSpeedButton;
-    kbMergeRedundant: TCheckBox;
 
     procedure FormCreate(Sender: TObject);
     procedure LoadLanguageOptions;
@@ -248,6 +250,7 @@ begin
   settings.usingMO := kbUsingMO.Checked;
   settings.ManagerPath := edModOrganizerPath.Text;
   settings.ModsPath := edModOrganizerModsPath.Text;
+  settings.InstanceName := edModOrganizerInstanceName.Text;
 
   SaveSettings;
 end;
@@ -470,6 +473,7 @@ begin
   kbUsingMO.Checked := settings.usingMO;
   edModOrganizerPath.Text := settings.ManagerPath;
   edModOrganizerModsPath.Text := settings.ModsPath;
+  edModOrganizerInstanceName.Text := settings.InstanceName;
 
   // disable controls if not using mod organizer
   kbUsingMOClick(nil);
@@ -528,6 +532,7 @@ begin
   b := kbUsingMO.Checked;
   edModOrganizerPath.Enabled := b;
   edModOrganizerModsPath.Enabled := b;
+  edModOrganizerInstanceName.Enabled := b;
   btnBrowseMO.Enabled := b;
   btnBrowseMOMods.Enabled := b;
 end;

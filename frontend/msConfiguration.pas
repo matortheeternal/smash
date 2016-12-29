@@ -64,6 +64,7 @@ type
     usingNMM: boolean;
     ManagerPath: string;
     ModsPath: string;
+    InstanceName: string;
     constructor Create; virtual;
     procedure GenerateKey;
   end;

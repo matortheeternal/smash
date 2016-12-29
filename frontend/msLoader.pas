@@ -393,6 +393,17 @@ begin
   //Logger.Write('GENERAL', 'ModOrganizer', 'ActiveMods: '#13#10+ActiveMods.Text);
 end;
 
+function GetMODataPath: string;
+var
+  sAppData: String;
+begin
+  sAppData := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA);
+  if settings.InstanceName <> '' then
+    Result := Format('%sModOrganizer\%s\', [sAppData, settings.InstanceName])
+  else
+    Result := settings.ManagerPath;
+end;
+
 function GetActiveProfile: string;
 var
   ini : TMemIniFile;
@@ -404,7 +415,7 @@ begin
     exit;
 
   // load ini file
-  fname := settings.ManagerPath + 'ModOrganizer.ini';
+  fname := GetMODataPath + 'ModOrganizer.ini';
   if(not FileExists(fname)) then begin
     Logger.Write('GENERAL', 'ModOrganizer', 'Mod Organizer ini file ' + fname + ' does not exist');
     exit;

@@ -163,6 +163,8 @@ mpOpt_kbUsingMO_Caption=I'm using Mod Organizer
 mpOpt_kbCopyGeneralAssets_Caption=Copy general asssets
 mpOpt_lblModOrganizerPath_Caption=Mod Organizer path
 mpOpt_lblModOrganizerModsPath_Caption=Mod Organizer mods path
+mpOpt_lblModOrganizerInstanceName_Caption=Mod Organizer instance name
+mpOpt_edModOrganizerInstanceName_Hint=Leave blank if you aren't using MO2 or if you are using a portable installation of MO.
  
 { TSettingsManager }
 { ## Settings ## }

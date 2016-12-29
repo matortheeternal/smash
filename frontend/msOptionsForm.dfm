@@ -24,7 +24,7 @@ object OptionsForm: TOptionsForm
     Top = 8
     Width = 568
     Height = 401
-    ActivePage = GeneralTabSheet
+    ActivePage = IntegrationsTabSheet
     Align = alCustom
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
@@ -718,7 +718,7 @@ object OptionsForm: TOptionsForm
         Left = 6
         Top = 6
         Width = 548
-        Height = 107
+        Height = 139
         Margins.Left = 6
         Margins.Top = 6
         Margins.Right = 6
@@ -761,6 +761,13 @@ object OptionsForm: TOptionsForm
           ShowHint = True
           OnClick = btnBrowseMOModsClick
         end
+        object lblModOrganizerInstanceName: TLabel
+          Left = 12
+          Top = 104
+          Width = 113
+          Height = 13
+          Caption = 'Mod Organizer instance'
+        end
         object kbUsingMO: TCheckBox
           Left = 12
           Top = 20
@@ -784,6 +791,17 @@ object OptionsForm: TOptionsForm
           Width = 321
           Height = 21
           TabOrder = 2
+          OnExit = appendBackslashOnExit
+        end
+        object edModOrganizerInstanceName: TEdit
+          Left = 192
+          Top = 101
+          Width = 321
+          Height = 21
+          Hint = 
+            'Leave blank if you aren'#39't using MO2 or if you are using a portab' +
+            'le installation of MO.'
+          TabOrder = 3
           OnExit = appendBackslashOnExit
         end
       end
@@ -826,7 +844,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C0101010008005C0110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010101000800600110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
