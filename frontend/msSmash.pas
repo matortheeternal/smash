@@ -116,8 +116,12 @@ begin
         Tracker.Write('Actual masters:');
         Tracker.Write(slMasters.Text);
       end;
-    except on Exception do
-      // nothing
+    except
+      on x: Exception do begin
+        Tracker.Write('Critical exception adding masters!');
+        Tracker.Write(x.Message);
+        raise x;
+      end;
     end;
   finally
     slMasters.Free;
