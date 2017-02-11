@@ -148,7 +148,7 @@ begin
   if (not settings.usingMO) or (not DirectoryExists(sLoadPath)) then begin
     if settings.usingMO then
       Logger.Write('GENERAL', 'Load Order', 'Couldn''t find MO profile folder '+sLoadPath);
-    sLoadPath := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA) + wbGameName+'\';
+    sLoadPath := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA) + wbGameName2 +'\';
   end;
   Logger.Write('GENERAL', 'Load Order', 'Using '+sLoadPath+'loadorder.txt');
 
