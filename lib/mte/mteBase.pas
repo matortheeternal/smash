@@ -1308,20 +1308,66 @@ begin
   end;
 end;
 
+function IsUnionDef(def: IwbNamedDef; out unionDef: IwbUnionDef): Boolean;
+var
+  subDef: IwbSubRecordDef;
+begin
+  if Supports(def, IwbSubRecordDef, subDef) then
+    Result := Supports(subDef.GetValue, IwbUnionDef, unionDef)
+  else
+    Result := Supports(def, IwbUnionDef, unionDef);
+end;
+
+function HasDef(recObj: ISuperObject; name: String): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  for i := 0 to Pred(recObj.A['c'].Length) do
+    if recObj.A['c'].O[i].S['n'] = name then begin
+      Result := True;
+      exit;
+    end;
+end;
+
+procedure AddDefIfMissing(recObj: ISuperObject; def: IwbNamedDef; name: String);
+begin
+  if not HasDef(recObj, name) then
+    recObj.A['c'].Add(BuildDef(def, name));
+end;
+
+function SigToStr(sig: TwbSignature): String;
+var
+  i: Integer;
+begin
+  for i := Low(sig) to High(sig) do
+    if Ord(sig[i]) < 32 then
+      sig[i] := AnsiChar(Ord('a') + Ord(sig[i]));
+  Result := sig;
+end;
+
 procedure BuildChildDef(def: IwbNamedDef; recObj: ISuperObject);
 var
   i: Integer;
+  unionDef: IwbUnionDef;
   sigDef: IwbSignatureDef;
+  recDef: IwbRecordDef;
   name: String;
 begin
-  if Supports(def, IwbSignatureDef, sigDef) then begin
-    for i := 0 to Pred(sigDef.SignatureCount) do begin
-      name := string(sigDef.Signatures[i]) + ' - ' + sigDef.Name;
-      recObj.A['c'].Add(BuildDef(def, name));
-    end;
+  if IsUnionDef(def, unionDef) then begin
+    for i := 0 to Pred(unionDef.MemberCount) do
+      BuildChildDef(unionDef.Members[i] as IwbNamedDef, recObj);
+  end
+  else if Supports(def, IwbSubRecordUnionDef) and Supports(def, IwbRecordDef, recDef) then begin
+    for i := 0 to Pred(recDef.MemberCount) do
+      BuildChildDef(recDef.Members[i] as IwbNamedDef, recObj);
+  end
+  else if Supports(def, IwbSignatureDef, sigDef) then begin
+    name := SigToStr(sigDef.DefaultSignature) + ' - ' + sigDef.Name;
+    AddDefIfMissing(recObj, def, name);
   end
   else
-    recObj.A['c'].Add(BuildDef(def, def.Name));
+    AddDefIfMissing(recObj, def, def.Name);
 end;
 
 procedure BuildChildDefs(obj: ISuperObject; def: IwbNamedDef);
@@ -1333,7 +1379,6 @@ var
   structDef: IwbStructDef;
   intDef: IwbIntegerDefFormaterUnion;
   sraDef: IwbSubRecordArrayDef;
-  srsDef: IwbSubRecordStructDef;
   aDef: IwbArrayDef;
 begin
   // try SubRecordDef ValueDef
