@@ -1616,7 +1616,7 @@ begin
         // build record def if it doesn't exist
         if not Assigned(recObj) then begin
           def := GetRecordDef(rec.Signature);
-          if not BuildRecordDef(rec.Container, sName, def.rdeDef, recObj) then
+          if not BuildRecordDef(sName, def.rdeDef, recObj) then
             continue;
           tree.A['records'].Add(recObj);
           LoadElement(tv, tv.Items[0], recObj, false);

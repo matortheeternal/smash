@@ -53,12 +53,15 @@ type
   function dtToString(dt: TwbDefType): string;
   function ctToString(ct: TConflictThis): string;
   function stToString(st: TSmashType): string;
+  function SmashType(def: IwbNamedDef): TSmashtype;
   function GetSmashType(element: IwbElement): TSmashType;
   function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;
   function IndexedPath(e: IwbElement): string;
   function GetAllValues(e: IwbElement): string;
+  function IsSortedDef(def: IwbNamedDef): boolean;
   function IsSorted(e: IwbElement): boolean;
   function HasStructChildren(e: IwbElement): boolean;
+  function HasStructChildrenDef(def: IwbNamedDef): boolean;
   function WinningOverrideInFiles(rec: IwbMainRecord;
     var sl: TStringList): IwbMainRecord;
   function IsOverride(aRecord: IwbMainRecord): boolean;
@@ -81,9 +84,8 @@ type
   function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord): ISuperObject;
   function GetRecordObj(var tree: ISuperObject; name: string): ISuperObject;
   function GetRecordDef(sig: TwbSignature): TwbRecordDefEntry;
-  function BuildElementDef(element: IwbElement): ISuperObject;
-  function BuildRecordDef(container: IwbContainer; sName: string;
-    mrDef: IwbRecordDef; out recObj: ISuperObject): boolean; overload;
+  function BuildDef(def: IwbNamedDef; name: string): ISuperObject;
+  function BuildRecordDef(sName: string; mrDef: IwbRecordDef; out recObj: ISuperObject): boolean; overload;
   function BuildRecordDef(sName: string; out recObj: ISuperObject): boolean; overload;
   function GetEditableFileContainer: IwbContainerElementRef;
 
@@ -416,16 +418,15 @@ begin
   end;
 end;
 
-function GetSmashType(element: IwbElement): TSmashType;
+function SmashType(def: IwbNamedDef): TSmashtype;
 var
   subDef: IwbSubRecordDef;
   dt: TwbDefType;
   bIsSorted, bHasStructChildren: boolean;
 begin
-  dt := element.Def.DefType;
-  if Supports(element.Def, IwbSubRecordDef, subDef) then
-    dt := subDef.Value.DefType;
-
+  dt := def.DefType;
+  if Supports(def, IwbSubrecordDef, subDef) then
+    dt := subDef.GetValue.DefType;
   case Ord(dt) of
     Ord(dtRecord): Result := stRecord;
     Ord(dtSubRecord): Result := stUnknown;
@@ -441,8 +442,8 @@ begin
     Ord(dtFlag): Result := stFlag;
     Ord(dtFloat): Result := stFloat;
     Ord(dtSubRecordArray), Ord(dtArray): begin
-      bIsSorted := IsSorted(element);
-      bHasStructChildren := HasStructChildren(element);
+      bIsSorted := IsSortedDef(def);
+      bHasStructChildren := HasStructChildrenDef(def);
       if bIsSorted then begin
         if bHasStructChildren then
           Result := stSortedStructArray
@@ -462,6 +463,11 @@ begin
     Ord(dtStructChapter): Result := stStruct;
     else Result := stUnknown;
   end;
+end;
+
+function GetSmashType(element: IwbElement): TSmashType;
+begin
+  Result := SmashType(element.Def);
 end;
 
 function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;
@@ -541,6 +547,15 @@ begin
   end;
 end;
 
+function IsSortedDef(def: IwbNamedDef): boolean;
+var
+  arDef: IwbArrayDef;
+begin
+  Result := false;
+  if Supports(def, IwbArrayDef, arDef) then
+    Result := arDef.GetSorted;
+end;
+
 { Returns true if @e is a sorted container }
 function IsSorted(e: IwbElement): boolean;
 var
@@ -549,6 +564,11 @@ begin
   Result := false;
   if Supports(e, IwbSortableContainer, Container) then
     Result := Container.Sorted;
+end;
+
+function HasStructChildrenDef(def: IwbNamedDef): boolean;
+begin
+  Result := Supports(def, IwbSubRecordArrayDef);
 end;
 
 { Returns true if @e is a container with struct children }
@@ -1288,51 +1308,109 @@ begin
   end;
 end;
 
-function BuildRecordDef(container: IwbContainer; sName: string;
-  mrDef: IwbRecordDef; out recObj: ISuperObject): boolean;
+procedure BuildChildDef(def: IwbNamedDef; recObj: ISuperObject);
 var
   i: Integer;
-  rec, element: IwbElement;
-  recContainer: IwbContainerElementRef;
+  sigDef: IwbSignatureDef;
+  name: String;
 begin
-  Result := false;
-  rec := container.Add(sName);
-  // exit if we couldn't add record
-  if not Assigned(rec) then begin
-    if Supports(container.Container, IwbGroupRecord) then
-      Result := BuildRecordDef(container.Container, sName, mrDef, recObj)
-    else
-      ShowMessage('Couldn''t add '+sName+' to '+container.Path);
-    exit;
-  end;
-
-  // else traverse record's children to construct
-  // record prototype
-  try
-    if not Supports(rec, IwbContainerElementRef, recContainer) then
-      exit;
-    // add all
-    for i := 0 to Pred(mrDef.MemberCount) do
-      rec.Assign(i, nil, False);
-
-    // construct json
-    recObj := SO;
-    try
-      recObj.S['n'] := sName;
-      recObj.I['t'] := Ord(stRecord);
-      recObj.O['c'] := SA([]);
-      for i := 0 to Pred(recContainer.ElementCount) do begin
-        element := recContainer.Elements[i];
-        recObj.A['c'].Add(BuildElementDef(element));
-      end;
-    except
-      on x: Exception do begin
-        recObj._Release;
-        raise x;
-      end;
+  if Supports(def, IwbSignatureDef, sigDef) then begin
+    for i := 0 to Pred(sigDef.SignatureCount) do begin
+      name := string(sigDef.Signatures[i]) + ' - ' + sigDef.Name;
+      recObj.A['c'].Add(BuildDef(def, name));
     end;
-  finally
-    rec.Remove;
+  end
+  else
+    recObj.A['c'].Add(BuildDef(def, def.Name));
+end;
+
+procedure BuildChildDefs(obj: ISuperObject; def: IwbNamedDef);
+var
+  i: Integer;
+  subDef: IwbSubRecordDef;
+  recDef: IwbRecordDef;
+  unionDef: IwbUnionDef;
+  structDef: IwbStructDef;
+  intDef: IwbIntegerDefFormaterUnion;
+  sraDef: IwbSubRecordArrayDef;
+  srsDef: IwbSubRecordStructDef;
+  aDef: IwbArrayDef;
+begin
+  // try SubRecordDef ValueDef
+  if Supports(def, IwbSubRecordDef, subDef) then
+    BuildChildDefs(obj, subDef.GetValue as IwbNamedDef)
+  // try IwbRecordDef
+  else if Supports(def, IwbRecordDef, recDef) then begin
+    if recDef.MemberCount = 0 then exit;
+    obj.O['c'] := SA([]);
+    for i := 0 to Pred(recDef.MemberCount) do
+      BuildChildDef(recDef.Members[i] as IwbNamedDef, obj);
+  end
+  // try IwbUnionDef
+  else if Supports(def, IwbUnionDef, unionDef) then begin
+    if unionDef.MemberCount = 0 then exit;
+    obj.O['c'] := SA([]);
+    for i := 0 to Pred(unionDef.MemberCount) do
+      BuildChildDef(unionDef.Members[i] as IwbNamedDef, obj);
+  end
+  // try IwbStructDef
+  else if Supports(def, IwbStructDef, structDef) then begin
+    if structDef.MemberCount = 0 then exit;
+    obj.O['c'] := SA([]);
+    for i := 0 to Pred(structDef.MemberCount) do
+      BuildChildDef(structDef.Members[i] as IwbNamedDef, obj);
+  end
+  // try IwbIntegerDefFormaterUnion
+  else if Supports(def, IwbIntegerDefFormaterUnion, intDef) then begin
+    if intDef.MemberCount = 0 then exit;
+    obj.O['c'] := SA([]);
+    for i := 0 to Pred(intDef.MemberCount) do
+      BuildChildDef(intDef.Members[i] as IwbNamedDef, obj);
+  end
+  // try IwbSubRecordArrayDef
+  else if Supports(def, IwbSubRecordArrayDef, sraDef) then begin
+    obj.O['c'] := SA([]);
+    BuildChildDef(sraDef.Element as IwbNamedDef, obj);
+  end
+  // try IwbArrayDef
+  else if Supports(def, IwbArrayDef, aDef) then begin
+    obj.O['c'] := SA([]);
+    BuildChildDef(aDef.Element as IwbNamedDef, obj);
+  end;
+end;
+
+function BuildDef(def: IwbNamedDef; name: string): ISuperObject;
+begin
+  // release object if something goes wrong
+  Result := SO;
+  try
+    Result.S['n'] := name;
+    Result.I['t'] := Ord(SmashType(def));
+    BuildChildDefs(Result, def);
+  except
+    on x: Exception do begin
+      Result._Release;
+      raise x;
+    end;
+  end;
+end;
+
+function BuildRecordDef(sName: string; mrDef: IwbRecordDef; out recObj: ISuperObject): boolean; overload;
+var
+  i: Integer;
+begin
+  recObj := SO;
+  try
+    recObj.S['n'] := sName;
+    recObj.I['t'] := Ord(stRecord);
+    recObj.O['c'] := SA([]);
+    for i := 0 to Pred(mrDef.MemberCount) do
+      BuildChildDef(mrDef.Members[i] as IwbNamedDef, recObj);
+  except
+    on x: Exception do begin
+      recObj._Release;
+      raise x;
+    end;
   end;
 
   // if everything completed, result is object we made
@@ -1341,46 +1419,10 @@ end;
 
 function BuildRecordDef(sName: string; out recObj: ISuperObject): boolean;
 var
-  sig: TwbSignature;
   def: TwbRecordDefEntry;
-  mrDef: IwbRecordDef;
-  Container: IwbContainerElementRef;
-  groupContainer: IwbContainer;
-  group: IwbElement;
-  aFile: IwbFile;
-  bAssignedGroup: boolean;
 begin
-  Result := false;
-  bAssignedGroup := false;
-  sig := StrToSignature(sName);
-
-  // get def
-  def := GetRecordDef(sig);
-  mrDef := def.rdeDef;
-
-  // get file container
-  Container := GetEditableFileContainer;
-  aFile := (GetEditableFileContainer as IwbFile);
-
-  // create group in file if missing
-  group := aFile.GroupBySignature[sig];
-  if not Assigned(group) then begin
-    bAssignedGroup := true;
-    group := Container.Add(sName);
-    // if group couldn't be added we exit
-    if not Assigned(group) then
-      exit;
-  end;
-
-  // get to the def if we can
-  try
-    if not Supports(group, IwbContainer, groupContainer) then
-      exit;
-    Result := BuildRecordDef(groupContainer, sName, mrDef, recObj);
-  finally
-    if bAssignedGroup then
-      group.Remove;
-  end;
+  def := GetRecordDef(StrToSignature(sName));
+  Result := BuildRecordDef(sName, def.rdeDef, recObj);
 end;
 
 function GetEditableFileContainer: IwbContainerElementRef;
