@@ -151,7 +151,7 @@ begin
     // get file and setting for later use
     aFile := plugin._File;
     aSetting := plugin.smashSetting;
-    bIsAllOverrides := plugin.numRecords = plugin.numOverrides;
+    bIsAllOverrides := (plugin.numRecords > 0) and (plugin.numRecords = plugin.numOverrides);
 
     // loop through file records
     Tracker.Write('Processing '+plugin.filename);

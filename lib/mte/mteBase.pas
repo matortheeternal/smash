@@ -145,7 +145,9 @@ begin
   Container := _File as IwbContainer;
   Container := Container.Elements[0] as IwbContainer;
   author := Container.GetElementEditValue('CNAM - Author');
-  numRecords := Container.GetElementNativeValue('HEDR - Header\Number of Records');
+  // we have to subtract 1 because this count includes the
+  // file header for some reason
+  numRecords := Container.GetElementNativeValue('HEDR - Header\Number of Records') - 1;
 
   // get masters, required by
   GetMasters(_File, masters);
