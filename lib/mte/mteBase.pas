@@ -551,11 +551,14 @@ end;
 
 function IsSortedDef(def: IwbNamedDef): boolean;
 var
+  sraDef: IwbSubRecordArrayDef;
   arDef: IwbArrayDef;
 begin
   Result := false;
-  if Supports(def, IwbArrayDef, arDef) then
-    Result := arDef.GetSorted;
+  if Supports(def, IwbSubRecordArrayDef, sraDef) then
+    Result := Supports(sraDef.Element, IwbHasSortKeyDef)
+  else if Supports(def, IwbArrayDef, arDef) then
+    Result := Supports(arDef.Element, IwbHasSortKeyDef);
 end;
 
 { Returns true if @e is a sorted container }
