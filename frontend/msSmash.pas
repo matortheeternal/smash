@@ -509,18 +509,23 @@ end;
 
 procedure SavePatchFiles(var patch: TPatch);
 var
-  patchFilePrefix: string;
+  patchFilePrefix, patchPath: string;
 begin
   // update patch plugin hashes and settings
   patch.UpdateHashes;
   patch.UpdateSettings;
 
+  // get path to save file at
+  patchPath := patch.dataPath;
+  if settings.usingMO then
+    patchPath := patchPath + 'smash\';
+
   // save patch plugin
-  patch.plugin.dataPath := patch.dataPath;
+  patch.plugin.dataPath := patchPath;
   patch.plugin.Save;
 
   // save files, fails, plugins
-  patchFilePrefix := patch.dataPath + 'smash\'+ChangeFileExt(patch.filename, '');
+  patchFilePrefix := patchPath + ChangeFileExt(patch.filename, '');
   patch.fails.SaveToFile(patchFilePrefix+'_fails.txt');
   patch.plugins.SaveToFile(patchFilePrefix+'_plugins.txt');
 end;
@@ -541,7 +546,8 @@ begin
   msg := 'User cancelled smashing patches.';
   
   // set up directories
-  ForceDirectories(patch.dataPath + 'smash\');
+  if settings.usingMO then
+    ForceDirectories(patch.dataPath + 'smash\');
 
   try
     // build list of plugins to patch

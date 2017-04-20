@@ -302,8 +302,10 @@ begin
   // load settings if they exist, else create them
   if FileExists(path) then
     pSettings := LoadSettings(path)
-  else
+  else begin
     pSettings := TSettings.Create;
+    pSettings.patchDirectory := p.gamePath + 'data\';
+  end;
 
   // save profile details to settings
   pSettings.profile := p.name;
