@@ -64,7 +64,7 @@ var
   i: Integer;
   element: IwbElement;
   eObj: ISuperObject;
-  process: boolean;
+  process, bInDestination, bInMaster: boolean;
 begin
   Result := false;
 
@@ -72,13 +72,13 @@ begin
   for i := 0 to Pred(srcCont.ElementCount) do begin
     element := srcCont.Elements[i];
 
-
     // if the element isn't in the destination record
     // and wasn't in the master record, copy it to the destination
     // if it isn't in the destination but is in the master it means
     // that it was deleted and shouldn't be copied.
-    if not (Assigned(dstCont.ElementByName[element.Name])
-    or Assigned(mstCont.ElementByName[element.Name])) then begin
+    bInDestination := Assigned(dstCont.ElementByName[element.Name]);
+    bInMaster := Assigned(mstCont.ElementByName[element.Name]);
+    if (not bInDestination) and (bOverride or not bInMaster) then begin
       Result := true;
       if bSingle then 
         exit;
@@ -277,7 +277,7 @@ begin
       se := srcCont.Elements[i];
 
 
-      if (d_ndx = -1) and (m_ndx = -1) then begin
+      if (d_ndx = -1) and ((m_ndx = -1) or bOverride) then begin
         Result := true;
         // if we're in a treat as single, exit without adding anything
         if bSingle then
