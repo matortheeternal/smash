@@ -245,7 +245,7 @@ var
   aSetting: TSmashSetting;
   recObj: ISuperObject;
   e, eCopy: IwbElement;
-  bDeletions: boolean;
+  bDeletions, bOverride: boolean;
 begin
   Tracker.Write(' ');
   Tracker.Write('Smashing records');
@@ -326,12 +326,13 @@ begin
       // finally, recursively copy overridden elements
       try
         bDeletions := recObj.I['d'] = 1;
+        bOverride := recObj.I['o'] = 1;
         // use winning override in masters as master record
         mst := WinningOverrideInFiles(rec, plugin.masters);
         Tracker.Write(Format('    Smashing override from: %s, master: %s',
           [f.FileName, mst._File.FileName]));
         rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
-          recObj, false, bDeletions);
+          recObj, false, bDeletions, bOverride);
       except
         on x: Exception do begin
           Tracker.Write('      Exception smashing record: '+ovr.Name+' : '+x.Message);

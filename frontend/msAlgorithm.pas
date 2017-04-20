@@ -14,7 +14,7 @@ uses
   wbInterface, wbImplementation;
 
   function rcore(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
-    obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+    obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
 
 implementation
 
@@ -59,7 +59,7 @@ end;
   destination patch record @dstRec.
 }
 function HandleElementLife(srcCont, dstCont, mstCont: IwbContainerElementRef;
-  dstRec: IwbMainRecord; obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+  dstRec: IwbMainRecord; obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
 var
   i: Integer;
   element: IwbElement;
@@ -216,7 +216,7 @@ end;
   calling rcore on element containers in sorted arrays.
 }
 function MergeArray(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
-  obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+  obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
 var
   i, s_ndx, m_ndx, d_ndx: integer;
   se, de: IwbElement;
@@ -304,7 +304,7 @@ begin
         // traverse element
         try
           Result := rcore(se, GetMasterElement(src, se, dstrec), dstCont.Elements[d_ndx],
-            dstrec, GetElementObj(obj, se.Name), bSingle, bDeletions);
+            dstrec, GetElementObj(obj, se.Name), bSingle, bDeletions, bOverride);
           if Result and bSingle then
             exit;
         except on x : Exception do begin
@@ -394,7 +394,7 @@ end;
   elements (rcore), handling an array, or copying element values.
 }
 function HandleElement(se, me, de: IwbElement; dstRec: IwbMainRecord;
-  obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+  obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
 var
   srcType, dstType: TSmashType;
   container: IwbContainerElementRef;
@@ -437,7 +437,7 @@ begin
     if settings.debugTraversal then
       Tracker.Write('         Merging array');
     try
-      Result := MergeArray(se, me, de, dstrec, obj, bSingle, bDeletions);
+      Result := MergeArray(se, me, de, dstrec, obj, bSingle, bDeletions, bOverride);
     except on x : Exception do
       Tracker.Write('        MergeArray: Exception at '+se.Path+': '+x.Message);
     end;
@@ -447,7 +447,7 @@ begin
     if settings.debugTraversal then
       Tracker.Write('        Recursing deeper');
     try
-      Result := rcore(se, me, de, dstrec, obj, bSingle, bDeletions);
+      Result := rcore(se, me, de, dstrec, obj, bSingle, bDeletions, bOverride);
     except on x : Exception do
       Tracker.Write('      rcore: Exception at '+se.Path+': '+x.Message);
     end;
@@ -487,12 +487,12 @@ end;
     values
 }
 function rcore(src, mst, dst: IwbElement; dstRec: IwbMainRecord;
-  obj: ISuperObject; bSingle, bDeletions: boolean): boolean;
+  obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
 var
   i: integer;
   srcCont, dstCont, mstCont: IwbContainerElementRef;
   se, me, de: IwbElement;
-  process, eSingle, eDeletions: boolean;
+  process, eSingle, eDeletions, eOverride: boolean;
   eObj: ISuperObject;
   eLink: string;
 begin
@@ -523,7 +523,7 @@ begin
 
   // copy elements from source to destination if missing AND
   // delete elements missing from source if found in master and destination
-  Result := HandleElementLife(srcCont, dstCont, mstCont, dstRec, obj, bSingle, bDeletions);
+  Result := HandleElementLife(srcCont, dstCont, mstCont, dstRec, obj, bSingle, bDeletions, bOverride);
   if bSingle and Result then begin
     if settings.debugSingle then
       Tracker.Write('      Single entity change found at '+src.Path);
@@ -567,9 +567,10 @@ begin
     // set element treat as single entity / ignore deletions booleans
     eSingle := bSingle or (eObj.I['s'] = 1);
     eDeletions := bDeletions or (eObj.I['d'] = 1);
+    eOverride := bOverride or (eObj.I['o'] = 1);
 
     // handle element
-    Result := HandleElement(se, me, de, dstRec, eObj, eSingle, eDeletions);
+    Result := HandleElement(se, me, de, dstRec, eObj, eSingle, eDeletions, eOverride);
 
     // if we're in a single entity and an element is changed, break
     // we don't need to handle anything anymore

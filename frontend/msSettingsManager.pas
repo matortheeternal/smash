@@ -649,8 +649,6 @@ begin
       continue;
     e := TElementData(node.Data);
     e.preserveDeletions := not e.preserveDeletions;
-    if (e.overrideDeletions and e.preserveDeletions) then
-      e.overrideDeletions := false;
   end;
   tvRecords.Repaint;
 end;
@@ -667,8 +665,6 @@ begin
       continue;
     e := TElementData(node.Data);
     e.overrideDeletions := not e.overrideDeletions;
-    if (e.overrideDeletions and e.preserveDeletions) then
-      e.preserveDeletions := false;
   end;
   tvRecords.Repaint;
 end;
