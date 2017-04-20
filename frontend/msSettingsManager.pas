@@ -40,6 +40,7 @@ type
         btnDiscard: TButton;
         [FormSection('Tree')]
           lblTree: TLabel;
+          edSearch: TEdit;
           tvRecords: TTreeView;
           StateImages: TImageList;
           FlagIcons: TImageList;
@@ -55,13 +56,13 @@ type
             SelectSimilarNodesItem: TMenuItem;
             ToggleNodesItem: TMenuItem;
             PreserveDeletionsItem: TMenuItem;
+            OverrideDeletionsItem: TMenuItem;
             SingleEntityItem: TMenuItem;
             ChainNodesItem: TMenuItem;
             LinkNodeToItem: TMenuItem;
             UnlinkNodeItem: TMenuItem;
             AutoPruneItem: TMenuItem;
             PruneNodesItem: TMenuItem;
-    edSearch: TEdit;
 
     // TREE METHODS
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
@@ -83,6 +84,7 @@ type
     procedure SelectSimilarNodesItemClick(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
     procedure PreserveDeletionsItemClick(Sender: TObject);
+    procedure OverrideDeletionsItemClick(Sender: TObject);
     procedure SingleEntityItemClick(Sender: TObject);
     procedure PruneNodesItemClick(Sender: TObject);
     procedure UnlinkNodeItemClick(Sender: TObject);
@@ -647,6 +649,26 @@ begin
       continue;
     e := TElementData(node.Data);
     e.preserveDeletions := not e.preserveDeletions;
+    if (e.overrideDeletions and e.preserveDeletions) then
+      e.overrideDeletions := false;
+  end;
+  tvRecords.Repaint;
+end;
+
+procedure TSettingsManager.OverrideDeletionsItemClick(Sender: TObject);
+var
+  i: Integer;
+  node: TTreeNode;
+  e: TElementData;
+begin
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
+    node := tvRecords.Selections[i];
+    if not node.hasChildren then
+      continue;
+    e := TElementData(node.Data);
+    e.overrideDeletions := not e.overrideDeletions;
+    if (e.overrideDeletions and e.preserveDeletions) then
+      e.preserveDeletions := false;
   end;
   tvRecords.Repaint;
 end;
@@ -833,6 +855,8 @@ begin
     obj.I['p'] := 1;
   if (e.preserveDeletions) then
     obj.I['d'] := 1;
+  if (e.overrideDeletions) then
+    obj.I['o'] := 1;
   if (e.singleEntity) then
     obj.I['s'] := 1;
   if (e.smashType <> stUnknown) then

@@ -303,6 +303,10 @@ object SettingsManager: TSettingsManager
         Caption = 'Toggle preserve deletions'
         OnClick = PreserveDeletionsItemClick
       end
+      object OverrideDeletionsItem: TMenuItem
+        Caption = 'Toggle override deletions'
+        OnClick = OverrideDeletionsItemClick
+      end
       object SingleEntityItem: TMenuItem
         Caption = 'Toggle treat as single entity'
         OnClick = SingleEntityItemClick

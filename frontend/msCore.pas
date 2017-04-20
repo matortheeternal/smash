@@ -16,12 +16,14 @@ type
     priority: byte;
     process: boolean;
     preserveDeletions: boolean;
+    overrideDeletions: boolean;
     singleEntity: boolean;
     smashType: TSmashType;
     linkTo: string;
     linkFrom: string;
-    constructor Create(priority: byte; process, preserveDeletions, singleEntity:
-      boolean; smashType: TSmashType; linkTo, linkFrom: string); overload;
+    constructor Create(priority: byte; process, preserveDeletions,
+      overrideDeletions, singleEntity: boolean; smashType: TSmashType;
+      linkTo, linkFrom: string); overload;
   end;
   TSmashSetting = class(TObject)
   public
@@ -928,11 +930,13 @@ end;
 { TElementData }
 
 constructor TElementData.Create(priority: Byte; process, preserveDeletions,
-  singleEntity: Boolean; smashType: TSmashType; linkTo, linkFrom: string);
+  overrideDeletions, singleEntity: Boolean; smashType: TSmashType; linkTo,
+  linkFrom: string);
 begin
   self.priority := priority;
   self.process := process;
   self.preserveDeletions := preserveDeletions;
+  self.overrideDeletions := overrideDeletions;
   self.singleEntity := singleEntity;
   self.smashType := smashType;
   self.linkTo := linkTo;
@@ -1747,7 +1751,7 @@ procedure LoadElement(var tv: TTreeView; node: TTreeNode; obj: ISuperObject;
 var
   item: ISuperObject;
   child, nextChild: TTreeNode;
-  bProcess, bPreserveDeletions, bIsSingle: boolean;
+  bProcess, bPreserveDeletions, bOverrideDeletions, bIsSingle: boolean;
   priority: Integer;
   oSmashType: TSmashType;
   sName, sLinkTo, sLinkFrom: string;
@@ -1761,6 +1765,7 @@ begin
   priority := obj.I['r'];
   bProcess := obj.I['p'] = 1;
   bPreserveDeletions := obj.I['d'] = 1;
+  bOverrideDeletions := obj.I['o'] = 1;
   bIsSingle := obj.I['s'] = 1;
   bWithinSingle := bWithinSingle or bIsSingle;
   oSmashType := TSmashType(obj.I['t']);
@@ -1768,8 +1773,8 @@ begin
   sLinkFrom := obj.S['lf'];
 
   // create child
-  e := TElementData.Create(priority, bProcess, bPreserveDeletions, bIsSingle,
-    oSmashType, sLinkTo, sLinkFrom);
+  e := TElementData.Create(priority, bProcess, bPreserveDeletions,
+    bOverrideDeletions, bIsSingle, oSmashType, sLinkTo, sLinkFrom);
   // nodes insert in sorted order for record nodes
   if (node.Level = 0) and node.hasChildren then begin
     child := node.getFirstChild;
@@ -1811,7 +1816,7 @@ var
   rootNode: TTreeNode;
   e: TElementData;
 begin
-  e := TElementData.Create(0, false, false, false, TSmashType(0), '', '');
+  e := TElementData.Create(0, false, false, false, false, TSmashType(0), '', '');
   rootNode := tv.Items.AddObject(nil, 'Records', e);
   obj := aSetting.tree;
   if not Assigned(obj) then
@@ -1864,6 +1869,9 @@ begin
       // merge preserve deletions
       if srcChild.I['d'] = 1 then
         dstChild.I['d'] := 1;
+      // merge override deletions
+      if srcChild.I['o'] = 1 then
+        dstChild.I['o'] := 1;
       // merge process
       if srcChild.I['p'] = 1 then
         dstChild.I['p'] := 1;
