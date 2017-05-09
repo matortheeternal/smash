@@ -194,6 +194,12 @@ begin
   end
   else if (wbGameMode = gmFO4) then begin
     FixLoadOrder(slLoadOrder, 'Fallout4.esm', 0);
+    FixLoadOrder(slLoadOrder, 'DLCRobot.esm', 1);
+    FixLoadOrder(slLoadOrder, 'DLCCoast.esm', 2);
+    FixLoadOrder(slLoadOrder, 'DLCworkshop01.esm', 3);
+    FixLoadOrder(slLoadOrder, 'DLCworkshop02.esm', 4);
+    FixLoadOrder(slLoadOrder, 'DLCworkshop03.esm', 5);
+    FixLoadOrder(slLoadOrder, 'DLCNukaworld.esm', 6);
   end
   else begin
     if not settings.usingMO then begin
@@ -525,7 +531,7 @@ var
   oldIndex: Integer;
 begin
   oldIndex := sl.IndexOf(filename);
-  if oldIndex <> index then begin
+  if (oldIndex > -1) and (oldIndex <> index) then begin
     sl.Delete(oldIndex);
     sl.Insert(index, filename);
   end;
