@@ -195,8 +195,8 @@ begin
   else if (wbGameMode = gmFO4) then begin
     FixLoadOrder(slLoadOrder, 'Fallout4.esm', 0);
     FixLoadOrder(slLoadOrder, 'DLCRobot.esm', 1);
-    FixLoadOrder(slLoadOrder, 'DLCCoast.esm', 2);
-    FixLoadOrder(slLoadOrder, 'DLCworkshop01.esm', 3);
+    FixLoadOrder(slLoadOrder, 'DLCworkshop01.esm', 2);
+    FixLoadOrder(slLoadOrder, 'DLCCoast.esm', 3);
     FixLoadOrder(slLoadOrder, 'DLCworkshop02.esm', 4);
     FixLoadOrder(slLoadOrder, 'DLCworkshop03.esm', 5);
     FixLoadOrder(slLoadOrder, 'DLCNukaworld.esm', 6);
