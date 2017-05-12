@@ -268,10 +268,12 @@ begin
     // draw flags
     if e.preserveDeletions then
       DrawFlag(Sender.Canvas, x, y, 0);
-    if e.singleEntity then
+    if e.overrideDeletions then
       DrawFlag(Sender.Canvas, x, y, 1);
-    if (e.linkTo <> '') or (e.linkFrom <> '') then
+    if e.singleEntity then
       DrawFlag(Sender.Canvas, x, y, 2);
+    if (e.linkTo <> '') or (e.linkFrom <> '') then
+      DrawFlag(Sender.Canvas, x, y, 3);
   end;
 end;
 
