@@ -156,6 +156,7 @@ mpOpt_lblErrorColor_Caption=Errors
 mpOpt_lblTemplate_Caption=Template
 mpOpt_lblSample_Caption=Sample
 { ## Integrations Tab ## }
+mpOpt_ModOrganizerNotFound=Mod Organizer not found
 mpOpt_IntegrationsTabSheet_Caption=Integrations
 mpOpt_btnDetect_Caption=Detect Integrations
 mpOpt_gbModOrganizer_Caption=Mod Organizer
