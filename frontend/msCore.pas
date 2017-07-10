@@ -1489,39 +1489,46 @@ begin
   Result := TPlugin(TPluginHelpers.BasePluginByFilename(PluginsList, sFilename));
 end;
 
+function DefDisplayName(var def: TwbRecordDefEntry): String;
+var
+  sig: String;
+begin
+  sig := String(def.rdeSignature);
+  Result := def.rdeDef.Name;
+  if (Result <> sig) then
+    Result := sig + ' - ' + Result;
+end;
+
 procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
 var
   i: Integer;
-  RecordDef: PwbRecordDef;
+  recordDef: TwbRecordDefEntry;
   item: TMenuItem;
 begin
-  // populate wbGroupOrder to additem
-  with TStringList.Create do try
-    Sorted := True;
-    Duplicates := dupIgnore;
+  for i := Low(wbRecordDefs) to High(wbRecordDefs) do begin
+    recordDef := wbRecordDefs[i];
+    item := TMenuItem.Create(AddItem);
+    item.Caption := DefDisplayName(recordDef);
+    item.OnClick := Event;
+    AddItem.Add(item);
+  end;
+end;
 
-    // initialize list contents
-    AddStrings(wbGroupOrder);
-    Sorted := False;
-
-    // get record def names, if available
-    for i := Pred(Count) downto 0 do
-      if wbFindRecordDef(AnsiString(Strings[i]), RecordDef) then
-        Strings[i] := Strings[i] + ' - ' + RecordDef.Name
-      else
-        Delete(i);
-
-    // populate menu items
-    for i := 0 to Pred(Count) do begin
-      if Length(Strings[i]) < 4 then
-        continue;
-      item := TMenuItem.Create(AddItem);
-      item.Caption := Strings[i];
-      item.OnClick := Event;
-      AddItem.Add(item);
-    end;
-  finally
-    Free;
+procedure AddAllRecords(currentSetting: TSmashSetting; var tv: TTreeView);
+var
+  i: Integer;
+  recordDef: TwbRecordDefEntry;
+  groupName: String;
+  recObj: ISuperObject;
+begin
+  for i := Low(wbRecordDefs) to High(wbRecordDefs) do begin
+    recordDef := wbRecordDefs[i];
+    groupName := DefDisplayName(recordDef);
+    recObj := GetRecordObj(currentSetting.tree, groupName);
+    if Assigned(recObj) then continue;
+    if not BuildRecordDef(groupName, recObj) then continue;
+    currentSetting.tree.A['records'].Add(recObj);
+    LoadElement(tv, tv.Items[0], recObj, false);
   end;
 end;
 
