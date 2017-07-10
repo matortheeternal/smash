@@ -34,6 +34,7 @@ type
         cbColor: TColorBox;
         lblHash: TLabel;
         edHash: TEdit;
+        edSearch: TEdit;
         lblDescription: TLabel;
         meDescription: TMemo;
         btnSave: TButton;
@@ -51,6 +52,7 @@ type
             BuildItem: TMenuItem;
             ToggleItem: TMenuItem;
             AddItem: TMenuItem;
+            AddAllRecordsItem: TMenuItem;
             BuildFromPluginsItem: TMenuItem;
             AutosetItem: TMenuItem;
             SelectSimilarNodesItem: TMenuItem;
@@ -80,6 +82,7 @@ type
     procedure LinkNodeItemClick(Sender: TObject);
     procedure TreePopupMenuPopup(Sender: TObject);
     procedure AddItemClick(Sender: TObject);
+    procedure AddAllRecordsItemClick(Sender: TObject);
     procedure BuildFromPluginsItemClick(Sender: TObject);
     procedure SelectSimilarNodesItemClick(Sender: TObject);
     procedure ToggleNodesItemClick(Sender: TObject);
@@ -561,6 +564,12 @@ begin
   end;
 
   // update gui
+  tvRecords.Repaint;
+end;
+
+procedure TSettingsManager.AddAllRecordsItemClick(Sender: TObject);
+begin
+  AddAllRecords(tvRecords);
   tvRecords.Repaint;
 end;
 

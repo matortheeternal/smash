@@ -280,6 +280,9 @@ object SettingsManager: TSettingsManager
       object AddItem: TMenuItem
         Caption = 'Add'
       end
+      object AddAllRecordsItem: TMenuItem
+        Caption = 'Add all records'
+      end
       object BuildFromPluginsItem: TMenuItem
         Caption = 'Build from plugins'
         OnClick = BuildFromPluginsItemClick
