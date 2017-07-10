@@ -157,6 +157,7 @@ type
   function PluginLoadOrder(sFilename: string): Integer;
   function PluginByFilename(sFilename: string): TPlugin;
   procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
+  procedure AddAllRecords(currentSetting: TSmashSetting; var tv: TTreeView);
   procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
   function GetTagString(var slTags: TStringList): String;
   // Tree Helper Functions

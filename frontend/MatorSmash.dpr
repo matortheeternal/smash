@@ -43,7 +43,6 @@ uses
   wbDefinitionsTES5 in '..\lib\xedit\wbDefinitionsTES5.pas',
   wbHelpers in '..\lib\xedit\wbHelpers.pas',
   wbImplementation in '..\lib\xedit\wbImplementation.pas',
-  wbInit in '..\lib\xedit\wbInit.pas',
   wbInterface in '..\lib\xedit\wbInterface.pas',
   wbLocalization in '..\lib\xedit\wbLocalization.pas',
   wbSort in '..\lib\xedit\wbSort.pas',

@@ -99,7 +99,6 @@
 			<DCCReference Include="..\lib\xedit\wbDefinitionsTES5.pas"/>
 			<DCCReference Include="..\lib\xedit\wbHelpers.pas"/>
 			<DCCReference Include="..\lib\xedit\wbImplementation.pas"/>
-			<DCCReference Include="..\lib\xedit\wbInit.pas"/>
 			<DCCReference Include="..\lib\xedit\wbInterface.pas"/>
 			<DCCReference Include="..\lib\xedit\wbLocalization.pas"/>
 			<DCCReference Include="..\lib\xedit\wbSort.pas"/>

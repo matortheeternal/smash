@@ -34,7 +34,6 @@ type
         cbColor: TColorBox;
         lblHash: TLabel;
         edHash: TEdit;
-        edSearch: TEdit;
         lblDescription: TLabel;
         meDescription: TMemo;
         btnSave: TButton;
@@ -569,7 +568,7 @@ end;
 
 procedure TSettingsManager.AddAllRecordsItemClick(Sender: TObject);
 begin
-  AddAllRecords(tvRecords);
+  AddAllRecords(currentSetting, tvRecords);
   tvRecords.Repaint;
 end;
 
