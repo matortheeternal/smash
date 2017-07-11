@@ -282,6 +282,7 @@ object SettingsManager: TSettingsManager
       end
       object AddAllRecordsItem: TMenuItem
         Caption = 'Add all records'
+        OnClick = AddAllRecordsItemClick
       end
       object BuildFromPluginsItem: TMenuItem
         Caption = 'Build from plugins'
