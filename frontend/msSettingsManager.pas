@@ -751,13 +751,13 @@ begin
       // if parent is record, perform case statement on type
       if bParentIsRecord then begin
         case Ord(e.smashType) of
-          Ord(stStruct),
-          Ord(stUnsortedStructArray): begin
+          Ord(stStruct): begin
             e.singleEntity := true;
             node.StateIndex := csPartiallyChecked;
           end;
           Ord(stSortedArray),
-          Ord(stSortedStructArray):
+          Ord(stSortedStructArray),
+          Ord(stUnsortedStructArray):
             e.preserveDeletions := true;
           Ord(stByteArray):
             node.StateIndex := csUnChecked;
