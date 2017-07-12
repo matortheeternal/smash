@@ -346,52 +346,54 @@ begin
   end;
 end;
 
+function IsChildGroup(group: IwbGroupRecord): Boolean;
+begin
+  Result := group.GroupType in [1,6,7];
+end;
+
+function NativeContainer(element: IwbElement): IwbContainer;
+var
+  group: IwbGroupRecord;
+begin
+  if Supports(element, IwbGroupRecord, group) and IsChildGroup(group) then
+    Result := group.ChildrenOf as IwbContainer
+  else
+    Result := element.Container;
+  if not Assigned(Result) then
+    raise Exception.Create('Could not find container for ' + element.Name);
+end;
+
 procedure RemoveEmptyContainers(aContainer: IwbContainer);
-const
-  NoConflictArray: set of TConflictThis = [
-    ctIdenticalToMaster,
-    ctIdenticalToMasterWinsConflict
-  ];
 var
   container, nextContainer: IwbContainer;
-  group: IwbGroupRecord;
   rec: IwbMainRecord;
-  ct: TConflictThis;
+  bITM, bITPO: Boolean;
 begin
   container := aContainer;
   // traverse up container until we find an IwbMainRecord
-  while Assigned(container) and
-  not Supports(container, IwbGroupRecord, group) do begin
+  while Assigned(container) and 
+  not Supports(container, IwbMainRecord, rec) do begin
     // break if container still has elements in it
     if container.ElementCount > 0 then
       exit;
 
     // else remove it and traverse up to next container
-    nextContainer := container.Container;
+    nextContainer := NativeContainer(container);
     container.Remove;
     container := nextContainer;
   end;
 
-  // exit if we couldn't find an IwbGroupRecord container
-  // or group is not empty
-  if (not Assigned(group)) or (group.ElementCount > 0) then
-    exit;
-
-  // remove group and exit if it isn't a child group
-  rec := group.ChildrenOf;
-  if not Assigned(rec) then begin
-    Tracker.Write('    Removing Empty Group: '+group.Name);
-    group.Remove;
-    exit;
-  end;
-
   // exit if record is not ITM or ITPO
-  ct := ConflictThisForMainRecord(rec);
-  if not (ct in NoConflictArray) then
+  bITM := IsITM(rec);
+  bITPO := IsITPO(rec);
+  if not (bITM or bITPO) then
     exit;
 
   // else remove MainRecord and recurse
-  Tracker.Write('    Removing ITM: '+rec.Name);
+  if bITM then
+    Tracker.Write('    Removing ITM: ' + rec.Name)
+  else
+    Tracker.Write('    Removing ITPO: ' + rec.Name);
   nextContainer := rec.Container;
   rec.Remove;
   RemoveEmptyContainers(nextContainer);
@@ -399,8 +401,8 @@ end;
 
 procedure RemoveITPOs(aFile: IwbFile; var keep: TInterfaceList);
 var
-  i, j, CountITPO: Integer;
-  e, m, prevovr, ovr: IwbMainRecord;
+  i, CountITPO: Integer;
+  e, m: IwbMainRecord;
   container: IwbContainer;
   ITPOs: TDynMainRecords;
 begin
@@ -423,20 +425,11 @@ begin
       continue;
 
     // skip records that have elements in child group (WRLD, CELL, DIAL)
-    if Assigned(e.ChildGroup) and (e.ChildGroup.ElementCount <> 0) then
+    if Assigned(e.ChildGroup) and (e.ChildGroup.ElementCount > 0) then
       continue;
 
-    // find previous override record in a list of overrides for master record
-    prevovr := m;
-    for j := 0 to Pred(m.OverrideCount) do begin
-      ovr := m.Overrides[j];
-      if ovr.Equals(e) then
-        Break;
-      prevovr := ovr;
-    end;
-
     // remove record if no conflicts
-    if ConflictAllForElements(prevovr, e, False, False) <= caNoConflict then begin
+    if IsITPO(e) then begin
       Tracker.Write('    Removing ITPO: ' + e.Name);
 
       // add ITPO to list of records to remove
