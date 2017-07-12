@@ -252,15 +252,15 @@ begin
     if bDeletions then
       for i := 0 to Pred(slMst.Count) do begin
         s_ndx := slSrc.IndexOf(slMst[i]);
-        d_ndx := slDst.IndexOf(slMst[i]);
 
-        // element from master isn't in source, but is in destination
-        if (s_ndx = -1) and (d_ndx > -1) then begin
+        // element from master isn't in source
+        if (s_ndx = -1) then begin
           Result := true;
           // if we're in a treat as single, exit without removing anything
-          if bSingle then
-            exit;
-          // remove element from destination
+          if bSingle then exit;
+          // if element is present in destination, remove it
+          d_ndx := slDst.IndexOf(slMst[i]);
+          if (d_ndx = -1) then continue;
           if settings.debugArrays then
             Tracker.Write('        > Removing element at '+dst.Path+' with key: '+slMst[i]);
           dstCont.RemoveElement(d_ndx);
@@ -280,8 +280,7 @@ begin
       if (d_ndx = -1) and ((m_ndx = -1) or bOverride) then begin
         Result := true;
         // if we're in a treat as single, exit without adding anything
-        if bSingle then
-          exit;
+        if bSingle then exit;
         // add element to destination
         if settings.debugArrays then
           Tracker.Write('        > Adding element at '+dst.Path+' with key: '+slSrc[i]);
