@@ -78,6 +78,8 @@ type
     aInjected: Boolean): TConflictAll;
   function ConflictThisForMainRecord(aMainRecord: IwbMainRecord): TConflictThis;
   function ConflictAllForMainRecord(aMainRecord: IwbMainRecord): TConflictAll;
+  function IsITPO(rec: IwbMainRecord): Boolean;
+  function IsITM(rec: IwbMainRecord): Boolean;
 
 implementation
 
@@ -869,6 +871,34 @@ var
 begin
   ConflictLevelForMainRecord(aMainRecord, ca, ct);
   Result := ca;
+end;
+
+function IsITPO(rec: IwbMainRecord): Boolean;
+var
+  mRec, prevOvr, ovr: IwbMainRecord;
+  i: Integer;
+begin
+  // get previous override
+  mRec := rec.MasterOrSelf;
+  prevovr := mRec;
+  for i := 0 to Pred(mRec.OverrideCount) do begin
+    ovr := mRec.Overrides[i];
+    if ovr.Equals(rec) then
+      Break;
+    prevovr := ovr;
+  end;
+
+  Result := ConflictAllForElements(prevovr, rec, False, False) <= caNoConflict;
+end;
+
+function IsITM(rec: IwbMainRecord): Boolean;
+const
+  ITMConflictArray: set of TConflictThis = [
+    ctIdenticalToMaster,
+    ctIdenticalToMasterWinsConflict
+  ];
+begin
+  Result := ConflictThisForMainRecord(rec) in ITMConflictArray;
 end;
 
 end.
