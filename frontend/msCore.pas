@@ -1324,10 +1324,13 @@ begin
     Tracker.UpdateProgress(1);
     if not Assigned(plugin.smashSetting) then
       continue;
-    if plugin.smashSetting.bVirtual or (plugin.setting = 'Skip') then
-      continue;
+  	index := IndexOfDump(obj.A['plugins'], plugin);
+    if plugin.smashSetting.bVirtual or (plugin.setting = 'Skip') then begin
+	    if index <> -1 then
+	      obj.A['plugins'].Delete(index);
+	    continue;
+    end;
     Tracker.Write('  Dumping '+plugin.filename);
-    index := IndexOfDump(obj.A['plugins'], plugin);
     if index = -1 then
       obj.A['plugins'].Add(plugin.InfoDump)
     else
