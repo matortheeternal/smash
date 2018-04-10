@@ -515,7 +515,7 @@ begin
     patchPath := patchPath + 'smash\';
 
   // save patch plugin
-  patch.plugin.dataPath := patchPath;
+  patch.plugin.dataPath := patch.dataPath;
   patch.plugin.Save;
 
   // save files, fails, plugins
