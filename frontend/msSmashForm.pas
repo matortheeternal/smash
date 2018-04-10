@@ -97,18 +97,9 @@ type
       [FormSection('Status Bar')]
         StatusPanel: TPanel;
         StatusPanelMessage: TPanel;
-        StatusPanelBlocking: TPanel;
-        StatusPanelProgram: TPanel;
-        StatusPanelDictionary: TPanel;
-        StatusPanelConnection: TPanel;
         StatusPanelLanguage: TPanel;
         StatusPanelVersion: TPanel;
-        ImageBlocked: TImage;
-        ImageDisconnected: TImage;
         ImageBuild: TImage;
-        ImageDictionaryUpdate: TImage;
-        ImageProgramUpdate: TImage;
-        ImageConnected: TImage;
         bhLoader: TBalloonHint;
         bhLoadException: TBalloonHint;
 
@@ -655,13 +646,6 @@ begin
     pt := MainPanel.ClientToScreen(pt);
     bhLoadException.ShowHint(pt);
   end;
-
-  if settings.buildRefs and ShouldDisplay(bhLoader) then begin
-    pt.X := 8;
-    pt.Y := 4;
-    pt := ImageBlocked.ClientToScreen(pt);
-    bhLoader.ShowHint(pt);
-  end;
 end;
 
 procedure TSmashForm.RefreshGUI;
@@ -687,10 +671,7 @@ end;
 
 procedure TSmashForm.UpdateStatusBar;
 begin
-  ImageBlocked.Visible := not (wbLoaderDone or ProgramStatus.bInitException);
   ImageBuild.Visible := wbLoaderDone and bPatchesToBuild;
-  ImageDictionaryUpdate.Visible := ProgramStatus.bDictionaryUpdate;
-  ImageProgramUpdate.Visible := ProgramStatus.bProgramUpdate;
   StatusPanelLanguage.Caption := settings.language;
 end;
 
