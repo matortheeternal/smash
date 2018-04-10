@@ -30,6 +30,9 @@ uses
   procedure AddMissingFiles(var sl: TStringList);
   procedure GetPluginDates(var sl: TStringList);
   function PluginListCompare(List: TStringList; Index1, Index2: Integer): Integer;
+  procedure LoadPluginsList(const sLoadPath: String; var sl: TStringList; noDelete: Boolean = False);
+  procedure LoadLoadOrder(const sLoadPath: String; var slLoadOrder, slPlugins: TStringList);
+  procedure PrepareLoadOrder(var slLoadOrder, slPlugins: TStringList);
 
 var
   slPlugins: TStringList;
@@ -67,7 +70,6 @@ uses
 
 function InitBase: boolean;
 var
-  sLoadPath, sPath: string;
   slLoadOrder: TStringList;
   psForm: TPluginSelectionForm;
 begin
@@ -127,49 +129,8 @@ begin
   Tracker.Write('Loading patches');
   LoadPatches;
 
-  // GET LOAD ORDER PATH
-  sLoadPath := settings.ManagerPath + 'profiles\'+ActiveModProfile+'\';
-  if (not settings.usingMO) or (not DirectoryExists(sLoadPath)) then begin
-    if settings.usingMO then
-      Logger.Write('GENERAL', 'Load Order', 'Couldn''t find MO profile folder '+sLoadPath);
-    sLoadPath := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA) + wbGameName2 +'\';
-  end;
-  Logger.Write('GENERAL', 'Load Order', 'Using '+sLoadPath+'loadorder.txt');
-
-  // LOAD LIST OF ACTIVE PLUGINS (plugins.txt)
-  slPlugins := TStringList.Create;
-  sPath := sLoadPath + 'plugins.txt';
-  if FileExists(sPath) then
-    slPlugins.LoadFromFile(sPath)
-  else
-    AddMissingFiles(slPlugins);
-
-  // PREPARE PLUGINS LIST
-  RemoveCommentsAndEmpty(slPlugins);
-  RemoveMissingFiles(slPlugins);
-  RemoveSmashedPatches(slPlugins);
-
-  // LOAD ORDER OF ALL PLUGINS (loadorder.txt)
-  slLoadOrder := TStringList.Create;
-  sPath := sLoadPath + 'loadorder.txt';
-  if FileExists(sPath) then
-    slLoadOrder.LoadFromFile(sPath)
-  else
-    slLoadOrder.AddStrings(slPlugins);
-
   // PREPARE LOAD ORDER
-  RemoveCommentsAndEmpty(slLoadOrder);
-  RemoveMissingFiles(slLoadOrder);
-  AddMissingFiles(slLoadOrder);
-  AddBaseMasters(slLoadOrder);
-
-  // if GameMode is not SkyrimSE or Fallout 4 and we don't
-  // have a loadorder.txt, sort by date modified
-  if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4)
-  and not FileExists(sLoadPath + 'loadorder.txt') then begin
-    GetPluginDates(slLoadOrder);
-    slLoadOrder.CustomSort(PluginListCompare);
-  end;
+  PrepareLoadOrder(slLoadOrder, slPlugins);
 
   // DISPLAY PLUGIN SELECTION FORM
   THeaderHelpers.LoadPluginHeaders(slLoadOrder);
@@ -189,34 +150,6 @@ begin
 
   // ALL DONE
   Result := true;
-end;
-
-procedure AddBaseMasters(var sl: TStringList);
-var
-  index: Integer;
-begin
-  index := 0;
-  if (wbGameMode = gmTES5) then begin
-    FixLoadOrder(sl, 'Skyrim.esm', index);
-    FixLoadOrder(sl, 'Update.esm', index);
-  end
-  else if (wbGameMode = gmSSE) then begin
-    FixLoadOrder(sl, 'Skyrim.esm', index);
-    FixLoadOrder(sl, 'Update.esm', index);
-    FixLoadOrder(sl, 'Dawnguard.esm', index);
-    FixLoadOrder(sl, 'HearthFires.esm', index);
-    FixLoadOrder(sl, 'Dragonborn.esm', index);
-  end
-  else if (wbGameMode = gmFO4) then begin
-    FixLoadOrder(sl, 'Fallout4.esm', index);
-    FixLoadOrder(sl, 'DLCRobot.esm', index);
-    FixLoadOrder(sl, 'DLCworkshop01.esm', index);
-    FixLoadOrder(sl, 'DLCCoast.esm', index);
-    FixLoadOrder(sl, 'DLCworkshop02.esm', index);
-    FixLoadOrder(sl, 'DLCworkshop03.esm', index);
-    FixLoadOrder(sl, 'DLCNukaWorld.esm', index);
-    FixLoadOrder(sl, 'DLCUltraHighResolution.esm', index);
-  end;
 end;
 
 { Check if game paths are valid }
@@ -392,7 +325,6 @@ begin
   ActiveMods := TStringList.Create;
   ActiveModProfile := GetActiveProfile;
   GetActiveMods(ActiveMods, ActiveModProfile);
-  //Logger.Write('GENERAL', 'ModOrganizer', 'ActiveMods: '#13#10+ActiveMods.Text);
 end;
 
 function GetMODataPath: string;
@@ -533,6 +465,34 @@ begin
   Inc(index);
 end;
 
+procedure AddBaseMasters(var sl: TStringList);
+var
+  index: Integer;
+begin
+  index := 0;
+  if (wbGameMode = gmTES5) then begin
+    FixLoadOrder(sl, 'Skyrim.esm', index);
+    FixLoadOrder(sl, 'Update.esm', index);
+  end
+  else if (wbGameMode = gmSSE) then begin
+    FixLoadOrder(sl, 'Skyrim.esm', index);
+    FixLoadOrder(sl, 'Update.esm', index);
+    FixLoadOrder(sl, 'Dawnguard.esm', index);
+    FixLoadOrder(sl, 'HearthFires.esm', index);
+    FixLoadOrder(sl, 'Dragonborn.esm', index);
+  end
+  else if (wbGameMode = gmFO4) then begin
+    FixLoadOrder(sl, 'Fallout4.esm', index);
+    FixLoadOrder(sl, 'DLCRobot.esm', index);
+    FixLoadOrder(sl, 'DLCworkshop01.esm', index);
+    FixLoadOrder(sl, 'DLCCoast.esm', index);
+    FixLoadOrder(sl, 'DLCworkshop02.esm', index);
+    FixLoadOrder(sl, 'DLCworkshop03.esm', index);
+    FixLoadOrder(sl, 'DLCNukaWorld.esm', index);
+    FixLoadOrder(sl, 'DLCUltraHighResolution.esm', index);
+  end;
+end;
+
 { Add missing *.esp and *.esm files to list }
 procedure AddMissingFiles(var sl: TStringList);
 var
@@ -625,6 +585,81 @@ begin
     Result := -1
   else
     Result := 1;
+end;
+
+procedure ProcessAsterisks(var sl: TStringList; index: Integer; noDelete: Boolean);
+var
+  s: String;
+begin
+  s := sl[index];
+  if s[1] <> '*' then begin
+    if not noDelete then sl.Delete(index);
+  end
+  else
+    sl[index] := Copy(s, 2, Length(s));
+end;
+
+procedure ProcessPluginsFormat(var sl: TStringList; noDelete: Boolean);
+var
+  i: Integer;
+begin
+  for i := Pred(sl.Count) downto 0 do
+    ProcessAsterisks(sl, i, noDelete);
+end;
+
+procedure LoadPluginsList(const sLoadPath: String; var sl: TStringList; noDelete: Boolean = False);
+var
+  sPath: String;
+begin
+  sPath := sLoadPath + 'plugins.txt';
+  if FileExists(sPath) then begin
+    sl.LoadFromFile(sPath);
+    if (wbGameMode = gmSSE) or (wbGameMode = gmFO4) then
+      ProcessPluginsFormat(sl, noDelete);
+  end
+  else
+    AddMissingFiles(sl);
+
+  // remove comments and missing files
+  RemoveCommentsAndEmpty(sl);
+  RemoveMissingFiles(sl);
+end;
+
+procedure LoadLoadOrder(const sLoadPath: String; var slLoadOrder, slPlugins: TStringList);
+var
+  sPath: String;
+begin
+  sPath := sLoadPath + 'loadorder.txt';
+  if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4)
+  and FileExists(sPath) then
+    slLoadOrder.LoadFromFile(sPath)
+  else
+    slLoadOrder.AddStrings(slPlugins);
+
+  // remove comments and add/remove files
+  RemoveCommentsAndEmpty(slLoadOrder);
+  RemoveMissingFiles(slLoadOrder);
+  AddMissingFiles(slLoadOrder);
+end;
+
+procedure PrepareLoadOrder(var slLoadOrder, slPlugins: TStringList);
+var
+  sLoadPath: String;
+begin
+  sLoadPath := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA) + wbGameName2 +'\';
+  LoadPluginsList(sLoadPath, slPlugins, True);
+  LoadLoadOrder(sLoadPath, slLoadOrder, slPlugins);
+
+  // if GameMode is not SkyrimSE or Fallout 4 and we don't
+  // have a loadorder.txt, sort by date modified
+  if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4)
+  and not FileExists(sLoadPath + 'loadorder.txt') then begin
+    GetPluginDates(slLoadOrder);
+    slLoadOrder.CustomSort(PluginListCompare);
+  end;
+
+  // add base masters if missing
+  AddBaseMasters(slLoadOrder);
 end;
 
 { Log Initialization }
