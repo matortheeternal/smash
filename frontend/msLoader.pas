@@ -130,6 +130,8 @@ begin
   LoadPatches;
 
   // PREPARE LOAD ORDER
+  slLoadOrder := TStringList.Create;
+  slPlugins := TStringList.Create;
   PrepareLoadOrder(slLoadOrder, slPlugins);
 
   // DISPLAY PLUGIN SELECTION FORM
