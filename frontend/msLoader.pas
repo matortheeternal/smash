@@ -25,7 +25,8 @@ uses
   procedure RemoveCommentsAndEmpty(var sl: TStringList);
   procedure RemoveMissingFiles(var sl: TStringList);
   procedure RemoveSmashedPatches(var sl: TStringList);
-  procedure FixLoadOrder(var sl: TStringList; filename: String; index: Integer);
+  procedure FixLoadOrder(var sl: TStringList; const filename: String; var index: Integer);
+  procedure AddBaseMasters(var sl: TStringList);
   procedure AddMissingFiles(var sl: TStringList);
   procedure GetPluginDates(var sl: TStringList);
   function PluginListCompare(List: TStringList; Index1, Index2: Integer): Integer;
@@ -160,37 +161,14 @@ begin
   RemoveCommentsAndEmpty(slLoadOrder);
   RemoveMissingFiles(slLoadOrder);
   AddMissingFiles(slLoadOrder);
+  AddBaseMasters(slLoadOrder);
 
-  // if GameMode is not Skyrim, SkyrimSE or Fallout 4 and user
-  // isn't using MO, sort by date modified else add base masters
-  // to load order if missing
-  if (wbGameMode = gmSSE) then begin
-    FixLoadOrder(slLoadOrder, 'Skyrim.esm', 0);
-    FixLoadOrder(slLoadOrder, 'Update.esm', 1);
-    FixLoadOrder(slLoadOrder, 'Dawnguard.esm', 2);
-    FixLoadOrder(slLoadOrder, 'HearthFires.esm', 3);
-    FixLoadOrder(slLoadOrder, 'Dragonborn.esm', 4);
-  end
-  else if (wbGameMode = gmTES5) then begin
-    FixLoadOrder(slLoadOrder, 'Skyrim.esm', 0);
-    FixLoadOrder(slLoadOrder, 'Update.esm', 1);
-  end
-  else if (wbGameMode = gmFO4) then begin
-    FixLoadOrder(slLoadOrder, 'Fallout4.esm', 0);
-    FixLoadOrder(slLoadOrder, 'DLCRobot.esm', 1);
-    FixLoadOrder(slLoadOrder, 'DLCworkshop01.esm', 2);
-    FixLoadOrder(slLoadOrder, 'DLCCoast.esm', 3);
-    FixLoadOrder(slLoadOrder, 'DLCworkshop02.esm', 4);
-    FixLoadOrder(slLoadOrder, 'DLCworkshop03.esm', 5);
-    FixLoadOrder(slLoadOrder, 'DLCNukaworld.esm', 6);
-  end
-  else begin
-    if not settings.usingMO then begin
-      GetPluginDates(slPlugins);
-      GetPluginDates(slLoadOrder);
-      slPlugins.CustomSort(PluginListCompare);
-      slLoadOrder.CustomSort(PluginListCompare);
-    end;
+  // if GameMode is not SkyrimSE or Fallout 4 and we don't
+  // have a loadorder.txt, sort by date modified
+  if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4)
+  and not FileExists(sLoadPath + 'loadorder.txt') then begin
+    GetPluginDates(slLoadOrder);
+    slLoadOrder.CustomSort(PluginListCompare);
   end;
 
   // DISPLAY PLUGIN SELECTION FORM
@@ -211,6 +189,34 @@ begin
 
   // ALL DONE
   Result := true;
+end;
+
+procedure AddBaseMasters(var sl: TStringList);
+var
+  index: Integer;
+begin
+  index := 0;
+  if (wbGameMode = gmTES5) then begin
+    FixLoadOrder(sl, 'Skyrim.esm', index);
+    FixLoadOrder(sl, 'Update.esm', index);
+  end
+  else if (wbGameMode = gmSSE) then begin
+    FixLoadOrder(sl, 'Skyrim.esm', index);
+    FixLoadOrder(sl, 'Update.esm', index);
+    FixLoadOrder(sl, 'Dawnguard.esm', index);
+    FixLoadOrder(sl, 'HearthFires.esm', index);
+    FixLoadOrder(sl, 'Dragonborn.esm', index);
+  end
+  else if (wbGameMode = gmFO4) then begin
+    FixLoadOrder(sl, 'Fallout4.esm', index);
+    FixLoadOrder(sl, 'DLCRobot.esm', index);
+    FixLoadOrder(sl, 'DLCworkshop01.esm', index);
+    FixLoadOrder(sl, 'DLCCoast.esm', index);
+    FixLoadOrder(sl, 'DLCworkshop02.esm', index);
+    FixLoadOrder(sl, 'DLCworkshop03.esm', index);
+    FixLoadOrder(sl, 'DLCNukaWorld.esm', index);
+    FixLoadOrder(sl, 'DLCUltraHighResolution.esm', index);
+  end;
 end;
 
 { Check if game paths are valid }
@@ -509,15 +515,22 @@ begin
 end;
 
 { Forces a plugin to load at a specific position }
-procedure FixLoadOrder(var sl: TStringList; filename: String; index: Integer);
+procedure FixLoadOrder(var sl: TStringList; const filename: String; var index: Integer);
 var
   oldIndex: Integer;
 begin
   oldIndex := sl.IndexOf(filename);
-  if (oldIndex > -1) and (oldIndex <> index) then begin
-    sl.Delete(oldIndex);
-    sl.Insert(index, filename);
-  end;
+  if (oldIndex > -1) then begin
+    if oldIndex <> index then begin
+      sl.Delete(oldIndex);
+      sl.Insert(index, filename);
+    end;
+  end
+  else if FileExists(wbDataPath + filename) then
+    sl.Insert(index, filename)
+  else
+    exit;
+  Inc(index);
 end;
 
 { Add missing *.esp and *.esm files to list }
