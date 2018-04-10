@@ -15,7 +15,7 @@ uses
   mteHelpers, mteTracker, mteLogger, mteLogging, mteProgressForm,
   mteBase, mteTaskHandler, RttiTranslation,
   // ms units
-  msCore, msConfiguration, msClient, msLoader, msThreads, msOptionsForm,
+  msCore, msConfiguration, msLoader, msThreads, msOptionsForm,
   msEditForm, msSettingsManager, msTagManager, msSplashForm,
   // tes5edit units
   wbBSA, wbHelpers, wbInterface, wbImplementation;
@@ -124,15 +124,11 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure SaveDone;
-    procedure ConnectDone;
     procedure ProgressDone;
-    procedure AutoUpdate;
     function ShouldDisplay(bh: TBalloonHint): boolean;
     procedure DisableHints;
     procedure HideHints;
     procedure DisplayHints;
-    procedure Reconnect;
-    procedure Heartbeat;
     procedure RefreshGUI;
     procedure OnTaskTimer(Sender: TObject);
     procedure ShowAuthorizationMessage;
@@ -214,7 +210,6 @@ type
     procedure UpdateButtonClick(Sender: TObject);
     procedure HelpButtonClick(Sender: TObject);
     procedure ToggleAutoScrollItemClick(Sender: TObject);
-    procedure ImageDisconnectedClick(Sender: TObject);
     procedure DictionaryButtonClick(Sender: TObject);
     procedure RemoveUnloadedPluginsItemClick(Sender: TObject);
   protected
@@ -360,7 +355,6 @@ begin
   xEditLogLabel := 'Plugins';
   wbProgressCallback := ProgressMessage;
   StatusCallback := LoaderStatus;
-  UpdateCallback := AutoUpdate;
 
   if not InitBase then begin
     ProgramStatus.bClose := true;
@@ -395,7 +389,6 @@ begin
   FreeList(LabelFilters);
 
   // free other items
-  TryToFree(TCPClient);
   TryToFree(TaskHandler);
   TryToFree(slDetails);
 end;
@@ -503,7 +496,7 @@ begin
 
   // STATUSBAR VALUES
   StatusPanelLanguage.Caption := settings.language;
-  StatusPanelVersion.Caption := 'v'+LocalStatus.ProgramVersion;
+  StatusPanelVersion.Caption := 'v' + ProgramStatus.Version;
 
   // UPDATE GUI
   slDetails := TStringList.Create;
@@ -516,11 +509,6 @@ begin
   UpdateQuickBar;
 
   if not ProgramStatus.bInitException then begin
-    // ATTEMPT TO CONNECT TO SERVER
-    {ConnectCallback := ConnectDone;
-    if (not bConnecting) and (not TCPClient.Connected) then
-      TConnectThread.Create; }
-
     // START BACKGROUND LOADER
     LoaderCallback := LoaderDone;
     SetTaskbarProgressState(tbpsIndeterminate);
@@ -616,12 +604,6 @@ begin
   Close;
 end;
 
-procedure TSmashForm.ConnectDone;
-begin
-  // UPDATE QUICKBAR
-  UpdateQuickbar;
-end;
-
 procedure TSmashForm.ProgressDone;
 begin
   xEditLogGroup := 'GENERAL';
@@ -644,22 +626,6 @@ begin
   UpdatePatches;
   UpdateQuickbar;
   UpdatePluginsPopupMenu;
-end;
-
-procedure TSmashForm.AutoUpdate;
-begin
-  if settings.updateDictionary then begin
-    // update dictionary
-    if ProgramStatus.bDictionaryUpdate and UpdateDictionary then begin
-      LocalStatus := TmsStatus.Create;
-      CompareStatuses;
-    end;
-  end;
-  if settings.updateProgram then begin
-    // update program
-    if ProgramStatus.bProgramUpdate and DownloadProgram then
-      ProgramStatus.bInstallUpdate := UpdateProgram;
-  end;
 end;
 
 function TSmashForm.ShouldDisplay(bh: TBalloonHint): boolean;
@@ -698,31 +664,9 @@ begin
   end;
 end;
 
-procedure TSmashForm.Reconnect;
-begin
-  if not (TCPClient.Connected or ProgramStatus.bConnecting or bClosing) then
-    TConnectThread.Create;
-end;
-
 procedure TSmashForm.RefreshGUI;
 begin
   if not bClosing then UpdateStatusBar;
-end;
-
-procedure TSmashForm.Heartbeat;
-begin
-  try
-    if TCPClient.IOHandler.Opened and
-    not (ProgramStatus.bConnecting or bClosing or ServerAvailable) then
-      raise Exception.Create('Connection unavailable');
-  except
-    on x : Exception do begin
-      if Assigned(TCPClient) and Assigned(TCPClient.IOHandler) then begin
-        Logger.Write('CLIENT', 'Connection', 'Connection to server lost.');
-        TCPClient.IOHandler.CloseGracefully;
-      end;
-    end;
-  end;
 end;
 
 procedure TSmashForm.OnTaskTimer(Sender: TObject);
@@ -744,8 +688,6 @@ end;
 procedure TSmashForm.UpdateStatusBar;
 begin
   ImageBlocked.Visible := not (wbLoaderDone or ProgramStatus.bInitException);
-  ImageConnected.Visible := TCPClient.Connected;
-  ImageDisconnected.Visible := not TCPClient.Connected;
   ImageBuild.Visible := wbLoaderDone and bPatchesToBuild;
   ImageDictionaryUpdate.Visible := ProgramStatus.bDictionaryUpdate;
   ImageProgramUpdate.Visible := ProgramStatus.bProgramUpdate;
@@ -833,7 +775,7 @@ begin
   // add details items
   AddDetailsItem(GetLanguageString('msMain_Application'), 'Mator Smash');
   AddDetailsItem(GetLanguageString('msMain_Author'), 'matortheeternal');
-  AddDetailsItem(GetLanguageString('msMain_Version'), LocalStatus.ProgramVersion);
+  AddDetailsItem(GetLanguageString('msMain_Version'), ProgramStatus.Version);
   AddDetailsItem(GetLanguageString('msMain_DateBuilt'), DateTimeToStr(GetLastModified(ParamStr(0))));
   AddDetailsItem(' ', ' ');
   AddDetailsItem(GetLanguageString('msMain_GameMode'), wbGameName);
@@ -2268,15 +2210,6 @@ begin
   UpdateQuickBar;
 end;
 
-procedure TSmashForm.ImageDisconnectedClick(Sender: TObject);
-begin
-  if (not TCPClient.Connected)
-  and (ConnectionAttempts = MaxConnectionAttempts) then begin
-    Logger.Write('CLIENT', 'Connect', 'Retrying connecting to the server.');
-    ConnectionAttempts := 0;
-  end;
-end;
-
 { Double click to edit patch }
 procedure TSmashForm.PatchesListViewDblClick(Sender: TObject);
 begin
@@ -2486,13 +2419,6 @@ begin
   // if user selected to change game mode, close application
   if ProgramStatus.bChangeProfile then
     Close;
-
-  // if user selected to update program, close application
-  if ProgramStatus.bInstallUpdate then begin
-    ProgramStatus.bInstallUpdate := UpdateProgram;
-    if ProgramStatus.bInstallUpdate then
-      Close;
-  end;
 end;
 
 { Update }

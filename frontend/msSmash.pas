@@ -9,7 +9,7 @@ uses
   // mte units
   mteHelpers, mteLogger, mteTracker, mteBase,
   // ms units
-  msCore, msConfiguration, msConflict, msAlgorithm, msClient,
+  msCore, msConfiguration, msConflict, msAlgorithm,
   // xEdit units
   wbInterface, wbImplementation;
 
@@ -39,7 +39,7 @@ begin
   patchFile := patch.plugin._File;
   fileHeader := patchFile.Elements[0] as IwbContainer;
   // set author
-  fileHeader.ElementEditValues['CNAM'] := 'Mator Smash v'+LocalStatus.ProgramVersion;
+  fileHeader.ElementEditValues['CNAM'] := 'Mator Smash v' + ProgramStatus.Version;
   // set description
   fileHeader.ElementEditValues['SNAM'] := 'Smashed patch:'#13#10 + patch.plugins.Text;
 end;

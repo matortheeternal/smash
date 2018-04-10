@@ -8,7 +8,7 @@ uses
   // mte units
   mteHelpers, RttiTranslation,
   // mp units
-  msConfiguration, msClient;
+  msConfiguration;
 
 type
   TOptionsForm = class(TForm)
@@ -24,20 +24,6 @@ type
         gbStyle: TGroupBox;
         kbSimpleDictionary: TCheckBox;
         kbSimplePlugins: TCheckBox;
-        gbReports: TGroupBox;
-        lblUsername: TLabel;
-        edUsername: TEdit;
-        btnRegister: TButton;
-        lblStatus: TLabel;
-        lblStatusValue: TLabel;
-        btnReset: TButton;
-        gbUpdating: TGroupBox;
-        kbUpdateDictionary: TCheckBox;
-        lblDictionaryStatus: TLabel;
-        btnUpdateDictionary: TButton;
-        kbUpdateProgram: TCheckBox;
-        lblProgramStatus: TLabel;
-        btnUpdateProgram: TButton;
         [FormSection('DontTranslate')]
           cbLanguage: TComboBox;
       [FormSection('Patching Tab')]
@@ -107,10 +93,6 @@ type
     procedure kbUsingMOClick(Sender: TObject);
     procedure btnChangePatchProfileClick(Sender: TObject);
     procedure edUsernameChange(Sender: TObject);
-    procedure btnRegisterClick(Sender: TObject);
-    procedure btnResetClick(Sender: TObject);
-    procedure btnUpdateDictionaryClick(Sender: TObject);
-    procedure btnUpdateProgramClick(Sender: TObject);
     procedure searchForModOrganizer;
     procedure btnDetectClick(Sender: TObject);
     procedure meTemplateChange(Sender: TObject);
@@ -209,14 +191,9 @@ begin
 
   // General > Language
   settings.language := cbLanguage.Text;
-  // General > Reports
-  settings.username := edUsername.Text;
   // General > Style
   settings.simpleDictionaryView := kbSimpleDictionary.Checked;
   settings.simplePluginsView := kbSimplePlugins.Checked;
-  // General > Updating
-  settings.updateDictionary := kbUpdateDictionary.Checked;
-  settings.updateProgram := kbUpdateProgram.Checked;
 
   // Patching > General
   settings.patchDirectory := edPatchDirectory.Text;
@@ -253,86 +230,6 @@ begin
   settings.InstanceName := edModOrganizerInstanceName.Text;
 
   SaveSettings;
-end;
-
-procedure TOptionsForm.btnRegisterClick(Sender: TObject);
-begin
-  if not TCPClient.Connected then begin
-    lblStatusValue.Caption := GetLanguageString('mpOpt_ServerUnavailable');
-    lblStatusValue.Font.Color := clRed;
-    lblStatusValue.Hint := GetLanguageString('mpOpt_ServerUnavailable');
-    btnRegister.Enabled := false;
-    exit;
-  end;
-
-  if (btnRegister.Caption = GetLanguageString('mpOpt_Register')) then begin
-    if RegisterUser(edUsername.Text) then begin
-      settings.registered := true;
-      settings.username := edUsername.Text;
-      SaveSettings;
-      lblStatusValue.Caption := GetLanguageString('mpOpt_Registered');
-      lblStatusValue.Font.Color := clGreen;
-      lblStatusValue.Hint := '';
-      edUsername.Enabled := false;
-      btnRegister.Enabled := false;
-    end
-    else begin
-      lblStatusValue.Caption := GetLanguageString('mpOpt_FailedToRegister');
-      lblStatusValue.Font.Color := clRed;
-      lblStatusValue.Hint := GetLanguageString('mpOpt_FailedToRegister');
-    end;
-  end
-  else begin
-    if UsernameAvailable(edUsername.Text) then begin
-      lblStatusValue.Caption := GetLanguageString('mpOpt_UsernameAvailable');
-      lblStatusValue.Font.Color := clBlue;
-      lblStatusValue.Hint := GetLanguageString('mpOpt_UsernameAvailable');
-      btnRegister.Caption := GetLanguageString('mpOpt_Register');
-    end
-    else begin
-      lblStatusValue.Caption := GetLanguageString('mpOpt_UsernameUnavailable');
-      lblStatusValue.Font.Color := clRed;
-      lblStatusValue.Hint := GetLanguageString('mpOpt_UsernameUnavailable');
-    end;
-  end;
-end;
-
-procedure TOptionsForm.btnResetClick(Sender: TObject);
-begin
-  if settings.registered and not ProgramStatus.bAuthorized then begin
-    ResetAuth;
-    CheckAuthorization;
-    if ProgramStatus.bAuthorized then begin
-      btnReset.Enabled := false;
-      lblStatusValue.Caption := GetLanguageString('mpOpt_Registered');
-      lblStatusValue.Font.Color := clGreen;
-      lblStatusValue.Hint := '';
-    end;
-  end;
-end;
-
-procedure TOptionsForm.btnUpdateDictionaryClick(Sender: TObject);
-begin
-  if TCPClient.Connected then begin
-    if UpdateDictionary then begin
-      LocalStatus := TmsStatus.Create;
-      CompareStatuses;
-      btnUpdateDictionary.Enabled := false;
-      lblDictionaryStatus.Caption := GetLanguageString('mpOpt_UpToDate');
-      lblDictionaryStatus.Font.Color := clGreen;
-    end;
-  end;
-end;
-
-procedure TOptionsForm.btnUpdateProgramClick(Sender: TObject);
-begin
-  {if TCPClient.Connected then begin
-    if ChangeLogPrompt(self) and DownloadProgram then begin
-      bInstallUpdate := true;
-      btnOKClick(nil);
-      Close;
-    end;
-  end;}
 end;
 
 procedure TOptionsForm.btnChangePatchProfileClick(Sender: TObject);
@@ -430,14 +327,9 @@ begin
   index := cbLanguage.Items.IndexOf(settings.language);
   if index > -1 then
     cbLanguage.ItemIndex := index;
-  // General > reports
-  edUsername.Text := settings.username;
   // General > Style
   kbSimpleDictionary.Checked := settings.simpleDictionaryView;
   kbSimplePlugins.Checked := settings.simplePluginsView;
-  // General > Updating
-  kbUpdateDictionary.Checked := settings.updateDictionary;
-  kbUpdateProgram.Checked := settings.updateProgram;
 
   // Patching > General
   edPatchDirectory.Text := settings.patchDirectory;
@@ -477,44 +369,6 @@ begin
 
   // disable controls if not using mod organizer
   kbUsingMOClick(nil);
-
-  // if already registered, lock registering controls
-  edUsernameChange(nil);
-  if settings.registered then begin
-    edUsername.Enabled := false;
-    btnRegister.Enabled := false;
-    // if not authorized then enable reset button
-    if TCPClient.Connected then begin
-      if not ProgramStatus.bAuthorized then begin
-        btnReset.Enabled := true;
-        lblStatusValue.Caption := GetLanguageString('mpOpt_AuthFailed');
-        lblStatusValue.Font.Color := clRed;
-        lblStatusValue.Hint := GetLanguageString('mpOpt_AuthFailed');
-      end
-      else begin
-        lblStatusValue.Caption := GetLanguageString('mpOpt_Registered');
-        lblStatusValue.Font.Color := clGreen;
-        lblStatusValue.Hint := '';
-        ProgramStatus.bAuthorized := true;
-      end;
-    end;
-  end;
-
-  // dictionary update
-  if ProgramStatus.bDictionaryUpdate then begin
-    btnUpdateDictionary.Enabled := ProgramStatus.bDictionaryUpdate;
-    lblDictionaryStatus.Caption := GetLanguageString('mpOpt_UpdateAvailable');
-    lblDictionaryStatus.Font.Color := $000080FF;
-  end;
-
-  // program update
-  if ProgramStatus.bProgramUpdate then begin
-    btnUpdateProgram.Enabled := ProgramStatus.bProgramUpdate;
-    lblProgramStatus.Caption := GetLanguageString('mpOpt_UpdateAvailable');
-    lblProgramStatus.Hint := Format(GetLanguageString('mpOpt_VersionCompare'),
-      [LocalStatus.ProgramVersion, RemoteStatus.ProgramVersion]);
-    lblProgramStatus.Font.Color := $000080FF;
-  end;
 
   // set up browse buttons
   btnBrowsePatchDirectory.Flat := true;

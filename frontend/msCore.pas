@@ -235,7 +235,7 @@ uses
   // mte units
   mteLogger, mteTracker, mteHelpers, mteLogging, RttiJson, CRC32,
   // mp units
-  msConfiguration, msClient,
+  msConfiguration,
   // xEdit units
   wbInterface, wbImplementation;
 

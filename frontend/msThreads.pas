@@ -9,7 +9,7 @@ uses
   // mte units
   mteHelpers, mteLogger, mteLogging, mteTracker, mteBase,
   // ms units
-  msCore, msConfiguration, msLoader, msClient, msSmash,
+  msCore, msConfiguration, msLoader, msSmash,
   // xedit units
   wbBSA, wbInterface, wbImplementation;
 
@@ -19,10 +19,6 @@ type
   TCallback = procedure of object;
   TStatusCallback = procedure(s: string) of object;
   TInitThread = class(TThread)
-  protected
-    procedure Execute; override;
-  end;
-  TConnectThread = class(TThread)
   protected
     procedure Execute; override;
   end;
@@ -41,7 +37,7 @@ type
 
 var
   InitCallback, LoaderCallback, ErrorCheckCallback, ErrorFixCallback,
-  PatchCallback, SaveCallback, UpdateCallback, ConnectCallback: TCallback;
+  PatchCallback, SaveCallback: TCallback;
   StatusCallback: TStatusCallback;
 
 implementation
@@ -61,15 +57,6 @@ implementation
   - TSaveThread.Execute
 }
 {******************************************************************************}
-
-{ TConnectThread }
-procedure TConnectThread.Execute;
-begin
-  FreeOnTerminate := true;
-  ConnectToServer;
-  if Assigned(ConnectCallback) then
-    Synchronize(nil, ConnectCallback);
-end;
 
 { TInitThread }
 procedure TInitThread.Execute;
@@ -230,10 +217,6 @@ end;
 procedure TSaveThread.Execute;
 begin
   FreeOnTerminate := true;
-  // send statistics, then disconnect from the server
-  if not settings.dontSendStatistics then
-    SendStatistics;
-  TCPClient.Disconnect;
 
   // save ESPs only if it's safe to do so
   if not ProgramStatus.bInitException then begin

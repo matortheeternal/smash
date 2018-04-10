@@ -24,7 +24,7 @@ object OptionsForm: TOptionsForm
     Top = 8
     Width = 568
     Height = 401
-    ActivePage = IntegrationsTabSheet
+    ActivePage = GeneralTabSheet
     Align = alCustom
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
@@ -33,7 +33,7 @@ object OptionsForm: TOptionsForm
       Caption = 'General'
       object gbStyle: TGroupBox
         Left = 6
-        Top = 163
+        Top = 69
         Width = 548
         Height = 71
         Margins.Left = 6
@@ -62,191 +62,6 @@ object OptionsForm: TOptionsForm
           TabOrder = 1
         end
       end
-      object gbUpdating: TGroupBox
-        Left = 6
-        Top = 246
-        Width = 548
-        Height = 82
-        Margins.Left = 6
-        Margins.Top = 6
-        Margins.Right = 6
-        Margins.Bottom = 6
-        Align = alCustom
-        Anchors = [akLeft, akTop, akRight]
-        Caption = 'Updating'
-        TabOrder = 1
-        object lblDictionaryStatus: TLabel
-          Left = 254
-          Top = 23
-          Width = 142
-          Height = 13
-          Align = alCustom
-          Alignment = taCenter
-          Anchors = [akLeft, akTop, akRight]
-          AutoSize = False
-          Caption = 'Up to date'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clGreen
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = []
-          ParentFont = False
-          ParentShowHint = False
-          ShowHint = True
-        end
-        object lblProgramStatus: TLabel
-          Left = 254
-          Top = 52
-          Width = 142
-          Height = 13
-          Align = alCustom
-          Alignment = taCenter
-          Anchors = [akLeft, akTop, akRight]
-          AutoSize = False
-          Caption = 'Up to date'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clGreen
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = []
-          ParentFont = False
-          ParentShowHint = False
-          ShowHint = True
-        end
-        object kbUpdateDictionary: TCheckBox
-          Left = 12
-          Top = 22
-          Width = 205
-          Height = 17
-          Align = alCustom
-          Caption = 'Update dictionary automatically'
-          TabOrder = 0
-        end
-        object kbUpdateProgram: TCheckBox
-          Left = 12
-          Top = 51
-          Width = 205
-          Height = 17
-          Align = alCustom
-          Caption = 'Update program automatically'
-          TabOrder = 1
-        end
-        object btnUpdateDictionary: TButton
-          Left = 402
-          Top = 16
-          Width = 140
-          Height = 25
-          Margins.Right = 6
-          Align = alCustom
-          Anchors = [akTop, akRight]
-          Caption = 'Update dictionary'
-          Enabled = False
-          TabOrder = 2
-          OnClick = btnUpdateDictionaryClick
-        end
-        object btnUpdateProgram: TButton
-          Left = 402
-          Top = 47
-          Width = 140
-          Height = 25
-          Margins.Right = 6
-          Align = alCustom
-          Anchors = [akTop, akRight]
-          Caption = 'Update program'
-          Enabled = False
-          TabOrder = 3
-          OnClick = btnUpdateProgramClick
-        end
-      end
-      object gbReports: TGroupBox
-        Left = 6
-        Top = 69
-        Width = 548
-        Height = 82
-        Margins.Left = 6
-        Margins.Top = 6
-        Margins.Right = 6
-        Margins.Bottom = 6
-        Align = alCustom
-        Caption = 'Submissions'
-        Enabled = False
-        TabOrder = 2
-        object lblUsername: TLabel
-          Left = 12
-          Top = 20
-          Width = 48
-          Height = 13
-          Align = alCustom
-          Caption = 'Username'
-        end
-        object lblStatusValue: TLabel
-          Left = 274
-          Top = 45
-          Width = 187
-          Height = 13
-          Hint = 'Username must be 4 or more characters'
-          Align = alCustom
-          Alignment = taCenter
-          Anchors = [akLeft, akTop, akRight]
-          AutoSize = False
-          Caption = 'N/A'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clRed
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = []
-          ParentFont = False
-          ParentShowHint = False
-          ShowHint = True
-        end
-        object lblStatus: TLabel
-          Left = 12
-          Top = 45
-          Width = 91
-          Height = 13
-          Align = alCustom
-          Caption = 'Registration status'
-        end
-        object edUsername: TEdit
-          Left = 274
-          Top = 18
-          Width = 187
-          Height = 21
-          Align = alCustom
-          Enabled = False
-          TabOrder = 0
-          OnChange = edUsernameChange
-        end
-        object btnRegister: TButton
-          Left = 467
-          Top = 16
-          Width = 75
-          Height = 25
-          Hint = 'Check if username is available'
-          Margins.Right = 6
-          Align = alCustom
-          Anchors = [akTop, akRight]
-          Caption = 'Check'
-          Enabled = False
-          ParentShowHint = False
-          ShowHint = True
-          TabOrder = 1
-          OnClick = btnRegisterClick
-        end
-        object btnReset: TButton
-          Left = 467
-          Top = 47
-          Width = 75
-          Height = 25
-          Margins.Right = 6
-          Align = alCustom
-          Anchors = [akTop, akRight]
-          Caption = 'Reset'
-          Enabled = False
-          TabOrder = 2
-          OnClick = btnResetClick
-        end
-      end
       object gbLanguage: TGroupBox
         Left = 6
         Top = 6
@@ -258,7 +73,7 @@ object OptionsForm: TOptionsForm
         Margins.Bottom = 6
         Align = alCustom
         Caption = 'Language'
-        TabOrder = 3
+        TabOrder = 1
         object lblLanguage: TLabel
           Left = 12
           Top = 20
@@ -844,7 +659,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C010101000800600110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010101000800640110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

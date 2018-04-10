@@ -41,7 +41,7 @@ uses
   // mte units
   mteTracker, mteLogger, mteLogging, mtePluginSelectionForm,
   // mp units
-  msCore, msClient,
+  msCore,
   // mp forms
   // xEdit units
   wbHelpers, wbInterface, wbImplementation, wbBSA,
@@ -80,8 +80,6 @@ begin
   ForceDirectories(PathList.Values['TempPath']);
   ForceDirectories(LogPath);
   ForceDirectories(PathList.Values['ProfilePath']);
-  LocalStatus := TmsStatus.Create;
-  LastStatusTime := 0;
 
   // SET GAME VARS
   SetGame(CurrentProfile.gameMode);
@@ -111,21 +109,6 @@ begin
   wbEditAllowed := True;
   wbContainerHandler := wbCreateContainerHandler;
   wbContainerHandler._AddRef;
-
-  // IF AUTOMATIC UPDATING IS ENABLED, CHECK FOR UPDATE
-  InitializeClient;
-  {if settings.updateDictionary or settings.updateProgram then try
-    Tracker.Write('Checking for updates');
-    ConnectToServer;
-    if TCPClient.Connected then begin
-      UpdateCallback;
-      if ProgramStatus.bInstallUpdate then
-        exit;
-    end;
-  except
-    on x: Exception do
-      Logger.Write('CLIENT', 'Update', 'Failed to get automatic update '+x.Message);
-  end;}
 
   // INITIALIZE DICTIONARY
   Logger.Write('GENERAL', 'Dictionary', 'Using '+wbAppName+'Dictionary.txt');

@@ -94,6 +94,7 @@ type
     bLoaderDone, bAuthorized, bProgramUpdate, bDictionaryUpdate, bInstallUpdate,
     bConnecting, bUpdatePatchStatus, bClose, bOfflineMode: boolean;
     GameMode: TGameMode;
+    Version: String;
     constructor Create; virtual;
   end;
 
@@ -246,6 +247,7 @@ begin
   bConnecting := false;
   bUpdatePatchStatus := false;
   bClose := false;
+  Version := GetVersionMem;
 end;
 
 { CONFIGURATION HELPERS }
