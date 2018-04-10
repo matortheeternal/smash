@@ -438,7 +438,7 @@ begin
       sl.Delete(i);
 end;
 
-{ Remove merged plugins from stringlist }
+{ Remove smashed patch plugins from stringlist }
 procedure RemoveSmashedPatches(var sl: TStringList);
 var
   i: integer;
@@ -623,8 +623,10 @@ begin
     AddMissingFiles(sl);
 
   // remove comments and missing files
+  AddBaseMasters(sl);
   RemoveCommentsAndEmpty(sl);
   RemoveMissingFiles(sl);
+  RemoveSmashedPatches(sl);
 end;
 
 procedure LoadLoadOrder(const sLoadPath: String; var slLoadOrder, slPlugins: TStringList);
@@ -639,9 +641,11 @@ begin
     slLoadOrder.AddStrings(slPlugins);
 
   // remove comments and add/remove files
+  AddBaseMasters(slLoadOrder);
   RemoveCommentsAndEmpty(slLoadOrder);
   RemoveMissingFiles(slLoadOrder);
   AddMissingFiles(slLoadOrder);
+  RemoveSmashedPatches(slLoadOrder);
 end;
 
 procedure PrepareLoadOrder(var slLoadOrder, slPlugins: TStringList);
@@ -659,10 +663,7 @@ begin
     GetPluginDates(slLoadOrder);
     slLoadOrder.CustomSort(PluginListCompare);
   end;
-
-  // add base masters if missing
-  AddBaseMasters(slLoadOrder);
-end;
+end;
 
 { Log Initialization }
 procedure InitLog;
