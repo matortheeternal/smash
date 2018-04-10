@@ -138,7 +138,7 @@ function wbExtractNameFromPath(aPathName: String): String;
 
 function wbCounterAfterSet(aCounterName: String; const aElement: IwbElement): Boolean;
 function wbCounterByPathAfterSet(aCounterName: String; const aElement: IwbElement): Boolean;
-function wbCounterContainerAfterSet(aCounterName: String; anArrayName: String; const aElement: IwbElement; DeleteOnEmpty: Boolean = False): Boolean;
+function wbCounterContainerAfterSet(aCounterName: String; anArrayName: String; const aElement: IwbElement; DeleteOnEmpty: Boolean = True): Boolean;
 function wbCounterContainerByPathAfterSet(aCounterName: String; anArrayName: String; const aElement: IwbElement): Boolean;
 function wbFormVerDecider(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement; aMinimum: Integer): Integer;
 function wbFormVer78Decider(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
@@ -942,7 +942,7 @@ begin
   end;
 end;
 
-function wbCounterContainerAfterSet(aCounterName: String; anArrayName: String; const aElement: IwbElement; DeleteOnEmpty: Boolean = False): Boolean;
+function wbCounterContainerAfterSet(aCounterName: String; anArrayName: String; const aElement: IwbElement; DeleteOnEmpty: Boolean = True): Boolean;
 var
   Element         : IwbElement;
   Elems           : IwbElement;
@@ -955,10 +955,10 @@ begin
       Elems   := Container.ElementByName[anArrayName];
       if Assigned(Element) then begin
         if not Assigned(Elems) then
-          if Element.GetNativeValue<>0 then
-            Element.SetNativeValue(0)
-          else if DeleteOnEmpty then
-            Container.RemoveElement(aCounterName);
+           if DeleteOnEmpty then
+            Container.RemoveElement(aCounterName)
+          else if Element.GetNativeValue <> 0 then
+            Element.SetNativeValue(0);
         Result := True; // Counter member exists
       end;
     end;
@@ -980,7 +980,7 @@ begin
       Elems   := Container.ElementByName[anArrayName];
       if Assigned(Element) then begin
         if not Assigned(Elems) then
-          if Element.GetNativeValue<>0 then
+          if Element.GetNativeValue <> 0 then
             Element.SetNativeValue(0);
         Result := True; // Counter member exists
       end;
