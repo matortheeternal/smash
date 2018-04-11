@@ -106,7 +106,6 @@
 			<DCCReference Include="msConfiguration.pas"/>
 			<DCCReference Include="msCore.pas"/>
 			<DCCReference Include="msLoader.pas"/>
-			<DCCReference Include="msClient.pas"/>
 			<DCCReference Include="msConflict.pas"/>
 			<DCCReference Include="msChoicePanel.pas"/>
 			<DCCReference Include="msSmash.pas"/>

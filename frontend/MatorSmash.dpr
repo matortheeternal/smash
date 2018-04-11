@@ -51,7 +51,6 @@ uses
   msConfiguration in 'msConfiguration.pas',
   msCore in 'msCore.pas',
   msLoader in 'msLoader.pas',
-  msClient in 'msClient.pas',
   msConflict in 'msConflict.pas',
   msChoicePanel in 'msChoicePanel.pas',
   msSmash in 'msSmash.pas',
