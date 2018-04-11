@@ -47,10 +47,6 @@ type
       [FormSection('Advanced Tab')]
         AdvancedTabSheet: TTabSheet;
         lblCurrentProfile: TLabel;
-        gbBackend: TGroupBox;
-        lblHost: TLabel;
-        lblPort: TLabel;
-        kbNoStatistics: TCheckBox;
         gbLogging: TGroupBox;
         lblClientColor: TLabel;
         cbClientColor: TColorBox;
@@ -68,8 +64,6 @@ type
         [FormSection('DontTranslate')]
           lblCurrentProfileName: TLabel;
           lblSampleValue: TLabel;
-          edHost: TEdit;
-          edPort: TEdit;
       [FormSection('Integrations Tab')]
         IntegrationsTabSheet: TTabSheet;
         btnDetect: TButton;

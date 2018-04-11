@@ -24,7 +24,7 @@ object OptionsForm: TOptionsForm
     Top = 8
     Width = 568
     Height = 401
-    ActivePage = GeneralTabSheet
+    ActivePage = AdvancedTabSheet
     Align = alCustom
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
@@ -249,60 +249,9 @@ object OptionsForm: TOptionsForm
     object AdvancedTabSheet: TTabSheet
       Caption = 'Advanced'
       ImageIndex = 2
-      object gbBackend: TGroupBox
-        Left = 6
-        Top = 72
-        Width = 548
-        Height = 76
-        Margins.Left = 6
-        Margins.Top = 6
-        Margins.Right = 6
-        Margins.Bottom = 6
-        Caption = 'Backend'
-        TabOrder = 0
-        object lblHost: TLabel
-          Left = 12
-          Top = 20
-          Width = 56
-          Height = 13
-          Caption = 'Server host'
-        end
-        object lblPort: TLabel
-          Left = 274
-          Top = 20
-          Width = 55
-          Height = 13
-          Caption = 'Server port'
-        end
-        object kbNoStatistics: TCheckBox
-          Left = 12
-          Top = 44
-          Width = 181
-          Height = 17
-          Caption = 'Don'#39't send usage statistics'
-          TabOrder = 0
-        end
-        object edHost: TEdit
-          Left = 88
-          Top = 17
-          Width = 145
-          Height = 21
-          TabOrder = 1
-          Text = 'matorsmash.us.to'
-        end
-        object edPort: TEdit
-          Left = 392
-          Top = 17
-          Width = 145
-          Height = 21
-          NumbersOnly = True
-          TabOrder = 2
-          Text = '970'
-        end
-      end
       object gbLogging: TGroupBox
         Left = 6
-        Top = 160
+        Top = 72
         Width = 548
         Height = 190
         Margins.Left = 6
@@ -312,7 +261,7 @@ object OptionsForm: TOptionsForm
         Align = alCustom
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Logging'
-        TabOrder = 1
+        TabOrder = 0
         object lblClientColor: TLabel
           Left = 12
           Top = 20
@@ -491,7 +440,7 @@ object OptionsForm: TOptionsForm
         Align = alCustom
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Smash Profile'
-        TabOrder = 2
+        TabOrder = 1
         object lblCurrentProfile: TLabel
           Left = 12
           Top = 24
@@ -659,7 +608,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C010101000800640110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010101000800680110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
