@@ -26,18 +26,10 @@ type
     gameMode: integer;
     gamePath: string;
     language: string;
-    username: string;
-    key: string;
-    registered: boolean;
     simpleDictionaryView: boolean;
     simplePluginsView: boolean;
     simpleSplash: boolean;
-    updateDictionary: boolean;
-    updateProgram: boolean;
     [IniSection('Advanced')]
-    serverHost: string;
-    serverPort: integer;
-    dontSendStatistics: boolean;
     generalMessageColor: Int64;
     clientMessageColor: Int64;
     loadMessageColor: Int64;
@@ -66,7 +58,6 @@ type
     ModsPath: string;
     InstanceName: string;
     constructor Create; virtual;
-    procedure GenerateKey;
   end;
   TStatistics = class(TObject)
   public
@@ -91,8 +82,7 @@ type
   TProgramStatus = class(TObject)
   public
     bInitException, bLoadException, bChangeProfile, bForceTerminate,
-    bLoaderDone, bAuthorized, bProgramUpdate, bDictionaryUpdate, bInstallUpdate,
-    bConnecting, bUpdatePatchStatus, bClose, bOfflineMode: boolean;
+    bLoaderDone, bInstallUpdate, bUpdatePatchStatus, bClose: boolean;
     GameMode: TGameMode;
     Version: String;
     constructor Create; virtual;
@@ -102,10 +92,8 @@ type
   procedure LoadLanguage;
   function GetLanguageString(name: string): string;
   procedure SaveProfile(var p: TProfile);
-  procedure LoadRegistrationData(var s: TSettings);
   procedure LoadSettings; overload;
   function LoadSettings(path: string): TSettings; overload;
-  procedure SaveRegistrationData(var s: TSettings);
   procedure SaveSettings; overload;
   procedure SaveSettings(var s: TSettings; path: string); overload;
   procedure LoadStatistics;
@@ -155,12 +143,8 @@ begin
   // default settings
   newProfile := true;
   language := 'English';
-  serverHost := 'matorsmash.us.to';
-  serverPort := 970;
   simpleDictionaryView := false;
   simplePluginsView := false;
-  updateDictionary := false;
-  updateProgram := false;
   usingMO := false;
   ManagerPath := '';
   patchDirectory := wbDataPath;
@@ -171,20 +155,6 @@ begin
   pluginMessageColor := $00484848;
   errorMessageColor := clRed;
   logMessageTemplate := '[{{AppTime}}] ({{Group}}) {{Label}}: {{Text}}';
-
-  // generate a new secure key
-  GenerateKey;
-end;
-
-procedure TSettings.GenerateKey;
-const
-  chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-var
-  i: Integer;
-begin
-  key := '';
-  for i := 0 to 31 do
-    key := key + chars[Random(64)];
 end;
 
 { TStatistics constructor }
@@ -240,11 +210,6 @@ begin
   bLoadException := false;
   bChangeProfile := false;
   bForceTerminate := false;
-  bAuthorized := false;
-  bProgramUpdate := false;
-  bDictionaryUpdate := false;
-  bInstallUpdate := false;
-  bConnecting := false;
   bUpdatePatchStatus := false;
   bClose := false;
   Version := GetVersionMem;
@@ -316,94 +281,28 @@ begin
   SaveSettings(pSettings, path);
 end;
 
-procedure SaveRegistrationData(var s: TSettings);
-const
-  sMergePluginsRegKey = 'Software\\Mator Smash\\';
-  sMergePluginsRegKey64 = 'Software\\Wow6432Node\\Mator Smash\\';
-var
-  reg: TRegistry;
-begin
-  reg := TRegistry.Create(KEY_READ);
-  reg.RootKey := HKEY_LOCAL_MACHINE;
-
-  try
-    reg.Access := KEY_WRITE;
-    if not reg.OpenKey(sMergePluginsRegKey, true) then
-      if not reg.OpenKey(sMergePluginsRegKey64, true) then
-        exit;
-
-    reg.WriteString('Username', s.username);
-    reg.WriteString('Key', s.key);
-    reg.WriteBool('Registered', s.registered);
-  except on Exception do
-    // nothing
-  end;
-
-  reg.CloseKey();
-  reg.Free;
-end;
-
-procedure LoadRegistrationData(var s: TSettings);
-const
-  sMergePluginsRegKey = 'Software\\Mator Smash\\';
-  sMergePluginsRegKey64 = 'Software\\Wow6432Node\\Mator Smash\\';
-var
-  reg: TRegistry;
-begin
-  reg := TRegistry.Create(KEY_READ);
-  reg.RootKey := HKEY_LOCAL_MACHINE;
-
-  try
-    if (not reg.KeyExists(sMergePluginsRegKey))
-      xor (not reg.KeyExists(sMergePluginsRegKey64)) then
-        exit;
-
-    if not reg.OpenKeyReadOnly(sMergePluginsRegKey) then
-      if not reg.OpenKeyReadOnly(sMergePluginsRegKey64) then
-        exit;
-
-    if reg.ReadBool('Registered') then begin
-      s.username := reg.ReadString('Username');
-      s.key := reg.ReadString('Key');
-      s.registered := true;
-    end;
-  except on Exception do
-    // nothing
-  end;
-
-  reg.CloseKey();
-  reg.Free;
-end;
-
 procedure SaveSettings;
 begin
   // user saving settings from options form
   settings.newProfile := false;
   TRttiIni.Save(PathList.Values['ProfilePath'] + 'settings.ini', settings);
-  if settings.registered then
-    SaveRegistrationData(settings);
 end;
 
 procedure SaveSettings(var s: TSettings; path: string);
 begin
   TRttiIni.Save(path, s);
-  // save registration data to registry if registered
-  if (s.registered) then
-    SaveRegistrationData(s);
 end;
 
 procedure LoadSettings;
 begin
   settings := TSettings.Create;
   TRttiIni.Load(PathList.Values['ProfilePath'] + 'settings.ini', settings);
-  LoadRegistrationData(settings);
 end;
 
 function LoadSettings(path: string): TSettings;
 begin
   Result := TSettings.Create;
   TRttiIni.Load(path, Result);
-  LoadRegistrationData(Result);
 end;
 
 procedure SaveStatistics;

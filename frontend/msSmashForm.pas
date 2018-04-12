@@ -122,7 +122,6 @@ type
     procedure DisplayHints;
     procedure RefreshGUI;
     procedure OnTaskTimer(Sender: TObject);
-    procedure ShowAuthorizationMessage;
     procedure UpdateStatusBar;
     procedure UpdateListViews;
     // DETAILS EDITOR EVENTS
@@ -657,16 +656,6 @@ procedure TSmashForm.OnTaskTimer(Sender: TObject);
 begin
   if not bClosing then
     TaskHandler.ExecTasks;
-end;
-
-procedure TSmashForm.ShowAuthorizationMessage;
-begin
-  if ProgramStatus.bAuthorized then begin
-    Logger.Write('CLIENT', 'Login', 'Authorized');
-  end
-  else begin
-    Logger.Write('CLIENT', 'Login', 'Not authorized');
-  end;
 end;
 
 procedure TSmashForm.UpdateStatusBar;
@@ -2259,18 +2248,6 @@ begin
   else
     BuildButton.Hint := sTitle + GetLanguageString('msMain_BuildAllPatches');
 
-  // UPDATE BUTTON
-  UpdateButton.Enabled := ProgramStatus.bProgramUpdate or ProgramStatus.bDictionaryUpdate;
-  sTitle := GetLanguageString('msMain_UpdateButton_Hint');
-  if ProgramStatus.bProgramUpdate and ProgramStatus.bDictionaryUpdate then
-    UpdateButton.Hint := sTitle + GetLanguageString('msMain_UpdateBoth')
-  else if ProgramStatus.bProgramUpdate then
-    UpdateButton.Hint := sTitle + GetLanguageString('msMain_UpdateProgram')
-  else if ProgramStatus.bDictionaryUpdate then
-    UpdateButton.Hint := sTitle + GetLanguageString('msMain_UpdateDictionary')
-  else
-    UpdateButton.Hint := sTitle + GetLanguageString('msMain_NoUpdates');
-
   // HELP BUTTON
   HelpButton.Enabled := false; // TODO: help file integration
 end;
@@ -2405,24 +2382,7 @@ end;
 { Update }
 procedure TSmashForm.UpdateButtonClick(Sender: TObject);
 begin
-  // if not connected to server, don't try to update anything
-  {if not TCPClient.Connected then
-    exit;                                               
-
-  // update program
-  if bProgramUpdate and ChangeLogPrompt(self) and DownloadProgram then begin
-    bInstallUpdate := UpdateProgram;
-    if bInstallUpdate then
-      Close;
-  end;
-
-  // update dictionary
-  if bDictionaryUpdate and UpdateDictionary then begin
-    status := TmpStatus.Create;
-    CompareStatuses;
-    UpdatePluginData;
-    UpdateListViews;
-  end; }
+  // TODO: open github releases page
 end;
 
 { Help }

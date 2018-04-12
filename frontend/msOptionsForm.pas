@@ -32,7 +32,6 @@ type
         edPatchDirectory: TEdit;
         lblDestinationDirectory: TLabel;
         btnBrowsePatchDirectory: TSpeedButton;
-        kbMergeRedundant: TCheckBox;
         gbDebug: TGroupBox;
         kbDebugPatchStatus: TCheckBox;
         kbDebugMasters: TCheckBox;
@@ -191,7 +190,6 @@ begin
 
   // Patching > General
   settings.patchDirectory := edPatchDirectory.Text;
-  settings.mergeRedundantPlugins := kbMergeRedundant.Checked;
   // Patching > Debug
   settings.debugPatchStatus := kbDebugPatchStatus.Checked;
   settings.debugMasters := kbDebugMasters.Checked;
@@ -204,10 +202,6 @@ begin
   settings.debugLinks := kbDebugLinks.Checked;
   settings.buildRefs := kbBuildRefs.Checked;
 
-  // Advanced > Backend
-  settings.serverHost := edHost.Text;
-  settings.serverPort := StrToInt(edPort.Text);
-  settings.dontSendStatistics := kbNoStatistics.Checked;
   // Advanced > Logging
   settings.clientMessageColor := cbClientColor.Selected ;
   settings.generalMessageColor := cbGeneralColor.Selected;
@@ -327,7 +321,6 @@ begin
 
   // Patching > General
   edPatchDirectory.Text := settings.patchDirectory;
-  kbMergeRedundant.Checked := settings.mergeRedundantPlugins;
   // Patching > Debug
   kbDebugPatchStatus.Checked := settings.debugPatchStatus;
   kbDebugMasters.Checked := settings.debugMasters;
@@ -340,10 +333,6 @@ begin
   kbDebugLinks.Checked := settings.debugLinks;
   kbBuildRefs.Checked := settings.buildRefs;
 
-  // Advanced > Backend
-  edHost.Text := settings.serverHost;
-  edPort.Text := IntToStr(settings.serverPort);
-  kbNoStatistics.Checked := settings.dontSendStatistics;
   // Advanced > Profile
   lblCurrentProfileName.Caption := settings.profile;
   // Advanced > Logging
