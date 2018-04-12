@@ -24,7 +24,7 @@ object OptionsForm: TOptionsForm
     Top = 8
     Width = 568
     Height = 401
-    ActivePage = AdvancedTabSheet
+    ActivePage = PatchingTabSheet
     Align = alCustom
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
@@ -109,7 +109,7 @@ object OptionsForm: TOptionsForm
         Left = 3
         Top = 3
         Width = 554
-        Height = 75
+        Height = 54
         Caption = 'General'
         TabOrder = 0
         object lblDestinationDirectory: TLabel
@@ -137,19 +137,10 @@ object OptionsForm: TOptionsForm
           Height = 21
           TabOrder = 0
         end
-        object kbMergeRedundant: TCheckBox
-          Left = 12
-          Top = 44
-          Width = 200
-          Height = 17
-          Align = alCustom
-          Caption = 'Merge redundant plugins'
-          TabOrder = 1
-        end
       end
       object gbDebug: TGroupBox
         Left = 3
-        Top = 87
+        Top = 63
         Width = 554
         Height = 146
         Caption = 'Debug'
@@ -608,7 +599,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C010101000800680110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C0101010008006C0110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

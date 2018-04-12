@@ -40,7 +40,6 @@ type
     preserveTempPath: boolean;
     [IniSection('Patching')]
     patchDirectory: string;
-    mergeRedundantPlugins: boolean;
     debugPatchStatus: boolean;
     debugMasters: boolean;
     debugArrays: boolean;

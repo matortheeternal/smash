@@ -132,7 +132,7 @@ begin
 end;
 
 procedure BuildOverridesList(var patch: TPatch; var lst: TList;
-  var records, keep: TInterfaceList);
+  var records: TInterfaceList);
 var
   i, j, recCount: Integer;
   plugin: TPlugin;
@@ -140,7 +140,6 @@ var
   aFile: IwbFile;
   rec: IwbMainRecord;
   recObj: ISuperObject;
-  bIsAllOverrides: Boolean;
 begin
   Tracker.Write(' ');
   Tracker.Write('Processing files');
@@ -151,7 +150,6 @@ begin
     // get file and setting for later use
     aFile := plugin._File;
     aSetting := plugin.smashSetting;
-    bIsAllOverrides := (plugin.numRecords > 0) and (plugin.numRecords = plugin.numOverrides);
 
     // loop through file records
     Tracker.Write('Processing '+plugin.filename);
@@ -167,17 +165,6 @@ begin
         continue;
       rec := rec.Master;
 
-      // add overrides from files that are entirely comprised of overrides
-      if bIsAllOverrides and settings.mergeRedundantPlugins then begin
-        if keep.IndexOf(rec) = -1 then
-          keep.Add(rec);
-        if records.IndexOf(rec) = -1 then
-          records.Add(rec);
-        continue;
-      end;
-
-      // else skip records that have less than 2 overrides in the
-      // files being patched
       if OverrideCountInFiles(rec, patch.plugins) < 2 then
         continue;
 
@@ -263,26 +250,8 @@ begin
     currentProgress := currentProgress + incProgress;
     Tracker.SetProgress(Round(currentProgress));
 
-    // handle merging of redundant plugins
-    patchRec := nil;
-    if settings.mergeRedundantPlugins then begin
-      ovr := WinningOverrideInFiles(rec, patch.plugins);
-      f := ovr._File;
-      plugin := PluginByFileName(f.FileName);
-      if plugin.numRecords = plugin.numOverrides then try
-        Tracker.Write(Format('  [%d] Copying record %s', [i + 1, ovr.Name]));
-        eCopy := wbCopyElementToFile(ovr, patchFile, false, true, '', '' ,'');
-        patchRec := eCopy as IwbMainRecord;
-      except
-        on x: Exception do begin
-          Tracker.Write('      Exception copying record '+ovr.Name+' : '+x.Message);
-          patch.fails.Add('Exception copying record '+ovr.Name+' : '+x.Message);
-          continue;
-        end;
-      end;
-    end;
-
     // loop through record's overrides
+    patchRec := nil;
     for j := 0 to Pred(rec.OverrideCount) do begin
       if Tracker.Cancel then break;
       ovr := rec.Overrides[j];
@@ -399,7 +368,7 @@ begin
   RemoveEmptyContainers(nextContainer);
 end;
 
-procedure RemoveITPOs(aFile: IwbFile; var keep: TInterfaceList);
+procedure RemoveITPOs(aFile: IwbFile);
 var
   i, CountITPO: Integer;
   e, m: IwbMainRecord;
@@ -415,10 +384,6 @@ begin
     if Tracker.Cancel then break;
     e := aFile.Records[i];
     m := e.MasterOrSelf;
-
-    // skip records in the keep list
-    if keep.IndexOf(m) > -1 then
-      continue;
 
     // skip master records
     if e.IsMaster then
@@ -456,7 +421,7 @@ begin
   Tracker.Write(Format('    Removed %d ITPO records', [CountITPO]));
 end;
 
-procedure CleanPatch(var patch: TPatch; var keep: TInterfaceList);
+procedure CleanPatch(var patch: TPatch);
 var
   patchFile: IwbFile;
 begin
@@ -464,7 +429,7 @@ begin
 
   // remove ITPOs
   try
-    RemoveITPOs(patchFile, keep);
+    RemoveITPOs(patchFile);
   except
     on x: Exception do
       Tracker.Write('    Exception removing ITPOs: '+x.Message);
@@ -472,33 +437,6 @@ begin
 
   // then clean masters
   patchFile.CleanMasters;
-end;
-
-procedure PrintRedundantPlugins(var pluginsToPatch: TList);
-var
-  i: Integer;
-  plugin: TPlugin;
-  sl: TStringList;
-begin
-  sl := TStringList.Create;
-  try
-    // build list of redundant plugins
-    for i := 0 to Pred(pluginsToPatch.Count) do begin
-      plugin := TPlugin(pluginsToPatch[i]);
-      if plugin.numRecords = plugin.numOverrides then
-        sl.Add(plugin.filename);
-    end;
-
-    // print list of redundant plugins
-    if sl.Count > 0 then begin
-      Tracker.Write(' ');
-      Tracker.Write('Plugins merged into the patch that are now redundant:');
-      for i := 0 to Pred(sl.Count) do
-        Tracker.Write('  '+sl[i]);
-    end;
-  finally
-    sl.Free;
-  end;
 end;
 
 procedure SavePatchFiles(var patch: TPatch);
@@ -528,7 +466,7 @@ procedure BuildPatch(var patch: TPatch);
 var
   patchFile: IwbFile;
   pluginsToPatch: TList;
-  recordsList, keepList: TInterfaceList;
+  recordsList: TInterfaceList;
   time: TDateTime;
   msg: string;
 begin
@@ -558,8 +496,7 @@ begin
 
     // build list of overrides
     recordsList := TInterfaceList.Create;
-    keepList := TInterfaceList.Create;
-    BuildOverridesList(patch, pluginsToPatch, recordsList, keepList);
+    BuildOverridesList(patch, pluginsToPatch, recordsList);
     HandleCanceled(msg);
 
     // stop smashing if no records to smash
@@ -571,11 +508,7 @@ begin
     HandleCanceled(msg);
 
     // clean patch (Masters, ITPOs)
-    CleanPatch(patch, keepList);
-
-    // print messages about mods that are now redundant
-    if settings.mergeRedundantPlugins then
-      PrintRedundantPlugins(pluginsToPatch);
+    CleanPatch(patch);
 
     // save patch and associated files
     SavePatchFiles(patch);
@@ -600,7 +533,6 @@ begin
 
   // clean up
   TryToFree(pluginsToPatch);
-  TryToFree(keepList);
   TryToFree(recordsList);
 end;
 
