@@ -17,14 +17,15 @@ type
     process: boolean;
     preserveDeletions: boolean;
     overrideDeletions: boolean;
+    forceValue: boolean;
     singleEntity: boolean;
     smashType: TSmashType;
     linkTo: string;
     linkFrom: string;
     constructor Create; overload;
     constructor Create(priority: byte; process, preserveDeletions,
-      overrideDeletions, singleEntity: boolean; smashType: TSmashType;
-      linkTo, linkFrom: string); overload;
+      overrideDeletions, singleEntity, forceValue: boolean;
+      smashType: TSmashType; linkTo, linkFrom: string); overload;
   end;
   TSmashSetting = class(TObject)
   public
@@ -940,14 +941,15 @@ begin
 end;
 
 constructor TElementData.Create(priority: Byte; process, preserveDeletions,
-  overrideDeletions, singleEntity: Boolean; smashType: TSmashType; linkTo,
-  linkFrom: string);
+  overrideDeletions, singleEntity, forceValue: Boolean; smashType: TSmashType;
+  linkTo, linkFrom: string);
 begin
   self.priority := priority;
   self.process := process;
   self.preserveDeletions := preserveDeletions;
   self.overrideDeletions := overrideDeletions;
   self.singleEntity := singleEntity;
+  self.forceValue := forceValue;
   self.smashType := smashType;
   self.linkTo := linkTo;
   self.linkFrom := linkFrom;
@@ -1771,7 +1773,8 @@ procedure LoadElement(var tv: TTreeView; node: TTreeNode; obj: ISuperObject;
 var
   item: ISuperObject;
   child, nextChild: TTreeNode;
-  bProcess, bPreserveDeletions, bOverrideDeletions, bIsSingle: boolean;
+  bProcess, bPreserveDeletions, bOverrideDeletions, bIsSingle,
+  bForceValue: boolean;
   priority: Integer;
   oSmashType: TSmashType;
   sName, sLinkTo, sLinkFrom: string;
@@ -1787,6 +1790,7 @@ begin
   bPreserveDeletions := obj.I['d'] = 1;
   bOverrideDeletions := obj.I['o'] = 1;
   bIsSingle := obj.I['s'] = 1;
+  bForceValue := obj.I['f'] = 1;
   bWithinSingle := bWithinSingle or bIsSingle;
   oSmashType := TSmashType(obj.I['t']);
   sLinkTo := obj.S['lt'];
@@ -1794,7 +1798,7 @@ begin
 
   // create child
   e := TElementData.Create(priority, bProcess, bPreserveDeletions,
-    bOverrideDeletions, bIsSingle, oSmashType, sLinkTo, sLinkFrom);
+    bOverrideDeletions, bIsSingle, bForceValue, oSmashType, sLinkTo, sLinkFrom);
   // nodes insert in sorted order for record nodes
   if (node.Level = 0) and node.hasChildren then begin
     child := node.getFirstChild;
@@ -1883,6 +1887,9 @@ begin
     if not Assigned(dstChild) then
       dstObj.A['c'].Add(srcChild.Clone)
     else begin
+      // merge force value
+      if srcChild.I['f'] = 1 then
+        dstChild.I['f'] := 1;
       // merge treat as single
       if srcChild.I['s'] = 1 then
         dstChild.I['s'] := 1;

@@ -59,6 +59,7 @@ type
             PreserveDeletionsItem: TMenuItem;
             OverrideDeletionsItem: TMenuItem;
             SingleEntityItem: TMenuItem;
+            ForceValueItem: TMenuItem;
             ChainNodesItem: TMenuItem;
             LinkNodeToItem: TMenuItem;
             UnlinkNodeItem: TMenuItem;
@@ -88,6 +89,7 @@ type
     procedure PreserveDeletionsItemClick(Sender: TObject);
     procedure OverrideDeletionsItemClick(Sender: TObject);
     procedure SingleEntityItemClick(Sender: TObject);
+    procedure ForceValueItemClick(Sender: TObject);
     procedure PruneNodesItemClick(Sender: TObject);
     procedure UnlinkNodeItemClick(Sender: TObject);
     procedure LinkNodes(node1, node2: TTreeNode);
@@ -272,10 +274,12 @@ begin
       DrawFlag(Sender.Canvas, x, y, 0);
     if e.overrideDeletions then
       DrawFlag(Sender.Canvas, x, y, 1);
-    if e.singleEntity then
+    if e.forceValue then
       DrawFlag(Sender.Canvas, x, y, 2);
-    if (e.linkTo <> '') or (e.linkFrom <> '') then
+    if e.singleEntity then
       DrawFlag(Sender.Canvas, x, y, 3);
+    if (e.linkTo <> '') or (e.linkFrom <> '') then
+      DrawFlag(Sender.Canvas, x, y, 4);
   end;
 end;
 
@@ -707,6 +711,20 @@ begin
   tvRecords.Repaint;
 end;
 
+procedure TSettingsManager.ForceValueItemClick(Sender: TObject);
+var
+  i: Integer;
+  node: TTreeNode;
+  e: TElementData;
+begin
+  for i := 0 to Pred(tvRecords.SelectionCount) do begin
+    node := tvRecords.Selections[i];
+    e := TElementData(node.Data);
+    e.forceValue := not e.forceValue;
+  end;
+  tvRecords.Repaint;
+end;
+
 procedure TSettingsManager.AutoPruneItemClick(Sender: TObject);
 begin
   AutoPrune;
@@ -865,6 +883,8 @@ begin
     obj.I['o'] := 1;
   if (e.singleEntity) then
     obj.I['s'] := 1;
+  if (e.forceValue) then
+    obj.I['f'] := 1;
   if (e.smashType <> stUnknown) then
     obj.I['t'] := Ord(e.smashType);
   if (e.linkTo <> '') then
