@@ -21,6 +21,7 @@ type
     smashType: TSmashType;
     linkTo: string;
     linkFrom: string;
+    constructor Create; overload;
     constructor Create(priority: byte; process, preserveDeletions,
       overrideDeletions, singleEntity: boolean; smashType: TSmashType;
       linkTo, linkFrom: string); overload;
@@ -930,6 +931,14 @@ end;
 
 { TElementData }
 
+constructor TElementData.Create;
+begin
+  self.priority := 0;
+  self.smashType := TSmashType(0);
+  self.linkTo := '';
+  self.linkFrom := '';
+end;
+
 constructor TElementData.Create(priority: Byte; process, preserveDeletions,
   overrideDeletions, singleEntity: Boolean; smashType: TSmashType; linkTo,
   linkFrom: string);
@@ -1827,7 +1836,7 @@ var
   rootNode: TTreeNode;
   e: TElementData;
 begin
-  e := TElementData.Create(0, false, false, false, false, TSmashType(0), '', '');
+  e := TElementData.Create;
   rootNode := tv.Items.AddObject(nil, 'Records', e);
   obj := aSetting.tree;
   if not Assigned(obj) then
