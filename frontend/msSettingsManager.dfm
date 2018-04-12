@@ -316,7 +316,7 @@ object SettingsManager: TSettingsManager
         OnClick = SingleEntityItemClick
       end
       object ForceValueItem: TMenuItem
-        Caption = 'Toggle force value'
+        Caption = 'Toggle force values'
         OnClick = ForceValueItemClick
       end
     end

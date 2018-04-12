@@ -227,12 +227,12 @@ var
   i, j: Integer;
   incProgress, currentProgress: Real;
   rec, mst, ovr, patchRec: IwbMainRecord;
-  f, patchFile: IwbFile;
+  f, patchFile, forceFile: IwbFile;
   plugin: TPlugin;
   aSetting: TSmashSetting;
   recObj: ISuperObject;
   e, eCopy: IwbElement;
-  bDeletions, bOverride: boolean;
+  bDeletions, bOverride, bForce: boolean;
 begin
   Tracker.Write(' ');
   Tracker.Write('Smashing records');
@@ -252,6 +252,7 @@ begin
 
     // loop through record's overrides
     patchRec := nil;
+    forceFile := nil;
     for j := 0 to Pred(rec.OverrideCount) do begin
       if Tracker.Cancel then break;
       ovr := rec.Overrides[j];
@@ -277,6 +278,12 @@ begin
         continue;
       if (recObj.I['p'] <> 1) then
         continue;
+      bForce := recObj.I['f'] = 1;
+      if bForce then begin
+        patchRec.Remove;
+        patchRec := nil;
+        forceFile := f;
+      end;
 
       // copy record to smashed patch if it hasn't been copied yet
       if not Assigned(patchRec) then try
@@ -291,6 +298,11 @@ begin
           continue;
         end;
       end;
+
+      // skip if we're forcing and plugin doesn't require forceFile
+      if Assigned(forceFile) and not bForce
+      and (plugin.requiredBy.IndexOf(forceFile.FileName) = -1) then
+        continue;
 
       // finally, recursively copy overridden elements
       try

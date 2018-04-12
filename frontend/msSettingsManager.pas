@@ -362,6 +362,8 @@ begin
   sHint := node.Text + #13#10'Type: '+stToString(e.smashType);
   if e.singleEntity then
     sHint := sHint + #13#10'Treated as a single entity';
+  if e.forceValue then
+    sHint := sHint + #13#10'Forcing values';
   if e.preserveDeletions then
     sHint := sHint + #13#10'Preserving deletions';
   if e.linkTo <> '' then
