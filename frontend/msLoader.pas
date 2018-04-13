@@ -448,6 +448,16 @@ begin
       sl.Delete(i);
 end;
 
+{ Remove ESLs from stringlist }
+procedure RemoveESLs(var sl: TStringList);
+var
+  i: integer;
+begin
+  for i := Pred(sl.Count) downto 0 do
+    if StrEndsWith(sl[i], '.esl') then
+      sl.Delete(i);
+end;
+
 { Forces a plugin to load at a specific position }
 procedure FixLoadOrder(var sl: TStringList; const filename: String; var index: Integer);
 var
@@ -626,6 +636,7 @@ begin
   AddBaseMasters(sl);
   RemoveCommentsAndEmpty(sl);
   RemoveMissingFiles(sl);
+  RemoveESLs(sl);
   RemoveSmashedPatches(sl);
 end;
 
@@ -644,6 +655,7 @@ begin
   AddBaseMasters(slLoadOrder);
   RemoveCommentsAndEmpty(slLoadOrder);
   RemoveMissingFiles(slLoadOrder);
+  RemoveESLs(slLoadOrder);
   AddMissingFiles(slLoadOrder);
   RemoveSmashedPatches(slLoadOrder);
 end;
