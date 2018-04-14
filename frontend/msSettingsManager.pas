@@ -775,9 +775,13 @@ begin
             e.singleEntity := true;
             node.StateIndex := csPartiallyChecked;
           end;
+          Ord(stUnsortedStructArray): begin
+            e.singleEntity := true;
+            e.preserveDeletions := true;
+            node.StateIndex := csPartiallyChecked;
+          end;
           Ord(stSortedArray),
-          Ord(stSortedStructArray),
-          Ord(stUnsortedStructArray):
+          Ord(stSortedStructArray):
             e.preserveDeletions := true;
           Ord(stByteArray):
             node.StateIndex := csUnChecked;
