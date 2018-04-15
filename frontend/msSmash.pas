@@ -280,8 +280,10 @@ begin
         continue;
       bForce := recObj.I['f'] = 1;
       if bForce then begin
-        patchRec.Remove;
-        patchRec := nil;
+        if Assigned(patchRec) then begin
+          patchRec.Remove;
+          patchRec := nil;
+        end;
         forceFile := f;
       end;
 
