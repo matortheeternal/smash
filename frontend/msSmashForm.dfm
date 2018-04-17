@@ -35,9 +35,6 @@ object SmashForm: TSmashForm
     Height = 45
     Align = alTop
     TabOrder = 0
-    DesignSize = (
-      1264
-      45)
     object NewButton: TSpeedButton
       Left = 2
       Top = 2
@@ -92,30 +89,6 @@ object SmashForm: TSmashForm
       ParentShowHint = False
       ShowHint = True
       OnClick = OptionsButtonClick
-    end
-    object UpdateButton: TSpeedButton
-      Left = 1164
-      Top = 2
-      Width = 48
-      Height = 40
-      CustomHint = bhUpdate
-      Anchors = [akTop, akRight]
-      NumGlyphs = 2
-      ParentShowHint = False
-      ShowHint = True
-      OnClick = UpdateButtonClick
-    end
-    object HelpButton: TSpeedButton
-      Left = 1214
-      Top = 2
-      Width = 48
-      Height = 40
-      CustomHint = bhHelp
-      Anchors = [akTop, akRight]
-      NumGlyphs = 2
-      ParentShowHint = False
-      ShowHint = True
-      OnClick = HelpButtonClick
     end
     object ManageButton: TSpeedButton
       Left = 152
@@ -555,7 +528,7 @@ object SmashForm: TSmashForm
     Left = 1008
     Top = 8
     Bitmap = {
-      494C010108001400A00240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010108001400A40240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000000100006000000001002000000000000080
       0100000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -3800,16 +3773,6 @@ object SmashForm: TSmashForm
   object bhOptions: TBalloonHint
     Style = bhsStandard
     Left = 280
-    Top = 24
-  end
-  object bhUpdate: TBalloonHint
-    Style = bhsStandard
-    Left = 1176
-    Top = 24
-  end
-  object bhHelp: TBalloonHint
-    Style = bhsStandard
-    Left = 1224
     Top = 24
   end
   object bhLoadException: TBalloonHint

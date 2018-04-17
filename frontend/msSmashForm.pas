@@ -34,16 +34,12 @@ type
         ManageButton: TSpeedButton;
         DictionaryButton: TSpeedButton;
         OptionsButton: TSpeedButton;
-        UpdateButton: TSpeedButton;
-        HelpButton: TSpeedButton;
         bhBuild: TBalloonHint;
         bhNew: TBalloonHint;
         bhSubmit: TBalloonHint;
         bhManage: TBalloonHint;
         bhDict: TBalloonHint;
         bhOptions: TBalloonHint;
-        bhUpdate: TBalloonHint;
-        bhHelp: TBalloonHint;
       [FormSection('Main Panel')]
         MainPanel: TPanel;
         Splitter: TSplitter;
@@ -473,16 +469,12 @@ begin
   ManageButton.Flat := true;
   DictionaryButton.Flat := true;
   OptionsButton.Flat := true;
-  UpdateButton.Flat := true;
-  HelpButton.Flat := true;
   IconList.GetBitmap(0, NewButton.Glyph);
   IconList.GetBitmap(1, BuildButton.Glyph);
   IconList.GetBitmap(2, SubmitButton.Glyph);
   IconList.GetBitmap(3, ManageButton.Glyph);
   IconList.GetBitmap(4, DictionaryButton.Glyph);
   IconList.GetBitmap(5, OptionsButton.Glyph);
-  IconList.GetBitmap(6, UpdateButton.Glyph);
-  IconList.GetBitmap(7, HelpButton.Glyph);
 
   // STATUSBAR VALUES
   StatusPanelLanguage.Caption := settings.language;
@@ -2221,8 +2213,6 @@ begin
     ManageButton.Enabled := false;
     DictionaryButton.Enabled := false;
     OptionsButton.Enabled := true;
-    UpdateButton.Enabled := false;
-    HelpButton.Enabled := false;
     exit;
   end;
 
@@ -2247,9 +2237,6 @@ begin
     BuildButton.Hint := sTitle + GetLanguageString('msMain_CheckPatches')
   else
     BuildButton.Hint := sTitle + GetLanguageString('msMain_BuildAllPatches');
-
-  // HELP BUTTON
-  HelpButton.Enabled := false; // TODO: help file integration
 end;
 
 procedure TSmashForm.CreatePatchButtonClick(Sender: TObject);
