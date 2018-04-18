@@ -31,7 +31,7 @@ uses
   procedure GetPluginDates(var sl: TStringList);
   function PluginListCompare(List: TStringList; Index1, Index2: Integer): Integer;
   procedure LoadPluginsList(const sLoadPath: String; var sl: TStringList; noDelete: Boolean = False);
-  procedure LoadLoadOrder(const sLoadPath: String; var slLoadOrder, slPlugins: TStringList);
+  procedure LoadLoadOrder(const sLoadPath: String; var slLoadOrder: TStringList);
   procedure PrepareLoadOrder(var slLoadOrder, slPlugins: TStringList);
 
 var
@@ -636,28 +636,30 @@ begin
   AddBaseMasters(sl);
   RemoveCommentsAndEmpty(sl);
   RemoveMissingFiles(sl);
+  if noDelete then AddMissingFiles(sl);
   RemoveESLs(sl);
   RemoveSmashedPatches(sl);
 end;
 
-procedure LoadLoadOrder(const sLoadPath: String; var slLoadOrder, slPlugins: TStringList);
+procedure LoadLoadOrder(const sLoadPath: String; var slLoadOrder: TStringList);
 var
   sPath: String;
 begin
   sPath := sLoadPath + 'loadorder.txt';
   if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4)
-  and FileExists(sPath) then
-    slLoadOrder.LoadFromFile(sPath)
-  else
-    slLoadOrder.AddStrings(slPlugins);
+  and FileExists(sPath) then begin
+    slLoadOrder.LoadFromFile(sPath);
 
-  // remove comments and add/remove files
-  AddBaseMasters(slLoadOrder);
-  RemoveCommentsAndEmpty(slLoadOrder);
-  RemoveMissingFiles(slLoadOrder);
-  RemoveESLs(slLoadOrder);
-  AddMissingFiles(slLoadOrder);
-  RemoveSmashedPatches(slLoadOrder);
+    // remove comments and add/remove files
+    AddBaseMasters(slLoadOrder);
+    RemoveCommentsAndEmpty(slLoadOrder);
+    RemoveMissingFiles(slLoadOrder);
+    RemoveESLs(slLoadOrder);
+    AddMissingFiles(slLoadOrder);
+    RemoveSmashedPatches(slLoadOrder);
+  end
+  else
+    LoadPluginsList(sLoadPath, slLoadOrder, True);
 end;
 
 procedure PrepareLoadOrder(var slLoadOrder, slPlugins: TStringList);
@@ -665,8 +667,8 @@ var
   sLoadPath: String;
 begin
   sLoadPath := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA) + wbGameName2 +'\';
-  LoadPluginsList(sLoadPath, slPlugins, True);
-  LoadLoadOrder(sLoadPath, slLoadOrder, slPlugins);
+  LoadPluginsList(sLoadPath, slPlugins);
+  LoadLoadOrder(sLoadPath, slLoadOrder);
 
   // if GameMode is not SkyrimSE or Fallout 4 and we don't
   // have a loadorder.txt, sort by date modified
