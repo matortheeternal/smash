@@ -82,7 +82,6 @@ begin
     patchFile := patch.plugin._File;
     for i := Pred(patchFile.RecordCount) downto 0 do
       patchFile.Records[i].Remove;
-    patchFile.CleanMasters;
   end;
 
   // set result
