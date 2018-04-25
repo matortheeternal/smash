@@ -6212,7 +6212,7 @@ begin
         Continue;
       end;
 
-      if (CurrentDefPos < mrDef.MemberCount) then begin
+      if (CurrentDefPos < mrDef.MemberCount) and not FoundError then begin
         CurrentDef := mrDef.Members[CurrentDefPos];
         if not CurrentDef.CanHandle(CurrentRec.Signature, CurrentRec) then begin
           Inc(CurrentDefPos);
@@ -6222,8 +6222,12 @@ begin
         if Assigned(wbProgressCallback) then
           wbProgressCallback('Error: record '+ String(GetSignature) + ' contains unexpected (or out of order) subrecord ' + String(CurrentRec.Signature) );
         FoundError := True;
-        Inc(CurrentRecPos);
-        Continue;
+        CurrentDefPos := mrDef.GetMemberIndexFor(CurrentRec.Signature, CurrentRec);
+        if CurrentDefPos < 0 then begin
+          Inc(CurrentRecPos);
+          Continue;
+        end;
+        CurrentDef := mrDef.Members[CurrentDefPos];
       end;
     end;
 
