@@ -462,9 +462,8 @@ begin
   patch.UpdateSettings;
 
   // get path to save file at
-  patchPath := patch.dataPath;
-  if settings.usingMO then
-    patchPath := patchPath + 'smash\';
+  patchPath := patch.dataPath + 'smash\';
+  ForceDirectories(patchPath);
 
   // save patch plugin
   patch.plugin.dataPath := patch.dataPath;
@@ -490,10 +489,6 @@ begin
   patch.fails.Clear;
   pluginsToPatch := TList.Create;
   msg := 'User cancelled smashing patches.';
-  
-  // set up directories
-  if settings.usingMO then
-    ForceDirectories(patch.dataPath + 'smash\');
 
   try
     // build list of plugins to patch
