@@ -619,8 +619,8 @@ end;
 procedure TPatch.UpdateDataPath;
 begin
   dataPath := settings.patchDirectory;
-  if dataPath <> wbDataPath then
-    dataPath := settings.patchDirectory + name + '\';
+  if not SameText(dataPath, wbDataPath) then
+    dataPath := dataPath + name + '\';
 end;
 
 procedure TPatch.GetStatus;

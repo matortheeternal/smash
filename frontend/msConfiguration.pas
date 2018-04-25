@@ -270,7 +270,7 @@ begin
     pSettings := LoadSettings(path)
   else begin
     pSettings := TSettings.Create;
-    pSettings.patchDirectory := p.gamePath + 'data\';
+    pSettings.patchDirectory := p.gamePath + 'Data\';
   end;
 
   // save profile details to settings
