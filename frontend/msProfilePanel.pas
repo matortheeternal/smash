@@ -89,9 +89,9 @@ begin
   aProfile := TProfile.Create(name);
   self.GameIcons := GameIcons;
   Selected := false;
-  ColorInvalid := $e6e6f0;
-  ColorValid := $e6f0e6;
-  ColorSelected := $f0ece4;
+  ColorInvalid := $d8d8f0;
+  ColorValid := $d8f0d8;
+  ColorSelected := $f0e8d8;
 
   // create components
   GameImage := TImage.Create(self);

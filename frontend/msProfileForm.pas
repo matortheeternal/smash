@@ -326,7 +326,7 @@ begin
     mEvnt.dwFlags := TME_LEAVE;
     mEvnt.hwndTrack := NewProfilePanel.Handle;
     TrackMouseEvent(mEvnt);
-    NewProfilePanel.Color:= $f0ece4;
+    NewProfilePanel.Color:= $f0e8d8;
     FMouseInPanel:= True;
   end;
 end;
