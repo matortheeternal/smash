@@ -63,20 +63,6 @@ type
         [FormSection('DontTranslate')]
           lblCurrentProfileName: TLabel;
           lblSampleValue: TLabel;
-      [FormSection('Integrations Tab')]
-        IntegrationsTabSheet: TTabSheet;
-        btnDetect: TButton;
-        gbModOrganizer: TGroupBox;
-        kbUsingMO: TCheckBox;
-        lblModOrganizerPath: TLabel;
-        edModOrganizerPath: TEdit;
-        lblModOrganizerModsPath: TLabel;
-        edModOrganizerModsPath: TEdit;
-        lblModOrganizerInstanceName: TLabel;
-        edModOrganizerInstanceName: TEdit;
-        [FormSection('DontTranslate')]
-          btnBrowseMO: TSpeedButton;
-          btnBrowseMOMods: TSpeedButton;
 
     procedure FormCreate(Sender: TObject);
     procedure LoadLanguageOptions;
@@ -110,77 +96,10 @@ begin
   BrowseForFolder(edPatchDirectory, PathList.Values['ProgramPath']);
 end;
 
-procedure TOptionsForm.btnBrowseMOClick(Sender: TObject);
-begin
-  BrowseForFolder(edModOrganizerPath, PathList.Values['ProgramPath']);
-  if DirectoryExists(edModOrganizerPath.Text + 'mods\') then begin
-    edModOrganizerModsPath.Text := edModOrganizerPath.Text + 'mods\';
-    edPatchDirectory.Text := edModOrganizerPath.Text + 'mods\';
-  end;
-end;
-
-procedure TOptionsForm.btnBrowseMOModsClick(Sender: TObject);
-begin
-  BrowseForFolder(edModOrganizerModsPath, PathList.Values['ProgramPath']);
-end;
-
-procedure TOptionsForm.btnDetectClick(Sender: TObject);
-begin
-  // search for mod organizer
-  if kbUsingMo.Checked then
-    searchForModOrganizer;
-end;
-
-procedure TOptionsForm.searchForModOrganizer;
-const
-  validModOrganizerFilenames: array[1..1] of string = ('ModOrganizer.exe');
-  ignore: array[1..1] of string = ('data');
-var
-  DrivesArray: TStringDynArray;
-  modOrganizerPath, sPaths, sDrive: string;
-begin
-  // search for installations in GamePath
-  modOrganizerPath := RecursiveFileSearch(PathList.Values['GamePath'],
-    validModOrganizerFilenames, ignore, 2);
-
-  // search for installations in ?:\Program Files and ?:\Program Files (x86)
-  DrivesArray := GetDriveList;
-  for sDrive in DrivesArray do begin
-    if not DriveReady(sDrive) then
-      continue;
-    if DirectoryExists(sDrive + 'Program Files') then
-      sPaths := sPaths + sDrive + 'Program Files;';
-    if DirectoryExists(sDrive + 'Program Files (x86)') then
-      sPaths := sPaths + sDrive + 'Program Files (x86);';
-  end;
-
-  if (modOrganizerPath = '') then
-    modOrganizerPath := FileSearch('Mod Organizer\ModOrganizer.exe', sPaths);
-
-  // search each folder in each valid Program Files directory for ModOrganizer.exe
-  if (modOrganizerPath = '') then
-    modOrganizerPath := SearchPathsForFile(sPaths, 'ModOrganizer.exe');
-
-  // if found, set TEdit captions, else alert user
-  if (modOrganizerPath <> '') then begin
-    edModOrganizerPath.Text := Copy(modOrganizerPath, 1, length(modOrganizerPath) - 16);
-    if DirectoryExists(edModOrganizerPath.Text + 'mods\') then begin
-      edModOrganizerModsPath.Text := edModOrganizerPath.Text + 'mods\';
-      edPatchDirectory.Text := edModOrganizerPath.Text + 'mods\';
-    end;
-  end
-  else begin
-    MessageDlg(GetLanguageString('mpOpt_ModOrganizerNotFound'), mtConfirmation, [mbOk], 0);
-    edModOrganizerPath.Text := '';
-  end;
-end;
-
 procedure TOptionsForm.btnOKClick(Sender: TObject);
 begin
   // check if we need to update patch status afterwards
-  ProgramStatus.bUpdatePatchStatus := (settings.usingMO <> kbUsingMO.Checked)
-    or (settings.ManagerPath <> edModOrganizerPath.Text)
-    or (settings.patchDirectory <> edPatchDirectory.Text);
+  ProgramStatus.bUpdatePatchStatus := settings.patchDirectory <> edPatchDirectory.Text;
 
   // General > Language
   settings.language := cbLanguage.Text;
@@ -211,12 +130,6 @@ begin
   settings.errorMessageColor := cbErrorColor.Selected;
   settings.logMessageTemplate := meTemplate.Lines.Text;
 
-  // Integrations > Mod Organizer
-  settings.usingMO := kbUsingMO.Checked;
-  settings.ManagerPath := edModOrganizerPath.Text;
-  settings.ModsPath := edModOrganizerModsPath.Text;
-  settings.InstanceName := edModOrganizerInstanceName.Text;
-
   SaveSettings;
 end;
 
@@ -235,37 +148,6 @@ begin
   ed := TEdit(Sender);
   if Length(ed.Text) > 0 then
     ed.Text := AppendIfMissing(ed.Text, '\');
-end;
-
-procedure TOptionsForm.edUsernameChange(Sender: TObject);
-begin
-  {if not TCPClient.Connected then begin
-    lblStatusValue.Caption := GetString('mpOpt_ServerUnavailable');
-    lblStatusValue.Font.Color := clRed;
-    lblStatusValue.Hint := GetString('mpOpt_ServerUnavailable');
-    btnRegister.Enabled := false;
-    exit;
-  end;
-
-  btnRegister.Caption := GetString('mpOpt_Check');
-  if Length(edUsername.Text) < 4 then begin
-    lblStatusValue.Caption := GetString('mpOpt_InvalidUsername');
-    lblStatusValue.Font.Color := clRed;
-    lblStatusValue.Hint := GetString('mpOpt_UsernameTooShort');
-    btnRegister.Enabled := false;
-  end
-  else if Length(edUsername.Text) > 24 then begin
-    lblStatusValue.Caption := GetString('mpOpt_InvalidUsername');
-    lblStatusValue.Font.Color := clRed;
-    lblStatusValue.Hint := GetString('mpOpt_UsernameTooLong');
-    btnRegister.Enabled := false;
-  end
-  else begin
-    lblStatusValue.Caption := GetString('mpOpt_ValidUsername');
-    lblStatusValue.Font.Color := clBlack;
-    lblStatusValue.Hint := GetString('mpOpt_ValidUsername');
-    btnRegister.Enabled := true;
-  end;  }
 end;
 
 procedure TOptionsForm.LoadLanguageOptions;
@@ -344,34 +226,9 @@ begin
   cbErrorColor.Selected := TColor(settings.errorMessageColor);
   meTemplate.Lines.Text := settings.logMessageTemplate;
 
-  // Integrations > Mod Organizer
-  kbUsingMO.Checked := settings.usingMO;
-  edModOrganizerPath.Text := settings.ManagerPath;
-  edModOrganizerModsPath.Text := settings.ModsPath;
-  edModOrganizerInstanceName.Text := settings.InstanceName;
-
-  // disable controls if not using mod organizer
-  kbUsingMOClick(nil);
-
   // set up browse buttons
   btnBrowsePatchDirectory.Flat := true;
-  btnBrowseMO.Flat := true;
-  btnBrowseMOMods.Flat := true;
   IconList.GetBitmap(0, btnBrowsePatchDirectory.Glyph);
-  IconList.GetBitmap(0, btnBrowseMO.Glyph);
-  IconList.GetBitmap(0, btnBrowseMOMods.Glyph);
-end;
-
-procedure TOptionsForm.kbUsingMOClick(Sender: TObject);
-var
-  b: boolean;
-begin
-  b := kbUsingMO.Checked;
-  edModOrganizerPath.Enabled := b;
-  edModOrganizerModsPath.Enabled := b;
-  edModOrganizerInstanceName.Enabled := b;
-  btnBrowseMO.Enabled := b;
-  btnBrowseMOMods.Enabled := b;
 end;
 
 procedure TOptionsForm.meTemplateChange(Sender: TObject);

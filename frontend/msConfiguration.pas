@@ -50,12 +50,6 @@ type
     debugSingle: boolean;
     debugLinks: boolean;
     buildRefs: boolean;
-    [IniSection('Integrations')]
-    usingMO: boolean;
-    usingNMM: boolean;
-    ManagerPath: string;
-    ModsPath: string;
-    InstanceName: string;
     constructor Create; virtual;
   end;
   TStatistics = class(TObject)
@@ -144,8 +138,6 @@ begin
   language := 'English';
   simpleDictionaryView := false;
   simplePluginsView := false;
-  usingMO := false;
-  ManagerPath := '';
   patchDirectory := wbDataPath;
   generalMessageColor := clGreen;
   loadMessageColor := clPurple;

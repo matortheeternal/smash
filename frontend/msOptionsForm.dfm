@@ -24,7 +24,7 @@ object OptionsForm: TOptionsForm
     Top = 8
     Width = 568
     Height = 401
-    ActivePage = PatchingTabSheet
+    ActivePage = GeneralTabSheet
     Align = alCustom
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
@@ -466,111 +466,6 @@ object OptionsForm: TOptionsForm
         end
       end
     end
-    object IntegrationsTabSheet: TTabSheet
-      Caption = 'Integrations'
-      ImageIndex = 3
-      object gbModOrganizer: TGroupBox
-        Left = 6
-        Top = 6
-        Width = 548
-        Height = 139
-        Margins.Left = 6
-        Margins.Top = 6
-        Margins.Right = 6
-        Margins.Bottom = 6
-        Caption = 'Mod Organizer'
-        TabOrder = 0
-        object lblModOrganizerPath: TLabel
-          Left = 12
-          Top = 50
-          Width = 95
-          Height = 13
-          Caption = 'Mod Organizer path'
-        end
-        object btnBrowseMO: TSpeedButton
-          Left = 519
-          Top = 47
-          Width = 23
-          Height = 22
-          Hint = 'Browse'
-          Margins.Right = 6
-          ParentShowHint = False
-          ShowHint = True
-          OnClick = btnBrowseMOClick
-        end
-        object lblModOrganizerModsPath: TLabel
-          Left = 12
-          Top = 77
-          Width = 123
-          Height = 13
-          Caption = 'Mod Organizer mods path'
-        end
-        object btnBrowseMOMods: TSpeedButton
-          Left = 519
-          Top = 74
-          Width = 23
-          Height = 22
-          Hint = 'Browse'
-          Margins.Right = 6
-          ParentShowHint = False
-          ShowHint = True
-          OnClick = btnBrowseMOModsClick
-        end
-        object lblModOrganizerInstanceName: TLabel
-          Left = 12
-          Top = 104
-          Width = 113
-          Height = 13
-          Caption = 'Mod Organizer instance'
-        end
-        object kbUsingMO: TCheckBox
-          Left = 12
-          Top = 20
-          Width = 174
-          Height = 17
-          Caption = 'I'#39'm using Mod Organizer'
-          TabOrder = 0
-          OnClick = kbUsingMOClick
-        end
-        object edModOrganizerPath: TEdit
-          Left = 192
-          Top = 47
-          Width = 321
-          Height = 21
-          TabOrder = 1
-          OnExit = appendBackslashOnExit
-        end
-        object edModOrganizerModsPath: TEdit
-          Left = 192
-          Top = 74
-          Width = 321
-          Height = 21
-          TabOrder = 2
-          OnExit = appendBackslashOnExit
-        end
-        object edModOrganizerInstanceName: TEdit
-          Left = 192
-          Top = 101
-          Width = 321
-          Height = 21
-          Hint = 
-            'Leave blank if you aren'#39't using MO2 or if you are using a portab' +
-            'le installation of MO.'
-          TabOrder = 3
-          OnExit = appendBackslashOnExit
-        end
-      end
-      object btnDetect: TButton
-        Left = 408
-        Top = 330
-        Width = 146
-        Height = 25
-        Margins.Right = 6
-        Caption = 'Detect Integrations'
-        TabOrder = 1
-        OnClick = btnDetectClick
-      end
-    end
   end
   object btnCancel: TButton
     Left = 501
@@ -599,7 +494,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C0101010008006C0110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010101000800700110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

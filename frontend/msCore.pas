@@ -270,16 +270,6 @@ var
   modName: string;
 begin
   dataPath := wbDataPath;
-  if settings.usingMO then begin
-    modName := GetModContainingFile(ActiveMods, filename);
-    if modName <> '' then
-      dataPath := settings.ModsPath + modName + '\';
-  end
-  else if settings.usingNMM then begin
-    modName := GetFolderContainingFile(settings.ModsPath, filename);
-    if modName <> '' then
-      dataPath := settings.ModsPath + modName + '\';
-  end;
 end;
 
 function TPlugin.GetFormIndex: Integer;
@@ -647,20 +637,6 @@ begin
 
   // update the patch's data path
   UpdateDataPath;
-
-  // don't patch if usingMO is true and MODirectory is blank
-  if settings.usingMO and (settings.ManagerPath = '') then begin
-    Logger.Write('PATCH', 'Status', name + ' -> Mod Organizer Directory blank');
-    status := psDirInvalid;
-    exit;
-  end;
-
-  // don't patch if usingMO is true and MODirectory is invalid
-  if settings.usingMO and not DirectoryExists(settings.ManagerPath) then begin
-     Logger.Write('PATCH', 'Status', name + ' -> Mod Organizer Directory invalid');
-     status := psDirInvalid;
-     exit;
-  end;
 
   // loop through plugins
   for i := 0 to Pred(plugins.Count) do begin
@@ -1435,47 +1411,6 @@ begin
     on x: Exception do
       Tracker.Write('      Failed to rename ' + newFileName);
   end;
-end;
-
-function GetModContainingFile(var modlist: TStringList; filename: string): string;
-var
-  i: integer;
-  modName: string;
-  filePath: string;
-begin
-  // exit if not using MO
-  Result := '';
-  if not settings.usingMO then
-    exit;
-
-  // check for file in each mod folder in modlist
-  for i := 0 to Pred(modlist.Count) do begin
-    modName := modlist[i];
-    filePath := settings.ModsPath + modName + '\' + filename;
-    if (FileExists(filePath)) then begin
-      Result := modName;
-      exit;
-    end;
-  end;
-end;
-
-function GetFolderContainingFile(basePath: string; filename: string): string;
-var
-  filePath: string;
-  rec: TSearchRec;
-begin
-  Result := '';
-
-  if FindFirst(basePath + '*', faDirectory, rec) <> 0 then
-    exit;
-  repeat
-    filePath := basePath + '\' + rec.Name + '\' + filename;
-    if FileExists(filePath) then begin
-      Result := rec.Name;
-      break;
-    end;
-  until FindNext(rec) <> 0;
-  FindClose(rec);
 end;
 
 procedure UpdatePluginData;

@@ -97,8 +97,6 @@ begin
   // INITIALIZE SETTINGS FOR GAME
   LoadSettings;
   LoadLanguage;
-  if settings.usingMO then
-    ModOrganizerInit;
 
   // INITIALIZE TES5EDIT API
   wbDisplayLoadOrderFormID := True;
@@ -307,93 +305,6 @@ begin
     end;
   finally
     slBSAFileNames.Free;
-  end;
-end;
-
-{******************************************************************************}
-{ Mod Organizer methods
-  Set of methods that allow interaction Mod Organizer settings.
-
-  List of methods:
-  - ModOrganizerInit
-  - GetActiveProfile
-  - GetActiveMods
-  - GetModContainingFile
-}
-{******************************************************************************}
-
-procedure ModOrganizerInit;
-begin
-  ActiveMods := TStringList.Create;
-  ActiveModProfile := GetActiveProfile;
-  GetActiveMods(ActiveMods, ActiveModProfile);
-end;
-
-function GetMODataPath: string;
-var
-  sAppData: String;
-begin
-  sAppData := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA);
-  if settings.InstanceName <> '' then
-    Result := Format('%sModOrganizer\%s\', [sAppData, settings.InstanceName])
-  else
-    Result := settings.ManagerPath;
-end;
-
-function GetActiveProfile: string;
-var
-  ini : TMemIniFile;
-  fname : string;
-begin
-  // exit if not using MO
-  Result := '';
-  if (not settings.usingMO) or (Trim(settings.ManagerPath) = '') then
-    exit;
-
-  // load ini file
-  fname := GetMODataPath + 'ModOrganizer.ini';
-  if(not FileExists(fname)) then begin
-    Logger.Write('GENERAL', 'ModOrganizer', 'Mod Organizer ini file ' + fname + ' does not exist');
-    exit;
-  end;
-  ini := TMemIniFile.Create(fname);
-
-  // get selected_profile
-  Result := ini.ReadString( 'General', 'selected_profile', '');
-  ini.Free;
-end;
-
-procedure GetActiveMods(var modlist: TStringList; profileName: string);
-var
-  modlistFilePath: string;
-  s: string;
-  i: integer;
-begin
-  // exit if not using MO
-  if (not settings.usingMO) or (Trim(settings.ManagerPath) = '') then
-    exit;
-
-  // prepare to load modlist
-  modlistFilePath := settings.ManagerPath + 'profiles/' + profileName + '/modlist.txt';
-  modlist.Clear;
-
-  // exit if modlist file doesn't exist
-  if not (FileExists(modlistFilePath)) then begin
-    Tracker.Write('Cannot find modlist ' + modListFilePath);
-    Logger.Write('GENERAL', 'ModOrganizer', 'Cannot find modlist ' + modListFilePath);
-    exit;
-  end;
-
-  // load modlist
-  modlist.LoadFromFile(modlistFilePath);
-  for i := Pred(modlist.Count) downto 0 do begin
-    s := modList[i];
-    // if line starts with '+', then it's an active mod
-    if (Pos('+', s) = 1) then
-      modlist[i] := Copy(s, 2, Length(s) - 1)
-    // else it's a comment or inactive mod, so delete it
-    else
-      modlist.Delete(i);
   end;
 end;
 
