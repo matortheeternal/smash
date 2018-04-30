@@ -2322,10 +2322,6 @@ begin
   // rebuild log because some messages may have been enabled/disabled
   RebuildLog;
 
-  // initialize MO if usingMO changed
-  if settings.usingMO then
-    ModOrganizerInit;
-
   // if user changed language, update language displayed
   if settings.language <> prevLanguage then begin
     LoadLanguage;

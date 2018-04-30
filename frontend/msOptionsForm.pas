@@ -68,15 +68,9 @@ type
     procedure LoadLanguageOptions;
     procedure btnOKClick(Sender: TObject);
     procedure btnBrowsePatchDirectoryClick(Sender: TObject);
-    procedure btnBrowseMOClick(Sender: TObject);
-    procedure kbUsingMOClick(Sender: TObject);
-    procedure btnChangePatchProfileClick(Sender: TObject);
-    procedure edUsernameChange(Sender: TObject);
-    procedure searchForModOrganizer;
-    procedure btnDetectClick(Sender: TObject);
     procedure meTemplateChange(Sender: TObject);
-    procedure btnBrowseMOModsClick(Sender: TObject);
     procedure appendBackslashOnExit(Sender: TObject);
+    procedure btnChangePatchProfileClick(Sender: TObject);
   private
     { Private declarations }
   public

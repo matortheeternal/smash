@@ -152,8 +152,7 @@ type
   procedure LoadSettingTags;
   // Helper Functions
   procedure HandleCanceled(msg: string);
-  function GetModContainingFile(var modlist: TStringList; filename: string): string;
-  function GetFolderContainingFile(basePath: string; filename: string): string;
+
   procedure UpdatePluginData;
   function CreateNewPlugin(sFilename: string): TPlugin;
   function PluginLoadOrder(sFilename: string): Integer;
@@ -266,8 +265,6 @@ begin
 end;
 
 procedure TPlugin.GetDataPath;
-var
-  modName: string;
 begin
   dataPath := wbDataPath;
 end;

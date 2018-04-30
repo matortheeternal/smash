@@ -17,10 +17,6 @@ uses
   function GetGamePath(mode: TGameMode): string;
   procedure LoadDefinitions;
   procedure LoadBSAs;
-  { Mod Organizer methods }
-  procedure ModOrganizerInit;
-  function GetActiveProfile: string;
-  procedure GetActiveMods(var modlist: TStringList; profileName: string);
   { Load order functions }
   procedure RemoveCommentsAndEmpty(var sl: TStringList);
   procedure RemoveMissingFiles(var sl: TStringList);
