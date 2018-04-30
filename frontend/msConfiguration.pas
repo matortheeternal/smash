@@ -38,6 +38,7 @@ type
     errorMessageColor: Int64;
     logMessageTemplate: string;
     preserveTempPath: boolean;
+    smashSound: boolean;
     [IniSection('Patching')]
     patchDirectory: string;
     debugPatchStatus: boolean;

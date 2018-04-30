@@ -4,6 +4,7 @@ interface
 
 uses
   Classes, SysUtils, StrUtils, shlObj, Dialogs, ComCtrls,
+  Windows, MMSystem,
   // superobject
   superobject,
   // mte units
@@ -173,7 +174,23 @@ begin
     Synchronize(nil, LoaderCallback);
 end;
 
-{ TMergeThread }
+{ TPatchThread }
+procedure PlaySmashSound;
+var
+  HResource: TResourceHandle;
+  HResData: THandle;
+  PWav: Pointer;
+begin
+  HResource := FindResource(HInstance, PChar('SMASH'), 'WAV');
+  if HResource = 0 then exit;
+  HResData := LoadResource(HInstance, HResource);
+  if HResData = 0 then exit;
+  PWav := LockResource(HResData);
+  if not Assigned(PWav) then exit;
+  sndPlaySound(nil, SND_NODEFAULT);
+  sndPlaySound(PWav, SND_ASYNC or SND_MEMORY);
+end;
+
 procedure TPatchThread.Execute;
 var
   i: integer;
@@ -194,17 +211,24 @@ begin
     except
       on x : Exception do begin
         patch.status := psFailed;
-        Tracker.Write('Exception: '+x.Message);
+        Tracker.Write('Exception: ' + x.Message);
       end;
     end;
+
     Tracker.Write(' '#13#10);
     Tracker.SetProgress(IntegerListSum(timeCosts, i));
-    if Tracker.Cancel then Tracker.Write('Smashing canceled.');
+
+    if Tracker.Cancel then begin
+      Tracker.Write('Smashing canceled.');
+      break;
+    end;
   end;
 
   // say thread is done if it wasn't cancelled
-  if not Tracker.Cancel then
+  if not Tracker.Cancel then begin
     Tracker.Write('All done!');
+    if settings.smashSound then PlaySmashSound;
+  end;
 
   // clean up, fire callback
   StatusCallback(GetLanguageString('msProg_DoneBuilding'));
