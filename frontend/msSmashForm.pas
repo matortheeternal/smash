@@ -30,15 +30,11 @@ type
         QuickBar: TPanel;
         NewButton: TSpeedButton;
         BuildButton: TSpeedButton;
-        SubmitButton: TSpeedButton;
         ManageButton: TSpeedButton;
-        DictionaryButton: TSpeedButton;
         OptionsButton: TSpeedButton;
         bhBuild: TBalloonHint;
         bhNew: TBalloonHint;
-        bhSubmit: TBalloonHint;
         bhManage: TBalloonHint;
-        bhDict: TBalloonHint;
         bhOptions: TBalloonHint;
       [FormSection('Main Panel')]
         MainPanel: TPanel;
@@ -438,17 +434,6 @@ begin
     exit;
   end;
 
-  // HANDLE AUTO-UPDATE
-  {if ProgramStatus.bInstallUpdate then begin
-    Logger.Write('CLIENT', 'Disconnect', 'Disconnecting...');
-    TCPClient.Disconnect;
-    ProgramStatus.bClose := true;
-    bClosing := true;
-    Logger.Write('GENERAL', 'Update', 'Restarting.');
-    ShellExecute(Application.Handle, 'runas', PChar(ParamStr(0)), '', '', SW_SHOWNORMAL);
-    Close;
-  end;}
-
   // DISABLE GUI IF INITIALIZATION EXCEPTION
   if ProgramStatus.bInitException then begin
     StatusPanelMessage.Caption := 'The application failed to initialize';
@@ -465,16 +450,12 @@ begin
   // QUICKBAR
   NewButton.Flat := true;
   BuildButton.Flat := true;
-  SubmitButton.Flat := true;
   ManageButton.Flat := true;
-  DictionaryButton.Flat := true;
   OptionsButton.Flat := true;
   IconList.GetBitmap(0, NewButton.Glyph);
   IconList.GetBitmap(1, BuildButton.Glyph);
-  IconList.GetBitmap(2, SubmitButton.Glyph);
-  IconList.GetBitmap(3, ManageButton.Glyph);
-  IconList.GetBitmap(4, DictionaryButton.Glyph);
-  IconList.GetBitmap(5, OptionsButton.Glyph);
+  IconList.GetBitmap(2, ManageButton.Glyph);
+  IconList.GetBitmap(3, OptionsButton.Glyph);
 
   // STATUSBAR VALUES
   StatusPanelLanguage.Caption := settings.language;
@@ -514,8 +495,6 @@ begin
     TaskHandler := TTaskHandler.Create;
     bLogTasks := false;
     TaskHandler.AddTask(TTask.Create('Disable Hints', 12.0 * seconds, DisableHints));
-    {TaskHandler.AddTask(TTask.Create('Reconnect', 15.0 * seconds, Reconnect));
-    TaskHandler.AddTask(TTask.Create('Heartbeat', 0.9 * seconds, Heartbeat));}
     TaskHandler.AddTask(TTask.Create('Refresh GUI', 3.0 * seconds, RefreshGUI));
     TaskTimer.Enabled := true;
   end;
@@ -2209,9 +2188,7 @@ begin
   if ProgramStatus.bInitException then begin
     NewButton.Enabled := false;
     BuildButton.Enabled := false;
-    SubmitButton.Enabled := false;
     ManageButton.Enabled := false;
-    DictionaryButton.Enabled := false;
     OptionsButton.Enabled := true;
     exit;
   end;
