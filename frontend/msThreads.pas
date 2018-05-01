@@ -218,16 +218,19 @@ begin
     Tracker.Write(' '#13#10);
     Tracker.SetProgress(IntegerListSum(timeCosts, i));
 
-    if Tracker.Cancel then begin
+    if Tracker.Cancel then
       Tracker.Write('Smashing canceled.');
-      break;
-    end;
   end;
 
   // say thread is done if it wasn't cancelled
   if not Tracker.Cancel then begin
     Tracker.Write('All done!');
-    if settings.smashSound then PlaySmashSound;
+    try
+      if settings.smashSound then PlaySmashSound;
+    except
+      on x: Exception do
+        Tracker.Write('Failed to play Smash sound.');
+    end;
   end;
 
   // clean up, fire callback

@@ -28,12 +28,14 @@ type
       TaskTimer: TTimer;
       [FormSection('QuickBar')]
         QuickBar: TPanel;
+        AutoButton: TSpeedButton;
         NewButton: TSpeedButton;
         BuildButton: TSpeedButton;
         ManageButton: TSpeedButton;
         OptionsButton: TSpeedButton;
-        bhBuild: TBalloonHint;
+        bhAuto: TBalloonHint;
         bhNew: TBalloonHint;
+        bhBuild: TBalloonHint;
         bhManage: TBalloonHint;
         bhOptions: TBalloonHint;
       [FormSection('Main Panel')]
@@ -92,7 +94,6 @@ type
         StatusPanelLanguage: TPanel;
         StatusPanelVersion: TPanel;
         ImageBuild: TImage;
-        bhLoader: TBalloonHint;
         bhLoadException: TBalloonHint;
 
     // SMASH FORM EVENTS
@@ -131,6 +132,7 @@ type
       Rect: TRect; State: TGridDrawState);
     // PLUGINS LIST VIEW EVENTS
     procedure UpdatePluginDetails;
+    procedure AddPluginToPatch(var plugin: TPlugin; var patch: TPatch; i: Integer);
     procedure AddPluginsToPatch(var patch: TPatch);
     procedure ChangePatchSetting(aSetting: TSmashSetting);
     procedure PluginsListViewChange(Sender: TObject; Item: TListItem;
@@ -166,6 +168,8 @@ type
     procedure EditPatchItemClick(Sender: TObject);
     procedure BuildPatchItemClick(Sender: TObject);
     procedure RemovePluginsItemClick(Sender: TObject);
+    procedure RemoveUnloadedPlugins(patch: TPatch);
+    procedure RemoveUnloadedPluginsItemClick(Sender: TObject);
     procedure DeletePatchItemClick(Sender: TObject);
     procedure OpenInExplorerItemClick(Sender: TObject);
     procedure ToggleRebuildItemClick(Sender: TObject);
@@ -184,16 +188,14 @@ type
     procedure SaveAndClearItemClick(Sender: TObject);
     // QUICKBAR EVENTS
     procedure UpdateQuickbar;
-    procedure CreatePatchButtonClick(Sender: TObject);
+    function GetSmashedPatch: TPatch;
+    procedure StartPatching;
+    procedure AutoButtonClick(Sender: TObject);
+    procedure NewButtonClick(Sender: TObject);
     procedure BuildButtonClick(Sender: TObject);
-    procedure SubmitButtonClick(Sender: TObject);
     procedure ManageButtonClick(Sender: TObject);
     procedure OptionsButtonClick(Sender: TObject);
-    procedure UpdateButtonClick(Sender: TObject);
-    procedure HelpButtonClick(Sender: TObject);
     procedure ToggleAutoScrollItemClick(Sender: TObject);
-    procedure DictionaryButtonClick(Sender: TObject);
-    procedure RemoveUnloadedPluginsItemClick(Sender: TObject);
   protected
     procedure WMSize(var AMessage: TMessage); message WM_SIZE;
     procedure WMMove(var AMessage: TMessage); message WM_MOVE;
@@ -448,14 +450,16 @@ begin
   end;
 
   // QUICKBAR
+  AutoButton.Flat := true;
   NewButton.Flat := true;
   BuildButton.Flat := true;
   ManageButton.Flat := true;
   OptionsButton.Flat := true;
-  IconList.GetBitmap(0, NewButton.Glyph);
-  IconList.GetBitmap(1, BuildButton.Glyph);
-  IconList.GetBitmap(2, ManageButton.Glyph);
-  IconList.GetBitmap(3, OptionsButton.Glyph);
+  IconList.GetBitmap(0, AutoButton.Glyph);
+  IconList.GetBitmap(1, NewButton.Glyph);
+  IconList.GetBitmap(2, BuildButton.Glyph);
+  IconList.GetBitmap(3, ManageButton.Glyph);
+  IconList.GetBitmap(4, OptionsButton.Glyph);
 
   // STATUSBAR VALUES
   StatusPanelLanguage.Caption := settings.language;
@@ -483,10 +487,6 @@ begin
     ListView_CorrectWidth(PluginsListView);
 
     // LOAD AND DISPLAY HINTS
-    if settings.buildRefs then
-      StatusPanelMessage.Caption := GetLanguageString('msMain_LoaderInProgress');
-    bhLoader.Title := GetLanguageString('msMain_LoaderInProgress');
-    bhLoader.Description := GetLanguageString('msMain_LoaderLimitations');
     bhLoadException.Title := GetLanguageString('msMain_LoadException');
     bhLoadException.Description := GetLanguageString('msMain_PluginsNotLoaded');
     DisplayHints;
@@ -602,7 +602,6 @@ end;
 
 procedure TSmashForm.HideHints;
 begin
-  bhLoader.HideHint;
   bhLoadException.HideHint;
 end;
 
@@ -967,6 +966,17 @@ begin
   UpdateStatusBar;
 end;
 
+procedure TSmashForm.AddPluginToPatch(var plugin: TPlugin; var patch: TPatch; i: Integer);
+begin
+  Logger.Write('PLUGIN', 'Patch', 'Added '+plugin.filename+' to patch '+patch.name);
+  if not plugin.hasData then
+    plugin.GetData(PluginsList);
+  if plugin.patch = patch.name then
+    exit;
+  patch.plugins.AddObject(plugin.filename, TObject(i));
+  plugin.patch := patch.name;
+end;
+
 procedure TSmashForm.AddPluginsToPatch(var patch: TPatch);
 var
   i: integer;
@@ -981,12 +991,7 @@ begin
     plugin := TPlugin(PluginsList[i]);
     if plugin.patch <> ' ' then
       continue;
-    // add plugin to patch
-    Logger.Write('PLUGIN', 'Patch', 'Added '+plugin.filename+' to patch '+patch.name);
-    if not plugin.hasData then
-      plugin.GetData(PluginsList);
-    patch.plugins.AddObject(plugin.filename, TObject(i));
-    plugin.patch := patch.name;
+    AddPluginToPatch(plugin, patch, i);
   end;
 
   // update and repaint
@@ -1963,10 +1968,24 @@ begin
   UpdateListViews;
 end;
 
+procedure TSmashform.RemoveUnloadedPlugins(patch: TPatch);
+var
+  i: integer;
+  plugin: TPlugin;
+begin
+  Logger.Write('PATCH', 'Plugins', 'Removing unloaded plugins from '+patch.name);
+  for i := Pred(patch.plugins.Count) downto 0 do begin
+    plugin := PluginByFilename(patch.plugins[i]);
+    if not Assigned(plugin) then begin
+      Logger.Write('PATCH', 'Plugins', 'Removing '+patch.plugins[i]+', plugin not loaded');
+      patch.plugins.Delete(i);
+    end;
+  end;
+end;
+
 procedure TSmashForm.RemoveUnloadedPluginsItemClick(Sender: TObject);
 var
-  i, j: integer;
-  plugin: TPlugin;
+  i: integer;
   patch: TPatch;
 begin
   // loop through patches
@@ -1974,15 +1993,7 @@ begin
     if not PatchesListView.Items[i].Selected then
       continue;
     patch := TPatch(PatchesList[i]);
-    Logger.Write('PATCH', 'Plugins', 'Removing unloaded plugins from '+patch.name);
-    // remove plugins that aren't loaded or have errors
-    for j := Pred(patch.plugins.Count) downto 0 do begin
-      plugin := PluginByFilename(patch.plugins[j]);
-      if not Assigned(plugin) then begin
-        Logger.Write('PATCH', 'Plugins', 'Removing '+patch.plugins[j]+', plugin not loaded');
-        patch.plugins.Delete(j);
-      end;
-    end;
+    RemoveUnloadedPlugins(patch);
   end;
 
   // update
@@ -2186,6 +2197,7 @@ var
 begin
   // DISABLE ALL BUTTONS IF INITIALIZATION EXCEPTION
   if ProgramStatus.bInitException then begin
+    AutoButton.Enabled := false;
     NewButton.Enabled := false;
     BuildButton.Enabled := false;
     ManageButton.Enabled := false;
@@ -2216,7 +2228,85 @@ begin
     BuildButton.Hint := sTitle + GetLanguageString('msMain_BuildAllPatches');
 end;
 
-procedure TSmashForm.CreatePatchButtonClick(Sender: TObject);
+function TSmashForm.GetSmashedPatch: TPatch;
+begin
+  Result :=  TPatchHelpers.PatchByName(PatchesList, 'Smashed Patch');
+  if Assigned(Result) then
+    RemoveUnloadedPlugins(Result)
+  else begin
+    Result := TPatchHelpers.CreateNewPatch(PatchesList);
+    Result.name := 'Smashed Patch';
+    Result.filename := 'Smashed Patch.esp';
+    PatchesList.Add(Result);
+  end;
+end;
+
+procedure TSmashForm.StartPatching;
+begin
+  // make and show progress form
+  self.Enabled := false;
+  xEditLogGroup := 'PATCH';
+  pForm := TProgressForm.Create(Self);
+  pForm.pfLogPath := LogPath + 'patch\';
+  pForm.bDetailsVisible := false;
+  pForm.PopupParent := Self;
+  pForm.Caption := GetLanguageString('msProg_Smashing');
+  pForm.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
+  pForm.Show;
+
+  // start patch thread
+  PatchCallback := ProgressDone;
+  TPatchThread.Create;
+end;
+
+procedure TSmashForm.AutoButtonClick(Sender: TObject);
+var
+  smashAll: TSmashSetting;
+  smashedPatch: TPatch;
+  i: Integer;
+  plugin: TPlugin;
+begin
+  // STEP 1: find Smash.All setting
+  smashAll := TSettingHelpers.SettingByName('Smash.All');
+
+  // STEP 2: if Smash.All setting not found, exit
+  if not Assigned(smashAll) then exit;
+
+  // STEP 3: find and clear or create smashed patch
+  smashedPatch := GetSmashedPatch;
+
+  // STEP 5: apply Smash.All to all loaded plugins except game ESM
+  // STEP 6: add all loaded plugins except game ESM to smashed patch
+  for i := 0 to Pred(PluginsList.Count) do begin
+    plugin := TPlugin(PluginsList[i]);
+    if SameText(plugin.filename, wbGameName + '.esm') then
+      continue;
+    plugin.SetSmashSetting(smashAll);
+    AddPluginToPatch(plugin, smashedPatch, i);
+  end;
+
+  // update application state
+  UpdatePatches;
+  UpdateListViews;
+  UpdateQuickbar;
+  UpdateStatusBar;
+
+  // check/fix smashed patch status
+  if smashedPatch.status = psUpToDate then
+    smashedPatch.status := psRebuildReadyForced;
+  if not (smashedPatch.status in BuildStatuses) then
+    exit;
+
+  // STEP 7: build smashed patch
+  Logger.Write('PATCH', 'Build', 'Building '+smashedPatch.name);
+  patchesToBuild := TList.Create;
+  timeCosts := TStringList.Create;
+  patchesToBuild.Add(smashedPatch);
+  timeCosts.Add(IntToStr(smashedPatch.GetTimeCost));
+  StartPatching;
+end;
+
+procedure TSmashForm.NewButtonClick(Sender: TObject);
 begin
   NewPatch;
 end;
@@ -2243,9 +2333,9 @@ begin
   patchesToBuild := TList.Create;
   for i := 0 to Pred(PatchesList.Count) do begin
     patch := TPatch(PatchesList[i]);
-    Logger.Write('PATCH', 'Build', 'Building '+patch.name);
     if not (patch.status in BuildStatuses) then
       continue;
+    Logger.Write('PATCH', 'Build', 'Building '+patch.name);
     timeCost := patch.GetTimeCost;
     patchesToBuild.Add(patch);
     timeCosts.Add(IntToStr(timeCost));
@@ -2260,25 +2350,7 @@ begin
   end;
 
   // make and show progress form
-  self.Enabled := false;
-  xEditLogGroup := 'PATCH';
-  pForm := TProgressForm.Create(Self);
-  pForm.pfLogPath := LogPath + 'patch\';
-  pForm.bDetailsVisible := false;
-  pForm.PopupParent := Self;
-  pForm.Caption := GetLanguageString('msProg_Smashing');
-  pForm.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
-  pForm.Show;
-
-  // start patch thread
-  PatchCallback := ProgressDone;
-  TPatchThread.Create;
-end;
-
-{ Submit report }
-procedure TSmashForm.SubmitButtonClick(Sender: TObject);
-begin
-  // ?
+  StartPatching;
 end;
 
 { Edit smash settings }
@@ -2296,12 +2368,6 @@ begin
   UpdateListViews;
   UpdateQuickbar;
   UpdateStatusBar;
-end;
-
-{ View dictionary }
-procedure TSmashForm.DictionaryButtonClick(Sender: TObject);
-begin
-  // ?
 end;
 
 { Options }
@@ -2337,18 +2403,6 @@ begin
   // if user selected to change game mode, close application
   if ProgramStatus.bChangeProfile then
     Close;
-end;
-
-{ Update }
-procedure TSmashForm.UpdateButtonClick(Sender: TObject);
-begin
-  // TODO: open github releases page
-end;
-
-{ Help }
-procedure TSmashForm.HelpButtonClick(Sender: TObject);
-begin
-  //LogMessage(TButton(Sender).Hint+' clicked!');
 end;
 
 end.

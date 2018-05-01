@@ -1,22 +1,14 @@
 { TSmashForm }
 { ## QuickBar ## }
+msMain_AutoButton_Hint=Quick smash|Apply Smash.All to loaded plugins and #13#10generate a smashed patch.#13#10
 msMain_NewButton_Hint=Create new smashed patch|Make a new empty smashed patch.
 msMain_BuildButton_Hint=Build patches|
-msMain_SubmitButton_Hint=Submit recommendations|Submit smash settings and plugin #13#10recommendations.#13#10
 msMain_ManageButton_Hint=Manage Smash Settings|Click here to manage smash settings.
-msMain_DictionaryButton_Hint=View dictionary|Open the dictionary viewer to see all #13#10recommendations submitted by other users.#13#10
 msMain_OptionsButton_Hint=Options|Change the options that control how the #13#10program runs.#13#10
-msMain_UpdateButton_Hint=Update|
-msMain_HelpButton_Hint=Help|Sorry, this isn't working yet.
 { #### DYNAMIC #### }
 msMain_NoPatches=There aren't any patches to build or rebuild.
 msMain_BuildPatches_Loader=You can't build patches until the background #13#10loader is done.#13#10
 msMain_BuildAllPatches=Builds all patches that are ready to be built or #13#10rebuilt.#13#10
-msMain_UpdateBoth=Program and dictionary update available.
-msMain_UpdateProgram=Program update available.
-msMain_UpdateDictionary=Dictionary update available.
-msMain_NoUpdates=No updates available.
-msMain_NoDictionary=View dictionary|No dictionary file available.
 { ## Main Panel ## }
 { ## Details Panel ## }
 msMain_DetailsLabel_Caption=Details
@@ -108,10 +100,6 @@ msMain_FilterLabelItem_Caption=Filter label
 msMain_CopyToClipboardItem_Caption=Copy to clipboard
 msMain_SaveAndClearItem_Caption=Save and clear
 msMain_ToggleAutoScrollItem_Caption=Disable auto scroll
-{ ## Status Bar ## }
-msMain_LoaderLimitations=You won't be able to check for errors #13#10or build merges until the loader is done.#13#10
-msMain_LoaderInProgress=Background loader in progress
-msMain_LoaderFinished=Background loader finished
  
 { TOptionsForm }
 mpOpt_btnCancel_Caption=Cancel
@@ -123,30 +111,11 @@ mpOpt_lblLanguage_Caption=Current languge
 mpOpt_gbStyle_Caption=Style
 mpOpt_kbSimpleDictionary_Caption=Simple dictionary view
 mpOpt_kbSimplePlugins_Caption=Simple plugins list
-mpOpt_gbReports_Caption=Submissions
-mpOpt_lblUsername_Caption=Username
-mpOpt_btnRegister_Caption=Check
-mpOpt_btnRegister_Hint=Check if username is available
-mpOpt_lblStatus_Caption=Registration status
-mpOpt_lblStatusValue_Caption=Invalid username
-mpOpt_lblStatusValue_Hint=Username must be 4 or more characters
-mpOpt_btnReset_Caption=Reset
-mpOpt_gbUpdating_Caption=Updating
-mpOpt_kbUpdateDictionary_Caption=Update dictionary automatically
-mpOpt_lblDictionaryStatus_Caption=Up to date
-mpOpt_btnUpdateDictionary_Caption=Update dictionary
-mpOpt_kbUpdateProgram_Caption=Update program automatically
-mpOpt_lblProgramStatus_Caption=Up to date
-mpOpt_btnUpdateProgram_Caption=Update program
 { ## Merging Tab ## }
 mpOpt_PatchingTabSheet_Caption=Patching
 { ## Advanced Tab ## }
 mpOpt_AdvancedTabSheet_Caption=Advanced
 mpOpt_lblCurrentProfile_Caption=Current profile
-mpOpt_gbBackend_Caption=Backend
-mpOpt_lblHost_Caption=Server host
-mpOpt_lblPort_Caption=Server port
-mpOpt_kbNoStatistics_Caption=Don't send usage statistics
 mpOpt_gbLogging_Caption=Logging
 mpOpt_lblClientColor_Caption=Client
 mpOpt_lblGeneralColor_Caption=General
@@ -155,17 +124,6 @@ mpOpt_lblPluginColor_Caption=Plugin
 mpOpt_lblErrorColor_Caption=Errors
 mpOpt_lblTemplate_Caption=Template
 mpOpt_lblSample_Caption=Sample
-{ ## Integrations Tab ## }
-mpOpt_ModOrganizerNotFound=Mod Organizer not found
-mpOpt_IntegrationsTabSheet_Caption=Integrations
-mpOpt_btnDetect_Caption=Detect Integrations
-mpOpt_gbModOrganizer_Caption=Mod Organizer
-mpOpt_kbUsingMO_Caption=I'm using Mod Organizer
-mpOpt_kbCopyGeneralAssets_Caption=Copy general asssets
-mpOpt_lblModOrganizerPath_Caption=Mod Organizer path
-mpOpt_lblModOrganizerModsPath_Caption=Mod Organizer mods path
-mpOpt_lblModOrganizerInstanceName_Caption=Mod Organizer instance name
-mpOpt_edModOrganizerInstanceName_Hint=Leave blank if you aren't using MO2 or if you are using a portable installation of MO.
  
 { TSettingsManager }
 { ## Settings ## }

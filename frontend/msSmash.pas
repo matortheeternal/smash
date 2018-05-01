@@ -530,8 +530,7 @@ begin
     time := (Now - time) * 86400;
     patch.dateBuilt := Now;
     patch.status := psUpToDate;
-    Tracker.Write(Format('Done smashing %s (%.3f)',
-      [patch.name, Real(time)]));
+    Tracker.Write(Format('Done smashing %s (%.3f)', [patch.name, Real(time)]));
   except
     on x: Exception do begin
       patch.status := psFailed;
