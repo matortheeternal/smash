@@ -70,7 +70,7 @@ type
     procedure btnBrowsePatchDirectoryClick(Sender: TObject);
     procedure meTemplateChange(Sender: TObject);
     procedure appendBackslashOnExit(Sender: TObject);
-    procedure btnChangePatchProfileClick(Sender: TObject);
+    procedure btnChangeSmashProfileClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -127,7 +127,7 @@ begin
   SaveSettings;
 end;
 
-procedure TOptionsForm.btnChangePatchProfileClick(Sender: TObject);
+procedure TOptionsForm.btnChangeSmashProfileClick(Sender: TObject);
 begin
   ProgramStatus.bChangeProfile := true;
   btnOKClick(nil);
