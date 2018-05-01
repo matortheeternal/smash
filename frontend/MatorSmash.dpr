@@ -14,6 +14,8 @@
 
 program MatorSmash;
 
+{$R 'smash.res' 'smash.rc'}
+
 uses
   Forms,
   Dialogs,
