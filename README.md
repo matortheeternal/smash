@@ -7,7 +7,7 @@ Characters, items, quests, music tracks, leveled lists, weathers, magical effect
 ## intended usage
 Use Mator Smash to generate a patch, then verify the changes in the patch in xEdit.  Fix any conflicts that were not resolved correctly.  Smashed patches should be usable without a manual verification step, but can in certain rare cases lead to crashes/unintended behavior in game.  If you run into issues please report them [here](https://github.com/matortheeternal/smash/issues).  You can safely disable or delete your smashed patch at any time.
 
-# contact
+# resources
 If you're looking for support or want to contribute, join the [Modding Tools discord server](https://discord.gg/GUfRdpT).
 
-You can view project progress and user stories on the [trello board](https://trello.com/b/2NjpXIBZ/mator-smash).
+You can find additional information and discussion on the [Nexus Mods](https://www.nexusmods.com/skyrim/mods/90987) mod page, in the [STEP forum topic](http://forum.step-project.com/topic/6936-wip-mator-smash/), and in the [Nexus Mods forum topic](https://forums.nexusmods.com/index.php?/topic/3707015-wip-mator-smash-the-conflict-resolution-revolution/).
