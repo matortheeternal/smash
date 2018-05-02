@@ -840,7 +840,7 @@ begin
   end;
 end;
 
-{ Gets a merge matching the given name. }
+{ Gets a patch matching the given name. }
 class function TPatchHelpers.PatchByName(var patches: TList; name: string): TPatch;
 var
   i: integer;
@@ -857,7 +857,7 @@ begin
 end;
 
 
-{ Gets a merge matching the given name. }
+{ Gets a patch matching the given filename. }
 class function TPatchHelpers.PatchByFilename(var patches: TList; filename: string): TPatch;
 var
   i: integer;
@@ -873,7 +873,7 @@ begin
   end;
 end;
 
-{ Create a new merge with non-conflicting name and filename }
+{ Create a new patch with non-conflicting name and filename }
 class function TPatchHelpers.CreateNewPatch(var patches: TList): TPatch;
 var
   i: Integer;
@@ -882,7 +882,7 @@ var
 begin
   patch := TPatch.Create;
 
-  // deal with conflicting merge names
+  // deal with conflicting patch names
   i := 0;
   name := patch.name;
   while Assigned(PatchByName(patches, name)) do begin
@@ -891,7 +891,7 @@ begin
   end;
   patch.name := name;
 
-  // deal with conflicting merge filenames
+  // deal with conflicting patch filenames
   i := 0;
   name := patch.filename;
   while Assigned(PatchByFilename(patches, name)) do begin

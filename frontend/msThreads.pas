@@ -54,7 +54,7 @@ implementation
   - LoaderProgress
   - TLoaderThread.Execute
   - TErrorCheckThread.Execute
-  - TMergeThread.Execute
+  - TPatchThread.Execute
   - TSaveThread.Execute
 }
 {******************************************************************************}
@@ -197,7 +197,7 @@ var
   patch: TPatch;
 begin
   FreeOnTerminate := true;
-  // build merges
+  // build patches
   for i := 0 to Pred(patchesToBuild.Count) do begin
     if Tracker.Cancel then break;
     patch := TPatch(patchesToBuild[i]);

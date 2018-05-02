@@ -1280,7 +1280,7 @@ begin
       end;
     end;
 
-    // prompt user if a merge was selected
+    // prompt user if a plugin was selected
     if pluginsToClear.Count > 0 then begin
       frmDialog := CreateMessageDialog(GetLanguageString('msMain_ClearTags') +
         pluginNames, mtConfirmation, mbOKCancel, mbOk);
@@ -1744,7 +1744,7 @@ begin
   end;
 
   bHasSelection := (patchesSelected > 0);
-  // change enabled state of MergesPopupMenu items based on booleans
+  // change enabled state of PatchesPopupMenu items based on booleans
   EditPatchItem.Enabled := bHasSelection;
   DeletePatchItem.Enabled := bHasSelection;
   BuildPatchItem.Enabled := bHasSelection and bHasBuildStatus and wbLoaderDone;

@@ -163,6 +163,10 @@ object SmashForm: TSmashForm
       object PatchesTabSheet: TTabSheet
         Caption = 'Patches'
         ImageIndex = 1
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
         object PatchesListView: TListView
           Left = 3
           Top = 3
@@ -212,6 +216,10 @@ object SmashForm: TSmashForm
       object LogTabSheet: TTabSheet
         Caption = 'Log'
         ImageIndex = 2
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
         object LogListView: TListView
           Left = 3
           Top = 3
@@ -517,7 +525,7 @@ object SmashForm: TSmashForm
     Left = 1048
     Top = 8
     Bitmap = {
-      494C010105001400C80240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010105001400CC0240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000000100004000000001002000000000000000
       0100000000000000000000000000000000000000000000000000000000000000
       000000000000000000000000000000000000000000000000000000000000E2E2

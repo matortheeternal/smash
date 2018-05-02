@@ -88,7 +88,7 @@ begin
   cbChoices.Width := Width - cbChoices.Left - 6;
   cbChoices.Style := csDropDownList;
   cbChoices.Items.Text := '';
-  cbChoices.Items.Add('Merge');
+  cbChoices.Items.Add('Patch');
   cbChoices.ItemIndex := 0;
   cbChoices.Align := alCustom;
   cbChoices.Anchors := [akLeft, akTop, akRight];
