@@ -2281,7 +2281,8 @@ begin
     plugin := TPlugin(PluginsList[i]);
     if SameText(plugin.filename, wbGameName + '.esm') then
       continue;
-    plugin.SetSmashSetting(smashAll);
+    if Pos('Smash.', plugin.setting) <> 1 then
+      plugin.SetSmashSetting(smashAll);
     AddPluginToPatch(plugin, smashedPatch, i);
   end;
 
