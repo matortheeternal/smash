@@ -28,12 +28,12 @@ type
       TaskTimer: TTimer;
       [FormSection('QuickBar')]
         QuickBar: TPanel;
-        AutoButton: TSpeedButton;
+        QuickButton: TSpeedButton;
         NewButton: TSpeedButton;
         BuildButton: TSpeedButton;
         ManageButton: TSpeedButton;
         OptionsButton: TSpeedButton;
-        bhAuto: TBalloonHint;
+        bhQuick: TBalloonHint;
         bhNew: TBalloonHint;
         bhBuild: TBalloonHint;
         bhManage: TBalloonHint;
@@ -190,7 +190,7 @@ type
     procedure UpdateQuickbar;
     function GetSmashedPatch: TPatch;
     procedure StartPatching;
-    procedure AutoButtonClick(Sender: TObject);
+    procedure QuickButtonClick(Sender: TObject);
     procedure NewButtonClick(Sender: TObject);
     procedure BuildButtonClick(Sender: TObject);
     procedure ManageButtonClick(Sender: TObject);
@@ -450,12 +450,12 @@ begin
   end;
 
   // QUICKBAR
-  AutoButton.Flat := true;
+  QuickButton.Flat := true;
   NewButton.Flat := true;
   BuildButton.Flat := true;
   ManageButton.Flat := true;
   OptionsButton.Flat := true;
-  IconList.GetBitmap(0, AutoButton.Glyph);
+  IconList.GetBitmap(0, QuickButton.Glyph);
   IconList.GetBitmap(1, NewButton.Glyph);
   IconList.GetBitmap(2, BuildButton.Glyph);
   IconList.GetBitmap(3, ManageButton.Glyph);
@@ -2197,7 +2197,7 @@ var
 begin
   // DISABLE ALL BUTTONS IF INITIALIZATION EXCEPTION
   if ProgramStatus.bInitException then begin
-    AutoButton.Enabled := false;
+    QuickButton.Enabled := false;
     NewButton.Enabled := false;
     BuildButton.Enabled := false;
     ManageButton.Enabled := false;
@@ -2259,7 +2259,7 @@ begin
   TPatchThread.Create;
 end;
 
-procedure TSmashForm.AutoButtonClick(Sender: TObject);
+procedure TSmashForm.QuickButtonClick(Sender: TObject);
 var
   smashAll: TSmashSetting;
   smashedPatch: TPatch;

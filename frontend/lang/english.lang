@@ -1,9 +1,9 @@
 { TSmashForm }
 { ## QuickBar ## }
-msMain_AutoButton_Hint=Quick smash|Apply Smash.All to loaded plugins and #13#10generate a smashed patch.#13#10
+msMain_QuickButton_Hint=Quick patch|Apply Smash.All to loaded plugins and #13#10generate a smashed patch.#13#10
 msMain_NewButton_Hint=Create new smashed patch|Make a new empty smashed patch.
 msMain_BuildButton_Hint=Build patches|
-msMain_ManageButton_Hint=Manage Smash Settings|Click here to manage smash settings.
+msMain_ManageButton_Hint=Manage smash settings|Click here to manage smash settings.
 msMain_OptionsButton_Hint=Options|Change the options that control how the #13#10program runs.#13#10
 { #### DYNAMIC #### }
 msMain_NoPatches=There aren't any patches to build or rebuild.

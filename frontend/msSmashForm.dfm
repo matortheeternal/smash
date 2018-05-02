@@ -79,16 +79,16 @@ object SmashForm: TSmashForm
       ShowHint = True
       OnClick = ManageButtonClick
     end
-    object AutoButton: TSpeedButton
+    object QuickButton: TSpeedButton
       Left = 2
       Top = 2
       Width = 48
       Height = 40
-      CustomHint = bhAuto
+      CustomHint = bhQuick
       NumGlyphs = 2
       ParentShowHint = False
       ShowHint = True
-      OnClick = AutoButtonClick
+      OnClick = QuickButtonClick
     end
   end
   object MainPanel: TPanel
@@ -517,7 +517,7 @@ object SmashForm: TSmashForm
     Left = 1048
     Top = 8
     Bitmap = {
-      494C010105001400C40240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010105001400C80240002000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000000100004000000001002000000000000000
       0100000000000000000000000000000000000000000000000000000000000000
       000000000000000000000000000000000000000000000000000000000000E2E2
@@ -2702,7 +2702,7 @@ object SmashForm: TSmashForm
     Left = 176
     Top = 24
   end
-  object bhAuto: TBalloonHint
+  object bhQuick: TBalloonHint
     Style = bhsStandard
     Left = 32
     Top = 24
