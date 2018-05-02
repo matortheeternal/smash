@@ -220,7 +220,9 @@ const
   directions = 'Your english.lang file is missing.  Please download it from GitHub.  ' +
     'After you click OK, a webpage with the file will be opened.  Right-click the ' +
     'page and choose "Save page as", then save it as english.lang in the "lang\" ' +
-    'folder where you have MergePlugins.exe installed.';
+    'folder where you have MatorSmash.exe installed.';
+  accessMessage = 'It looks like Smash doesn''t have permission to read files ' +
+    'from disk.  Try running the program as administrator or disabling your antivirus.';
 var
   filename: string;
 begin
@@ -231,6 +233,8 @@ begin
       settings.language := 'english';
       LoadLanguage;
     end
+    else if not FileExists('MatorSmash.exe') then
+      MessageDlg(accessMessage, mtConfirmation, [mbOk], 0)
     else begin
       MessageDlg(directions, mtConfirmation, [mbOk], 0);
       ForceDirectories(PathList.Values['ProgramPath'] + 'lang\');
