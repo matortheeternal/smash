@@ -137,6 +137,7 @@ begin
 
   // get comma separated plugin info in a TStringList
   sl := TStringList.Create;
+  sl.StrictDelimiter := true;
   try
     sl.CommaText := GetPluginInfo(sPlugin);
     for i := 0 to Pred(sl.Count) do
@@ -517,7 +518,7 @@ begin
     // check ListItem if it's in the CheckedPlugins list
     if slCheckedPlugins.IndexOf(sPlugin) > -1 then
       aListItem.StateIndex := cChecked;
-    // add merge subitems
+    // add patch subitems
     LoadFields(aListItem, sPlugin);
     ListItems.Add(aListItem);
   end;
