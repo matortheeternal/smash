@@ -51,6 +51,7 @@ type
     debugSingle: boolean;
     debugLinks: boolean;
     buildRefs: boolean;
+    preserveITPOs: boolean;
     constructor Create; virtual;
   end;
   TStatistics = class(TObject)

@@ -42,7 +42,9 @@ type
         kbDebugChanges: TCheckBox;
         kbDebugSingle: TCheckBox;
         kbDebugLinks: TCheckBox;
+        gbOther: TGroupBox;
         kbBuildRefs: TCheckBox;
+        kbPreserveITPOs: TCheckBox;
       [FormSection('Advanced Tab')]
         AdvancedTabSheet: TTabSheet;
         lblCurrentProfile: TLabel;
@@ -114,6 +116,7 @@ begin
   settings.debugSingle := kbDebugSingle.Checked;
   settings.debugLinks := kbDebugLinks.Checked;
   settings.buildRefs := kbBuildRefs.Checked;
+  settings.preserveITPOs := kbPreserveITPOs.Checked;
 
   // Advanced > Logging
   settings.clientMessageColor := cbClientColor.Selected ;
@@ -174,10 +177,6 @@ begin
   // load translation
   TRttiTranslation.Load(language, self);
 
-  // get status update if we can
-  {if GetStatus then
-    CompareStatuses; }
-
   // prepare sample log message
   slSampleLogMessage := TStringList.Create;
   slSampleLogMessage.Values['Time'] := '12:34:56';
@@ -208,6 +207,7 @@ begin
   kbDebugSingle.Checked := settings.debugSingle;
   kbDebugLinks.Checked := settings.debugLinks;
   kbBuildRefs.Checked := settings.buildRefs;
+  kbPreserveITPOs.Checked := settings.preserveITPOs;
 
   // Advanced > Profile
   lblCurrentProfileName.Caption := settings.profile;

@@ -105,6 +105,8 @@ object OptionsForm: TOptionsForm
     object PatchingTabSheet: TTabSheet
       Caption = 'Patching'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 28
       object gbGeneral: TGroupBox
         Left = 3
         Top = 3
@@ -226,14 +228,31 @@ object OptionsForm: TOptionsForm
           Caption = 'Debug links'
           TabOrder = 8
         end
+      end
+      object gbOther: TGroupBox
+        Left = 3
+        Top = 215
+        Width = 554
+        Height = 58
+        Caption = 'Other Options'
+        TabOrder = 2
         object kbBuildRefs: TCheckBox
-          Left = 272
-          Top = 118
+          Left = 12
+          Top = 22
           Width = 201
           Height = 17
           Align = alCustom
           Caption = 'Build references'
-          TabOrder = 9
+          TabOrder = 0
+        end
+        object kbPreserveITPOs: TCheckBox
+          Left = 273
+          Top = 22
+          Width = 201
+          Height = 17
+          Align = alCustom
+          Caption = 'Preserve ITPOs'
+          TabOrder = 1
         end
       end
     end
@@ -495,7 +514,7 @@ object OptionsForm: TOptionsForm
     Left = 16
     Top = 400
     Bitmap = {
-      494C010101000800780110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C0101010008007C0110001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000001000000001002000000000000010
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

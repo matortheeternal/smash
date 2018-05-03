@@ -448,14 +448,12 @@ begin
 
   // remove ITPOs
   try
-    RemoveITPOs(patchFile);
+    if not settings.preserveITPOs then
+      RemoveITPOs(patchFile);
   except
     on x: Exception do
       Tracker.Write('    Exception removing ITPOs: '+x.Message);
   end;
-
-  // then clean masters
-  patchFile.CleanMasters;
 end;
 
 procedure SavePatchFiles(var patch: TPatch);
@@ -521,7 +519,7 @@ begin
     SmashRecords(patch, recordsList);
     HandleCanceled(msg);
 
-    // clean patch (Masters, ITPOs)
+    // clean patch (ITPOs)
     CleanPatch(patch);
 
     // save patch and associated files

@@ -111,8 +111,11 @@ mpOpt_lblLanguage_Caption=Current languge
 mpOpt_gbStyle_Caption=Style
 mpOpt_kbSimpleDictionary_Caption=Simple dictionary view
 mpOpt_kbSimplePlugins_Caption=Simple plugins list
-{ ## Merging Tab ## }
+{ ## Patching Tab ## }
 mpOpt_PatchingTabSheet_Caption=Patching
+mpOpt_lblDestinationDirectory_Caption=Patch destination directory
+mpOpt_gbDebug_Caption=Debug
+mpOpt_gbOther_Caption=Other Options
 { ## Advanced Tab ## }
 mpOpt_AdvancedTabSheet_Caption=Advanced
 mpOpt_lblCurrentProfile_Caption=Current profile
