@@ -288,7 +288,10 @@ begin
 
       // copy record to smashed patch if it hasn't been copied yet
       if not Assigned(patchRec) then try
-        e := WinningOverrideInFiles(rec, patch.plugins);
+        if bForce then
+          e := ovr
+        else
+          e := WinningOverrideInFiles(rec, patch.plugins);
         Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'');
         patchRec := eCopy as IwbMainRecord;
