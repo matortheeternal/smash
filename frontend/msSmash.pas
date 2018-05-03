@@ -313,8 +313,10 @@ begin
       try
         bDeletions := recObj.I['d'] = 1;
         bOverride := recObj.I['o'] = 1;
-        // use winning override in masters as master record
-        mst := WinningOverrideInFiles(rec, plugin.masters);
+        if bForce then
+          mst := e
+        else
+          mst := WinningOverrideInFiles(rec, plugin.masters);
         Tracker.Write(Format('    Smashing override from: %s, master: %s',
           [f.FileName, mst._File.FileName]));
         rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
