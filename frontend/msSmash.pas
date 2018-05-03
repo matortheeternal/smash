@@ -292,6 +292,7 @@ begin
         Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'');
         patchRec := eCopy as IwbMainRecord;
+        continue;
       except
         on x: Exception do begin
           Tracker.Write('      Exception copying record '+ovr.Name+' : '+x.Message);
@@ -302,7 +303,7 @@ begin
 
       // skip if we're forcing and plugin doesn't require forceFile
       if Assigned(forceFile) and not bForce
-      and (plugin.requiredBy.IndexOf(forceFile.FileName) = -1) then
+      and (plugin.masters.IndexOf(forceFile.FileName) = -1) then
         continue;
 
       // finally, recursively copy overridden elements
