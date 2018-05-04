@@ -94,6 +94,7 @@ begin
   LoadLanguage;
 
   // INITIALIZE TES5EDIT API
+  wbStringEncoding := seUTF8;
   wbDisplayLoadOrderFormID := True;
   wbSortSubRecords := True;
   wbDisplayShorterNames := True;
