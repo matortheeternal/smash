@@ -295,7 +295,7 @@ begin
         Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'');
         patchRec := eCopy as IwbMainRecord;
-        continue;
+        if bForce then continue;
       except
         on x: Exception do begin
           Tracker.Write('      Exception copying record '+ovr.Name+' : '+x.Message);
@@ -314,7 +314,7 @@ begin
         bDeletions := recObj.I['d'] = 1;
         bOverride := recObj.I['o'] = 1;
         if bForce then
-          mst := e
+          mst := e as IwbMainRecord
         else
           mst := WinningOverrideInFiles(rec, plugin.masters);
         Tracker.Write(Format('    Smashing override from: %s, master: %s',
