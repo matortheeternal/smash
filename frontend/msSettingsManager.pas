@@ -496,7 +496,7 @@ end;
 procedure TSettingsManager.TreePopupMenuPopup(Sender: TObject);
 var
   bHasSelection, bTreeSelected, bHasMultiSelection, bSubrecordSelected,
-  bHasChildren, bRecordsSelected, bSomeUnChecked: boolean;
+  bHasChildren, bRecordsSelected, bSomeUnChecked, bIsContainer: boolean;
   i: Integer;
   node: TTreeNode;
   MenuItem: TMenuItem;
@@ -523,15 +523,18 @@ begin
   end;
 
   // enable/disable menu items
+  bIsContainer := bHasSelection and bHasChildren and not bTreeSelected;
   AddItem.Visible := bTreeSelected;
   ToggleNodesItem.Enabled := bHasSelection;
-  PreserveDeletionsItem.Enabled := bHasSelection and bHasChildren;
-  SingleEntityItem.Enabled := bHasSelection and bHasChildren;
+  PreserveDeletionsItem.Enabled := bIsContainer;
+  OverrideDeletionsItem.Enabled := bIsContainer;
+  SingleEntityItem.Enabled := bIsContainer and not bRecordsSelected;
+  ForceValueItem.Enabled := bHasSelection and bRecordsSelected;
   AutoPruneItem.Enabled := CanPruneRecords;
   PruneNodesItem.Enabled := bHasSelection and bRecordsSelected and bSomeUnChecked;
-  UnlinkNodeItem.Enabled := bHasSelection;
-  ChainNodesItem.Enabled := bHasMultiSelection;
-  LinkNodeToItem.Enabled := bSubrecordSelected;
+  UnlinkNodeItem.Enabled := bHasSelection and not bTreeSelected;
+  ChainNodesItem.Enabled := bHasMultiSelection and not bTreeSelected;
+  LinkNodeToItem.Enabled := bSubrecordSelected and not bTreeSelected;
 
   // build LinkNodeToItem submenu
   if bSubrecordSelected then begin
