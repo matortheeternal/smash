@@ -221,6 +221,12 @@ begin
   end;
 end;
 
+function HasPartialFormFlag(rec: IwbMainRecord): Boolean;
+begin
+  Result := ((rec.Signature = 'QUST') or (rec.Signature = 'LCTN')) and
+    (rec.Flags._Flags and $00004000 <> 0);
+end;
+
 procedure SmashRecords(var patch: TPatch; var records: TInterfaceList);
 var
   i, j: Integer;
@@ -312,6 +318,8 @@ begin
       // finally, recursively copy overridden elements
       try
         bDeletions := recObj.I['d'] = 1;
+        if (wbGameMode = gmFO4) and HasPartialFormFlag(ovr) then
+          bDeletions := False;
         bOverride := recObj.I['o'] = 1;
         if bForce then
           mst := e as IwbMainRecord
