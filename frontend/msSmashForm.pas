@@ -1095,7 +1095,7 @@ begin
   SmashSettingItem.Enabled := bHasSelection;
   OpenPluginLocationItem.Enabled := bHasSelection;
   RemoveFromPatchItem.Enabled := bHasSelection and bAllPluginsInPatch;
-  TagsItem.Enabled := bHasSelection;
+  TagsItem.Enabled := bHasSelection and settings.allowTagging;
   ClearTagsItem.Enabled := bHasSelection and bAllHaveTags;
 end;
 
