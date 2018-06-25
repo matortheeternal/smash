@@ -1244,6 +1244,7 @@ begin
     // create a tag manager instance for the plugin
     plugin := TPlugin(PluginsList[i]);
     plugin.ApplySettingTags;
+    plugin.Save;
   end;
 
   // update
