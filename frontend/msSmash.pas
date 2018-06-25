@@ -159,27 +159,34 @@ begin
       if j mod 500 = 499 then
         Tracker.UpdateProgress(500);
 
-      // skip non-override records
-      if rec.IsMaster then
-        continue;
-      rec := rec.Master;
+      try
+        // skip non-override records
+        if rec.IsMaster then
+          continue;
+        rec := rec.Master;
 
-      if OverrideCountInFiles(rec, patch.plugins) < 2 then
-        continue;
+        if OverrideCountInFiles(rec, patch.plugins) < 2 then
+          continue;
 
-      // skip records according to smash setting
-      recObj := aSetting.GetRecordDef(rec.Signature);
-      if not Assigned(recObj) then
-        continue;
-      if (recObj.I['p'] <> 1) then
-        continue;
-      // skip non-conflicting records
-      if ConflictAllForMainRecord(rec) < caConflict then
-        continue;
+        // skip records according to smash setting
+        recObj := aSetting.GetRecordDef(rec.Signature);
+        if not Assigned(recObj) then
+          continue;
+        if (recObj.I['p'] <> 1) then
+          continue;
+        // skip non-conflicting records
+        if ConflictAllForMainRecord(rec) < caConflict then
+          continue;
 
-      // add record to overrides list
-      if records.IndexOf(rec) = -1 then
-        records.Add(rec);
+        // add record to overrides list
+        if records.IndexOf(rec) = -1 then
+          records.Add(rec);
+      except
+        on x: Exception do begin
+          Tracker.Write('  Error processing ' + rec.Name + ', ' + x.Message);
+          continue;
+        end;
+      end;
     end;
     
     // update progress bar for file
