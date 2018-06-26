@@ -13,6 +13,8 @@ uses
   // xEdit components
   wbInterface, wbImplementation;
 
+  procedure CopyLinkedElement(srcCont, dstCont: IwbContainerElementRef;
+    eLink: string; obj: ISuperObject; dstRec: IwbMainRecord);
   function rcore(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
     obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
 
@@ -65,6 +67,7 @@ var
   element: IwbElement;
   eObj: ISuperObject;
   process, bInDestination, bInMaster: boolean;
+  eLink: String;
 begin
   Result := false;
 
@@ -97,6 +100,14 @@ begin
         if settings.debugChanges then
           Tracker.Write('      Created element at '+element.Path);
         wbCopyElementToRecord(element, dstRec, false, true);
+
+        // if another element is linked to the element, copy it
+        eLink := eObj.S['lf'];
+        if (eLink <> '') then begin
+          firstLink := eLink;
+          bLinkProcessed := false;
+          CopyLinkedElement(srcCont, dstCont, eLink, obj, dstRec);
+        end;
       except
         on x: Exception do
           Tracker.Write('        HandleElementLife: Failed to copy '+element.Path+', '+x.Message);
@@ -127,6 +138,14 @@ begin
         if settings.debugChanges then
           Tracker.Write('      Deleted element at '+element.Path);
         dstCont.RemoveElement(element);
+
+        // if another element is linked to the element, copy it
+        eLink := eObj.S['lf'];
+        if (eLink <> '') then begin
+          firstLink := eLink;
+          bLinkProcessed := false;
+          CopyLinkedElement(srcCont, dstCont, eLink, obj, dstRec);
+        end;
       end;
     end;
   end;
@@ -375,7 +394,10 @@ begin
     if Assigned(le) then begin
       if settings.debugLinks then
         Tracker.Write('      Copying linked element '+le.Path);
-      de.Assign(Low(Integer), le, false);
+      if Assigned(de) then
+        de.Assign(Low(Integer), le, false)
+      else
+        dstCont.AddIfMissing(le, true, true, '', '', '');
       // follow chain
       cLink := cObj.S['lf'];
       if cLink <> '' then
@@ -594,10 +616,11 @@ begin
     // and the element being processed has been modified, copy the linked
     // element
     eLink := eObj.S['lf'];
-    firstLink := eLink;
-    bLinkProcessed := false;
-    if Result and (eLink <> '') then
+    if Result and (eLink <> '') then begin
+      firstLink := eLink;
+      bLinkProcessed := false;
       CopyLinkedElement(srcCont, dstCont, eLink, obj, dstRec);
+    end;
   end;
 end;
 
