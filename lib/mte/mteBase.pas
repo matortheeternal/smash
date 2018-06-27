@@ -287,12 +287,12 @@ var
 begin
   // get plugin
   plugin := TPluginHelpers.BasePluginByFilename(HeaderList, filename);
-  // add its masters to list
-  if Assigned(plugin) then begin
-    sl.AddStrings(plugin.masters);
-    //recursion
-    for i := 0 to Pred(plugin.masters.Count) do
-      GetPluginMasters(plugin.masters[i], sl);
+  if not Assigned(plugin) then exit;
+  // add its masters to @sl
+  for i := 0 to Pred(plugin.masters.Count) do begin
+    if sl.IndexOf(plugin.masters[i]) > -1 then continue;
+    sl.Add(plugin.masters[i]);
+    GetPluginMasters(plugin.masters[i], sl);
   end;
 end;
 
@@ -304,12 +304,12 @@ var
 begin
   // get plugin
   plugin := TPluginHelpers.BasePluginByFilename(HeaderList, filename);
+  if not Assigned(plugin) then exit;
   // add its required by to @sl
-  if Assigned(plugin) then begin
-    sl.AddStrings(plugin.requiredBy);
-    //recursion
-    for i := 0 to Pred(plugin.requiredBy.Count) do
-      GetPluginDependencies(plugin.requiredBy[i], sl);
+  for i := 0 to Pred(plugin.requiredBy.Count) do begin
+    if sl.IndexOf(plugin.requiredBy[i]) > -1 then continue;
+    sl.Add(plugin.requiredBy[i]);
+    GetPluginDependencies(plugin.requiredBy[i], sl);
   end;
 end;
 
