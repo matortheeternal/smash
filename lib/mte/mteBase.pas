@@ -283,24 +283,34 @@ class procedure THeaderHelpers.GetPluginMasters(filename: string;
   var sl: TStringList);
 var
   plugin: TBasePlugin;
+  i: integer;
 begin
   // get plugin
   plugin := TPluginHelpers.BasePluginByFilename(HeaderList, filename);
   // add its masters to list
-  if Assigned(plugin) then
+  if Assigned(plugin) then begin
     sl.AddStrings(plugin.masters);
+    //recursion
+    for i := 0 to Pred(plugin.masters.Count) do
+      GetPluginMasters(plugin.masters[i], sl);
+  end;
 end;
 
 class procedure THeaderHelpers.GetPluginDependencies(filename: string;
   var sl: TStringList);
 var
   plugin: TBasePlugin;
+  i: integer;
 begin
   // get plugin
   plugin := TPluginHelpers.BasePluginByFilename(HeaderList, filename);
   // add its required by to @sl
-  if Assigned(plugin) then
+  if Assigned(plugin) then begin
     sl.AddStrings(plugin.requiredBy);
+    //recursion
+    for i := 0 to Pred(plugin.requiredBy.Count) do
+      GetPluginDependencies(plugin.requiredBy[i], sl);
+  end;
 end;
 
 
