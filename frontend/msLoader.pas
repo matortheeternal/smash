@@ -14,6 +14,7 @@ uses
   function GamePathValid(path: string; id: integer): boolean;
   procedure SetGame(id: integer);
   function GetGameID(name: string): integer;
+  function GetLanguageFileSuffix: String;
   function GetGamePath(mode: TGameMode): string;
   procedure LoadDefinitions;
   procedure LoadBSAs;
@@ -30,7 +31,7 @@ uses
   procedure PrepareLoadOrder(var slLoadOrder, slPlugins: TStringList);
 
 var
-  slPlugins: TStringList;
+  slPlugins, slLanguageMap: TStringList;
   UpdateCallback: TCallback;
 
 implementation
@@ -93,7 +94,7 @@ begin
   LoadSettings;
   LoadLanguage;
 
-  // INITIALIZE TES5EDIT API
+  // INITIALIZE XEDIT
   wbStringEncoding := seUTF8;
   wbDisplayLoadOrderFormID := True;
   wbSortSubRecords := True;
@@ -102,12 +103,12 @@ begin
   wbHideIgnored := False;
   wbFlagsAsArray := True;
   wbRequireLoadOrder := True;
-  wbLanguage := settings.language;
+  wbLanguage := GetLanguageFileSuffix;
   wbEditAllowed := True;
   wbContainerHandler := wbCreateContainerHandler;
   wbContainerHandler._AddRef;
 
-  // INITIALIZE TES5EDIT DEFINITIONS
+  // INITIALIZE DEFINITIONS
   Logger.Write('GENERAL', 'Definitions', 'Using '+wbAppName+'Edit Definitions');
   LoadDefinitions;
 
@@ -190,6 +191,14 @@ begin
       Result := i;
       exit;
     end;
+end;
+
+{ Gets language file suffix }
+function GetLanguageFileSuffix: String;
+begin
+  Result := settings.language;
+  if (wbGameMode = gmFO4) and (slLanguageMap.IndexOfName(Result) > -1) then
+    Result := slLanguageMap.Values[Result];
 end;
 
 { Gets the path of a game from registry key or app path }
@@ -608,5 +617,22 @@ begin
   LabelFilters.Add(TFilter.Create('PLUGIN', 'Report', true));
   LabelFilters.Add(TFilter.Create('PLUGIN', 'Check', true));
 end;
+
+initialization
+  slLanguageMap := TStringList.Create;
+  slLanguageMap.Text :=
+    'English=en'#13 +
+    'French=fr'#13 +
+    'German=de'#13 +
+    'Italian=it'#13 +
+    'Spanish=es'#13 +
+    'Russian=ru'#13 +
+    'Polish=pl'#13 +
+    'Japanese=ja'#13 +
+    'Portugese=pt'#13 +
+    'Chinese=zh';
+
+finalization
+  slLanguageMap.Free;
 
 end.
