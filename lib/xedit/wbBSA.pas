@@ -322,9 +322,10 @@ var
   i: Integer;
 begin
   for i := Low(chContainers) to High(chContainers) do
-    if SameText(chContainers[i].Name, aContainerName) then begin
+    if (aContainerName = '') or SameText(chContainers[i].Name, aContainerName) then begin
       chContainers[i].ResourceList(aList, aFolder);
-      Break;
+      if aContainerName <> '' then
+        Break;
     end;
 end;
 
@@ -378,7 +379,7 @@ begin
     raise Exception.Create('Resource doesn''t exist');
 
   residx := High(res);
-  for i := High(res) to Low(res) do
+  for i := High(res) downto Low(res) do
     if (aContainerName = '') or SameText(res[i].Container.Name, aContainerName) then begin
       residx := i;
       Break;
@@ -514,7 +515,7 @@ begin
     Exit;
   Folder := ExcludeTrailingPathDelimiter(aFolder);
   for i := Low(bfFolders) to High(bfFolders) do with bfFolders[i] do
-    if (aFolder = '') or SameText(Folder, Name) then
+    if (Folder = '') or SameText(Copy(Name, 1, Length(Folder)), Folder) then
       for j := Low(Files) to High(Files) do
         aList.Add(Name + '\' + Files[j].Name);
 end;
@@ -528,7 +529,7 @@ var
 //  totalFolderNameLength : Cardinal;
   totalFileNameLength : Cardinal;
 begin
-  if bfStream.ReadSignature <> 'BSA' then
+  if IntToSignature(bfStream.ReadCardinal) <> 'BSA' then
     raise Exception.Create(bfFileName + ' is not a valid BSA file');
   bfVersion := bfStream.ReadCardinal;
   if not (bfVersion in [BSAHEADER_VERSION_OB, BSAHEADER_VERSION_SK, BSAHEADER_VERSION_SSE]) then
@@ -641,12 +642,12 @@ var
   NumChunks: Byte;
   folder: string;
 begin
-  if bfStream.ReadSignature <> 'BTDX' then
+  if IntToSignature(bfStream.ReadCardinal) <> 'BTDX' then
     raise Exception.Create(bfFileName + ' is not a valid BA2 file');
   bfVersion := bfStream.ReadCardinal;
   if bfVersion <> BA2HEADER_VERSION_FO4 then
     raise Exception.Create(bfFileName + ' has unknown version: ' + IntToStr(bfVersion) );
-  bfType := bfStream.ReadSignature;
+  bfType := IntToSignature(bfStream.ReadCardinal);
   if (bfType <> 'GNRL') and (bfType <> 'DX10') then
     raise Exception.Create(bfFileName + ' has unknown type: ' + String(bfType));
   FileCount := bfStream.ReadCardinal;
@@ -768,7 +769,8 @@ begin
   if not Assigned(aList) then
     Exit;
   for i := Low(bfFiles) to High(bfFiles) do
-    aList.Add(LowerCase(bfFiles[i].Name));
+    if (aFolder = '') or ( SameText(aFolder, Copy(bfFiles[i].Name, 1, Length(aFolder))) ) then
+      aList.Add(LowerCase(bfFiles[i].Name));
 end;
 
 
@@ -830,17 +832,17 @@ begin
                           or DDSCAPS2_CUBEMAP;
     hdr.Desc.PixelFormat.Size := SizeOf(hdr.Desc.PixelFormat);
     case TDXGIFormat(brFileRec.DXGIFormat) of
-      DXGI_FORMAT_BC1_UNORM: begin
+      DXGI_FORMAT_BC1_UNORM, DXGI_FORMAT_BC1_UNORM_SRGB: begin
         hdr.Desc.PixelFormat.Flags := DDPF_FOURCC;
         hdr.Desc.PixelFormat.FourCC := FOURCC_DXT1;
         hdr.Desc.PitchOrLinearSize := brFileRec.Width * brFileRec.Height div 4;
       end;
-      DXGI_FORMAT_BC2_UNORM: begin
+      DXGI_FORMAT_BC2_UNORM, DXGI_FORMAT_BC2_UNORM_SRGB: begin
         hdr.Desc.PixelFormat.Flags := DDPF_FOURCC;
         hdr.Desc.PixelFormat.FourCC := FOURCC_DXT3;
         hdr.Desc.PitchOrLinearSize := brFileRec.Width * brFileRec.Height;
       end;
-      DXGI_FORMAT_BC3_UNORM: begin
+      DXGI_FORMAT_BC3_UNORM, DXGI_FORMAT_BC3_UNORM_SRGB: begin
         hdr.Desc.PixelFormat.Flags := DDPF_FOURCC;
         hdr.Desc.PixelFormat.FourCC := FOURCC_DXT5;
         hdr.Desc.PitchOrLinearSize := brFileRec.Width * brFileRec.Height;
@@ -850,12 +852,12 @@ begin
         hdr.Desc.PixelFormat.FourCC := FOURCC_ATI2;
         hdr.Desc.PitchOrLinearSize := brFileRec.Width * brFileRec.Height;
       end;
-      DXGI_FORMAT_BC7_UNORM: begin
+      DXGI_FORMAT_BC7_UNORM, DXGI_FORMAT_BC7_UNORM_SRGB: begin
         hdr.Desc.PixelFormat.Flags := DDPF_FOURCC;
         hdr.Desc.PixelFormat.FourCC := FOURCC_BC7;
         hdr.Desc.PitchOrLinearSize := brFileRec.Width * brFileRec.Height;
       end;
-      DXGI_FORMAT_B8G8R8A8_UNORM: begin
+      DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: begin
         hdr.Desc.PixelFormat.Flags := DDPF_RGB;
         hdr.Desc.PixelFormat.BitCount := 32;
         hdr.Desc.PixelFormat.RedMask   := $00FF0000;

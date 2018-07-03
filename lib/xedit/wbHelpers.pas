@@ -23,17 +23,19 @@ uses
   Windows,
   SysUtils,
   Graphics,
+  Forms,
   ShellAPI,
   ShlObj,
   IniFiles,
   Registry,
+  RegularExpressionsCore,
   wbInterface,
   Imaging,
   ImagingTypes;
 
 Const
   CRCSeed = $ffffffff;
-{$IFDEF WIN64}
+//{$IFDEF WIN64}
   CRC32tab : Array[0..255] of DWord = (
       $00000000, $77073096, $ee0e612c, $990951ba, $076dc419, $706af48f,
       $e963a535, $9e6495a3, $0edb8832, $79dcb8a4, $e0d5e91e, $97d2d988,
@@ -78,7 +80,7 @@ Const
       $bdbdf21c, $cabac28a, $53b39330, $24b4a3a6, $bad03605, $cdd70693,
       $54de5729, $23d967bf, $b3667a2e, $c4614ab8, $5d681b02, $2a6f2b94,
       $b40bbe37, $c30c8ea1, $5a05df1b, $2d02ef8d  );
-{$ENDIF}
+//{$ENDIF}
 
 function wbDistance(const a, b: TwbVector): Single; overload
 function wbDistance(const a, b: IwbMainRecord): Single; overload;
@@ -88,6 +90,8 @@ function wbGetSiblingRecords(const aElement: IwbElement; aSignatures: TwbSignatu
 function FindMatchText(Strings: TStrings; const Str: string): Integer;
 function IsFileESM(const aFileName: string): Boolean;
 function IsFileESP(const aFileName: string): Boolean;
+function IsFileESL(const aFileName: string): Boolean;
+function IsFileCC(const aFileName: string): Boolean;
 procedure DeleteDirectory(const DirName: string);
 function FullPathToFilename(aString: string): string;
 procedure wbFlipBitmap(aBitmap: TBitmap; MirrorType: Integer); // MirrorType: 1 - horizontal, 2 - vertical, 0 - both
@@ -99,6 +103,7 @@ function wbDDSDataToBitmap(aData: TBytes; Bitmap: TBitmap): Boolean;
 function wbDDSStreamToBitmap(aStream: TStream; Bitmap: TBitmap): Boolean;
 function wbCRC32Data(aData: TBytes): Cardinal;
 function wbCRC32File(aFileName: string): Cardinal;
+function bscrc32(const aText: string): Cardinal; // hashing func used in Fallout 4
 function wbDecodeCRCList(const aList: string): TDynCardinalArray;
 function wbSHA1Data(aData: TBytes): string;
 function wbSHA1File(aFileName: string): string;
@@ -106,6 +111,8 @@ function wbMD5Data(aData: TBytes): string;
 function wbMD5File(aFileName: string): string;
 function wbIsAssociatedWithExtension(aExt: string): Boolean;
 function wbAssociateWithExtension(aExt, aName, aDescr: string): Boolean;
+function ExecuteCaptureConsoleOutput(const aCommandLine: string): Cardinal;
+
 
 type
   PnxLeveledListCheckCircularStack = ^TnxLeveledListCheckCircularStack;
@@ -138,7 +145,7 @@ function wbExtractNameFromPath(aPathName: String): String;
 
 function wbCounterAfterSet(aCounterName: String; const aElement: IwbElement): Boolean;
 function wbCounterByPathAfterSet(aCounterName: String; const aElement: IwbElement): Boolean;
-function wbCounterContainerAfterSet(aCounterName: String; anArrayName: String; const aElement: IwbElement; DeleteOnEmpty: Boolean = True): Boolean;
+function wbCounterContainerAfterSet(aCounterName: String; anArrayName: String; const aElement: IwbElement): Boolean;
 function wbCounterContainerByPathAfterSet(aCounterName: String; anArrayName: String; const aElement: IwbElement): Boolean;
 function wbFormVerDecider(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement; aMinimum: Integer): Integer;
 function wbFormVer78Decider(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
@@ -152,6 +159,7 @@ function HasBSAs(ModName, DataPath: String; Exact, modini: Boolean; var bsaNames
 implementation
 
 uses
+  StrUtils,
   wbSort;
 
 procedure wbLeveledListCheckCircular(const aMainRecord: IwbMainRecord; aStack: PnxLeveledListCheckCircularStack);
@@ -159,11 +167,12 @@ var
   Stack    : TnxLeveledListCheckCircularStack;
   s          : string;
   CER        : IwbContainerElementRef;
-  LLE        : IwbContainerElementRef;
+  Entries    : IwbContainerElementRef;
+  Entry      : IwbContainerElementRef;
   i          : Integer;
-  LVLO       : IwbContainerElementRef;
-  Reference  : IwbContainerElementRef;
+  Reference  : IwbElement;
   MainRecord : IwbMainRecord;
+  RefPath    : string;
 begin
   Stack.rllcLast := aStack;
   Stack.rllcMainRecord := aMainRecord;
@@ -189,11 +198,16 @@ begin
     Exit;
   aMainRecord.Tag;
 
+  if wbGameMode = gmTES4 then
+    RefPath := 'Reference'
+  else
+    RefPath := 'LVLO\Reference';
+
   if Supports(aMainRecord, IwbContainerElementRef, CER) then begin
-    if Supports(CER.ElementByName['Leveled List Entries'], IwbContainerElementRef, LLE) then begin
-      for i := 0 to Pred(LLE.ElementCount) do
-        if Supports(LLE.Elements[i], IwbContainerElementRef, LVLO) then begin
-          if Supports(LVLO.ElementByName['Reference'], IwbContainerElementRef, Reference) then begin
+    if Supports(CER.ElementByName['Leveled List Entries'], IwbContainerElementRef, Entries) then begin
+      for i := 0 to Pred(Entries.ElementCount) do
+        if Supports(Entries.Elements[i], IwbContainerElementRef, Entry) then begin
+          if Supports(Entry.ElementByPath[RefPath], IwbElement, Reference) then begin
             if Supports(Reference.LinksTo, IwbMainRecord, MainRecord) then begin
               if (MainRecord.Signature = aMainRecord.Signature) then begin
                 MainRecord := MainRecord.WinningOverride;
@@ -412,6 +426,31 @@ const
 begin
   Result := SameText(ExtractFileExt(aFileName), '.esp') or
     SameText(Copy(aFileName, Length(aFileName) - Length(ghostesp) + 1, Length(ghostesp)), ghostesp)
+end;
+
+function IsFileESL(const aFileName: string): Boolean;
+const
+  ghostesl = '.esl.ghost';
+begin
+  Result := SameText(ExtractFileExt(aFileName), '.esl') or
+    SameText(Copy(aFileName, Length(aFileName) - Length(ghostesl) + 1, Length(ghostesl)), ghostesl)
+end;
+
+function IsFileCC(const aFileName: string): Boolean;
+const
+  ccFileMask = 'cc([a-z]{3})(sse|fo4)(\d{3})\-(\S+)\.(esp|esm|esl)';
+begin
+  if Length(wbCreationClubContent) <> 0 then
+    Result := MatchText(aFileName, wbCreationClubContent)
+  else
+  with TPerlRegEx.Create do try
+    Subject := aFileName;
+    RegEx := ccFileMask;
+    Options := [preCaseLess, preSingleLine];
+    Result := MatchAgain;
+  finally
+    Free;
+  end;
 end;
 
 procedure DeleteDirectory(const DirName: string);
@@ -741,6 +780,16 @@ begin
   end;
 end;
 
+function bscrc32(const aText: string): Cardinal;
+var
+  i: Integer;
+begin
+  Result := 0;
+  for i := 1 to Length(aText) do
+    Result := (Result shr 8) xor CRC32tab[(Result xor Byte(AnsiChar(aText[i]))) and $FF];
+end;
+
+
 function CryptAcquireContext(var phProv: DWORD;
   pszContainer, pszProvider: LPCSTR; dwProvType, dwFlags: DWORD): BOOL;
   stdcall; external advapi32 name 'CryptAcquireContextA';
@@ -886,7 +935,7 @@ end;
 function wbExtractNameFromPath(aPathName: String): String;
 begin
   Result := aPathName;
-  while Pos('\', Result)>0 do
+  while Pos('\', Result) > 0 do
     Delete(Result, 1, Pos('\', Result))
 end;
 
@@ -898,14 +947,19 @@ var
 begin
   Result := False;
   if wbBeginInternalEdit then try
-    if (Length(aCounterName)>=4) and Supports(aElement.Container, IwbContainer, Container) and
-       Supports(aElement, IwbContainer, SelfAsContainer) then begin
+    if (Length(aCounterName) >= 4) and Supports(aElement.Container, IwbContainer, Container) and
+      Supports(aElement, IwbContainer, SelfAsContainer) then begin
       Element := Container.ElementByName[aCounterName];
       if not Assigned(Element) then  // Signatures not listed in mrDef cannot be added
         Element := Container.Add(Copy(aCounterName, 1, 4));
       if Assigned(Element) and (SameText(Element.Name, aCounterName)) then try
-        if (Element.GetNativeValue<>SelfAsContainer.GetElementCount) then
-          Element.SetNativeValue(SelfAsContainer.GetElementCount);
+        if Element.GetNativeValue <> SelfAsContainer.GetElementCount then
+          // if count = 0 and counter element is not required, then just remove it
+          if (SelfAsContainer.GetElementCount = 0) and not Element.Def.Required then
+            Element.Remove
+          else
+            Element.SetNativeValue(SelfAsContainer.GetElementCount);
+
         Result := True;
       except
         // No exception if the value cannot be set, expected non value
@@ -924,14 +978,19 @@ var
 begin
   Result := False;
   if wbBeginInternalEdit then try
-    if (Length(aCounterName)>=4) and Supports(aElement.Container, IwbContainer, Container) and
-       Supports(aElement, IwbContainer, SelfAsContainer) then begin
+    if (Length(aCounterName) >= 4) and Supports(aElement.Container, IwbContainer, Container) and
+      Supports(aElement, IwbContainer, SelfAsContainer) then begin
       Element := Container.ElementByPath[aCounterName];
 //      if not Assigned(Element) then  // Signatures not listed in mrDef cannot be added
 //        Element := Container.Add(Copy(aCounterName, 1, 4));
       if Assigned(Element) and (SameText(Element.Name, wbExtractNameFromPath(aCounterName))) then try
-        if (Element.GetNativeValue<>SelfAsContainer.GetElementCount) then
-          Element.SetNativeValue(SelfAsContainer.GetElementCount);
+        if Element.GetNativeValue <> SelfAsContainer.GetElementCount then
+          // if count = 0 and counter element is not required, then just remove it
+          if (SelfAsContainer.GetElementCount = 0) and not Element.Def.Required then
+            Element.Remove
+          else
+            Element.SetNativeValue(SelfAsContainer.GetElementCount);
+
         Result := True;
       except
         // No exception if the value cannot be set, expected non value
@@ -942,26 +1001,30 @@ begin
   end;
 end;
 
-function wbCounterContainerAfterSet(aCounterName: String; anArrayName: String; const aElement: IwbElement; DeleteOnEmpty: Boolean = True): Boolean;
+function wbCounterContainerAfterSet(aCounterName: String; anArrayName: String; const aElement: IwbElement): Boolean;
 var
   Element         : IwbElement;
   Elems           : IwbElement;
   Container       : IwbContainer;
 begin
-  Result := False;  // You may need to check alterative counter name
+  Result := False;  // You may need to check alternative counter name
   if wbBeginInternalEdit then try
-    if Supports(aElement, IwbContainer, Container) then begin
-      Element := Container.ElementByName[aCounterName];
-      Elems   := Container.ElementByName[anArrayName];
-      if Assigned(Element) then begin
-        if not Assigned(Elems) then
-           if DeleteOnEmpty then
-            Container.RemoveElement(aCounterName)
-          else if Element.GetNativeValue <> 0 then
-            Element.SetNativeValue(0);
-        Result := True; // Counter member exists
-      end;
-    end;
+    if not Supports(aElement, IwbContainer, Container) then
+      Exit;
+
+    Element := Container.ElementByName[aCounterName];
+    if not Assigned(Element) then
+      Exit;
+
+    Elems   := Container.ElementByName[anArrayName];
+    if not Assigned(Elems) then
+      if Element.GetNativeValue <> 0 then
+        Element.SetNativeValue(0)
+      // if count = 0 and counter element is not required, then just remove it
+      else if not Element.Def.Required then
+        Container.RemoveElement(aCounterName);
+
+    Result := True; // Counter member exists
   finally
     wbEndInternalEdit;
   end;
@@ -1022,15 +1085,21 @@ begin
     // TMemIniFile reads from string list directly, not supported by MO
     with TIniFile.Create(iniName) do try
       with TStringList.Create do try
-        if wbGameMode in [gmTES4, gmFO3, gmFNV] then
-          Text := StringReplace(ReadString('Archive', 'sArchiveList', ''), ',' ,#10, [rfReplaceAll])
-        else if wbGameMode in [ gmTES5, gmSSE ] then
+        if wbGameMode in [gmTES4, gmFO3, gmFNV] then begin
+          s := StringReplace(ReadString('Archive', 'sArchiveList', ''), ',' ,#10, [rfReplaceAll]);
+          // Update.bsa is hardcoded to load in FNV
+          if wbGameMode = gmFNV then begin
+            if s <> '' then s := s + #10;
+            s := s + 'Update.bsa';
+          end;
+          Text := s;
+        end else if wbIsSkyrim then
           Text := StringReplace(
             ReadString('Archive', 'sResourceArchiveList', '') + ',' +
             ReadString('Archive', 'sResourceArchiveList2', ''),
             ',', #10, [rfReplaceAll]
           )
-        else if wbGameMode = gmFO4 then
+        else if wbIsFallout4 then
           Text := StringReplace(
             ReadString('Archive', 'sResourceIndexFileList', '') + ',' +
             ReadString('Archive', 'sResourceStartUpArchiveList', '') + ',' +
@@ -1217,6 +1286,87 @@ function wbFormVer78Decider(aBasePtr: Pointer; aEndPtr: Pointer; const aElement:
 begin
   Result := wbFormVerDecider(aBasePtr, aEndPtr, aElement, 78);
 end;
+
+function ExecuteCaptureConsoleOutput(const aCommandLine: string): Cardinal;
+type
+  OemString = type AnsiString(CP_OEMCP);
+const
+  CReadBuffer = 4096;
+var
+  saSecurity: TSecurityAttributes;
+  hRead: THandle;
+  hWrite: THandle;
+  suiStartup: TStartupInfo;
+  piProcess: TProcessInformation;
+  pBuffer: array [0..CReadBuffer] of AnsiChar;
+  dBuffer: array [0..CReadBuffer] of Char;
+  pCmdLine: array [0..MAX_PATH] of Char;
+  dRead, dRunning, dw: DWord;
+  s: string;
+begin
+  saSecurity.nLength := SizeOf(TSecurityAttributes);
+  saSecurity.bInheritHandle := True;
+  saSecurity.lpSecurityDescriptor := nil;
+
+  if CreatePipe(hRead, hWrite, @saSecurity, 0) then begin
+    try
+      FillChar(suiStartup, SizeOf(TStartupInfo), #0);
+      suiStartup.cb := SizeOf(TStartupInfo);
+      suiStartup.hStdInput := hRead;
+      suiStartup.hStdOutput := hWrite;
+      suiStartup.hStdError := hWrite;
+      suiStartup.dwFlags := STARTF_USESTDHANDLES or STARTF_USESHOWWINDOW;
+      suiStartup.wShowWindow := SW_HIDE;
+
+      StrPCopy(pCmdLine, aCommandLine);
+      if CreateProcess(nil, pCmdLine, @saSecurity, @saSecurity, True, NORMAL_PRIORITY_CLASS, nil, nil, suiStartup, piProcess) then begin
+        try
+          repeat
+            dRunning := WaitForSingleObject(piProcess.hProcess, 100);
+            Application.ProcessMessages;
+
+            if wbForceTerminate or (GetKeyState(VK_ESCAPE) and 128 = 128) then begin
+              dw := Integer(TerminateProcess(piProcess.hProcess, 1));
+              if dw <> 0 then begin
+                dw := WaitForSingleObject(piProcess.hProcess, 1000);
+                if dw = WAIT_FAILED then
+                  Result := GetLastError;
+              end else
+                Result := GetLastError;
+
+              wbProgressCallback('Interrupted by user!');
+              Exit;
+            end;
+
+            if PeekNamedPipe(hRead, nil, 0, nil, @dRead, nil) then begin
+              if dRead > 0 then repeat
+                dRead := 0;
+                ReadFile(hRead, pBuffer[0], CReadBuffer, dRead, nil);
+                pBuffer[dRead] := #0;
+                OemToChar(pBuffer, dBuffer);
+                s := Trim(string(Oemstring(pBuffer)));
+                if s <> '' then
+                  wbProgressCallback(s);
+              until dRead < CReadBuffer;
+            end;
+          until dRunning <> WAIT_TIMEOUT;
+          GetExitCodeProcess(piProcess.hProcess, Result);
+        finally
+          CloseHandle(piProcess.hProcess);
+          CloseHandle(piProcess.hThread);
+        end;
+      end else
+        RaiseLastOSError;
+
+    finally
+      CloseHandle(hRead);
+      CloseHandle(hWrite);
+    end;
+  end else
+    RaiseLastOSError;
+end;
+
+
 
 initialization
   CRCInit;

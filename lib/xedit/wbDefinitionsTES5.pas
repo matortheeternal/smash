@@ -50,11 +50,13 @@ var
 	wbFunctionsEnum: IwbEnumDef;
 	wbFurnitureAnimTypeEnum: IwbEnumDef;
 	wbLocationEnum: IwbEnumDef;
+	wbMapMarkerEnum: IwbEnumDef;
 	wbMiscStatEnum: IwbEnumDef;
 	wbMusicEnum: IwbEnumDef;
 	wbObjectTypeEnum: IwbEnumDef;
 	wbPropTypeEnum: IwbEnumDef;
 	wbQuadrantEnum: IwbEnumDef;
+	wbQuestTypeEnum: IwbEnumDef;
 	wbSexEnum: IwbEnumDef;
 	wbSkillEnum: IwbEnumDef;
 	wbSoulGemEnum: IwbEnumDef;
@@ -76,6 +78,7 @@ uses
   SysUtils,
   Math,
   Variants,
+  IOUtils,
   wbHelpers;
 
 const
@@ -735,7 +738,6 @@ var
   wbCTDAs: IwbSubRecordArrayDef;
   wbCTDAsReq: IwbSubRecordArrayDef;
   wbCTDAsCount: IwbSubRecordArrayDef;
-  wbCTDAsReqCount: IwbSubRecordArrayDef;
   wbXLOD: IwbSubRecordDef;
   wbXESP: IwbSubRecordDef;
   wbICON: IwbSubRecordStructDef;
@@ -780,6 +782,7 @@ var
   wbCNAM: IwbSubRecordDef;
   wbCNAMReq: IwbSubRecordDef;
   wbCITC: IwbSubRecordDef;
+  wbCITCReq: IwbSubRecordDef;
   wbMGEFData: IwbSubRecordStructDef;
   wbMGEFType: IwbIntegerDef;
   wbMDOB: IwbSubRecordDef;
@@ -820,7 +823,7 @@ var
 
 function IsSSE: Boolean; inline; overload;
 begin
-  Result := wbGameMode = gmSSE;
+  Result := wbGameMode in [gmSSE, gmTES5VR];
 end;
 
 function IsSSE(const aDef1, aDef2: String): String; inline; overload;
@@ -2102,7 +2105,7 @@ begin
     ArchType := Element.NativeValue
   else if Supports(Container, IwbDataContainer, DataContainer) and
           DataContainer.IsValidOffset(aBasePtr, aEndPtr, OffsetArchtype) then begin // we are part a proper structure
-      aBasePtr := Pointer(Cardinal(aBasePtr) + OffsetArchtype);
+      aBasePtr := PByte(aBasePtr) + OffsetArchtype;
       ArchType := PCardinal(aBasePtr)^;
     end;
 
@@ -2381,19 +2384,6 @@ begin
     end;
 end;
 
-function wbSPGDFormatDecider(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
-var
-  MainRecord: IwbMainRecord;
-begin
-  Result := 0;
-  if not Assigned(aElement) then
-    Exit;
-  if not Supports(aElement.Container, IwbMainRecord, MainRecord) then
-    Exit;
-  if MainRecord.Version < 44 then
-    Result := 1;
-end;
-
 
 {>>> For VMAD <<<}
 function wbScriptObjFormatDecider(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
@@ -2599,6 +2589,11 @@ begin
   if i and $00000004 <> 0 then Result := 1;
 end;
 
+function wbDeciderFormVersion44(aBasePtr: Pointer; aEndPtr: Pointer; const aElement: IwbElement): Integer;
+begin
+  Result := wbFormVerDecider(aBasePtr, aEndPtr, aElement, 44);
+end;
+
 
 type
   TCTDAFunctionParamType = (
@@ -2670,7 +2665,7 @@ type
 
 const
   {>> N means New, V means verified that the name has not changed <<<}
-  wbCTDAFunctions : array[0..399] of TCTDAFunction = (
+  wbCTDAFunctions : array[0..401] of TCTDAFunction = (
 {N} (Index:   0; Name: 'GetWantBlocking'),
 {V} (Index:   1; Name: 'GetDistance'; ParamType1: ptObjectReference),
 {V} (Index:   5; Name: 'GetLocked'),
@@ -3066,6 +3061,8 @@ const
 {N} (Index: 731; Name: 'CanFlyHere'),
 {N} (Index: 732; Name: 'IsFlyingMountPatrolQueud'),
 {N} (Index: 733; Name: 'IsFlyingMountFastTravelling'),
+{N} (Index: 734; Name: 'IsOverEncumbered'),
+{N} (Index: 735; Name: 'GetActorWarmth'),
 
     // Added by SKSE
     (Index: 1024; Name: 'GetSKSEVersion'; ),
@@ -4532,6 +4529,7 @@ begin
   wbNull := wbByteArray('Unused', -255);
   wbLLCT := wbInteger(LLCT, 'Count', itU8, nil, cpBenign);
   wbCITC := wbInteger(CITC, 'Condition Count', itU32, nil, cpBenign);
+  wbCITCReq := wbInteger( CITC, 'Condition Count', itU32, nil, cpBenign, True);
   wbLVLD := wbInteger(LVLD, 'Chance None', itU8, nil, cpNormal, True);
 
   wbSPCT := wbInteger(SPCT, 'Count', itU32, nil, cpBenign);
@@ -5523,7 +5521,7 @@ begin
     ]),
   -1);
 
-  wbDEST := wbRStruct('Destructable', [
+  wbDEST := wbRStruct('Destructible', [
     wbStruct(DEST, 'Header', [
       wbInteger('Health', itS32),
       wbInteger('DEST Count', itU8),
@@ -5557,7 +5555,7 @@ begin
     )
   ], [], cpNormal, False, nil);
 
-  wbDESTActor := wbRStruct('Destructable', [
+  wbDESTActor := wbRStruct('Destructible', [
     wbStruct(DEST, 'Header', [
       wbInteger('Health', itS32),
       wbInteger('Count', itU8),
@@ -6561,7 +6559,6 @@ begin
   wbCTDAs := wbRArray('Conditions', wbCTDA, cpNormal, False);
   wbCTDAsCount := wbRArray('Conditions', wbCTDA, cpNormal, False, nil, wbCTDAsAfterSet);
   wbCTDAsReq := wbRArray('Conditions', wbCTDA, cpNormal, True);
-  wbCTDAsReqCount := wbRArray('Conditions', wbCTDA, cpNormal, True, nil, wbCTDAsAfterSet);
   wbYNAM := wbFormIDCk(YNAM, 'Sound - Pick Up', [SNDR]);
   wbZNAM := wbFormIDCk(ZNAM, 'Sound - Put Down', [SNDR]);
 
@@ -6633,16 +6630,29 @@ begin
     wbDESC,
     wbKSIZ,
     wbKWDAs,
-    wbStruct(DATA, 'Data', [
-      wbFormIDCk('Projectile', [PROJ, NULL]),
+    IsSSE(
+      wbStruct(DATA, 'Data', [
+        wbFormIDCk('Projectile', [PROJ, NULL]),
         wbInteger('Flags', itU32, wbFlags([
           'Ignores Normal Weapon Resistance',
           'Non-Playable',
           'Non-Bolt'
         ])),
-      wbFloat('Damage'),
-      wbInteger('Value', itU32)
-    ], cpNormal, True),
+        wbFloat('Damage'),
+        wbInteger('Value', itU32),
+        wbFloat('Weight')
+      ], cpNormal, True, nil, 4),
+      wbStruct(DATA, 'Data', [
+        wbFormIDCk('Projectile', [PROJ, NULL]),
+        wbInteger('Flags', itU32, wbFlags([
+          'Ignores Normal Weapon Resistance',
+          'Non-Playable',
+          'Non-Bolt'
+        ])),
+        wbFloat('Damage'),
+        wbInteger('Value', itU32)
+      ], cpNormal, True)
+    ),
     wbString(ONAM, 'Short Name')
   ], False, nil, cpNormal, False, wbRemoveEmptyKWDA, wbKeywordsAfterSet);
 
@@ -7054,55 +7064,23 @@ begin
 
   wbRecord(SPGD, 'Shader Particle Geometry', [
     wbEDID,
-    // FO4 SPGD format for Form Version 44
-    wbUnion(DATA, '', wbSPGDFormatDecider, [
-      wbStruct('Data', [
-        wbFloat('Gravity Velocity'),
-        wbByteArray('Unknown', 4),
-        wbFloat('Rotation Velocity'),
-        wbByteArray('Unknown', 4),
-        wbFloat('Particle Size X'),
-        wbFloat('Center Offset Min'),
-        wbFloat('Particle Size Y'),
-        wbByteArray('Unknown', 4),
-        wbFloat('Center Offset Min'),
-        wbByteArray('Unknown', 4),
-        wbFloat('Center Offset Max'),
-        wbByteArray('Unknown', 4),
-        wbFloat('Initial Rotation'),
-        wbByteArray('Unknown', 4),
-        wbInteger('# of Subtextures X', itU32),
-        wbByteArray('Unknown', 4),
-        wbInteger('# of Subtextures Y', itU32),
-        wbByteArray('Unknown', 4),
-        wbInteger('Type', itU32, wbEnum([
-          'Rain',
-          'Snow'
-        ])),
-        wbByteArray('Unknown', 4),
-        wbInteger('Box Size', itU32),
-        wbByteArray('Unknown', 4),
-        wbFloat('Particle Density'),
-        wbByteArray('Unknown', 4)
-      ], cpNormal, True),
-      wbStruct('Data', [
-        wbFloat('Gravity Velocity'),
-        wbFloat('Rotation Velocity'),
-        wbFloat('Particle Size X'),
-        wbFloat('Particle Size Y'),
-        wbFloat('Center Offset Min'),
-        wbFloat('Center Offset Max'),
-        wbFloat('Initial Rotation Range'),
-        wbInteger('# of Subtextures X', itU32),
-        wbInteger('# of Subtextures Y', itU32),
-        wbInteger('Type', itU32, wbEnum([
-          'Rain',
-          'Snow'
-        ])),
-        wbInteger('Box Size', itU32),
-        wbFloat('Particle Density')
-      ], cpNormal, True, nil, 10)
-    ]),
+    wbStruct(DATA, 'Data', [
+      wbFloat('Gravity Velocity'),
+      wbFloat('Rotation Velocity'),
+      wbFloat('Particle Size X'),
+      wbFloat('Particle Size Y'),
+      wbFloat('Center Offset Min'),
+      wbFloat('Center Offset Max'),
+      wbFloat('Initial Rotation Range'),
+      wbInteger('# of Subtextures X', itU32),
+      wbInteger('# of Subtextures Y', itU32),
+      wbInteger('Type', itU32, wbEnum([
+        'Rain',
+        'Snow'
+      ])),
+      wbInteger('Box Size', itU32),
+      wbFloat('Particle Density')
+    ], cpNormal, True, nil, 10),
     wbString(ICON, 'Particle Texture')
   ]);
 
@@ -8097,7 +8075,7 @@ begin
         {0x08} 'Inherit Radius from Spawn Spell',
         {0x10} 'Drop to Ground'
       ])),
-      wbFormIDCk('Spell', [SPEL, NULL]),
+      wbFormIDCk('Spell', [SPEL, ENCH, NULL]),
       wbFormIDCk('Light', [LIGH, NULL]),
       wbFormIDCk('Impact Data Set', [IPDS, NULL]),
       wbFormIDCk('Sound', [SNDR, NULL])
@@ -8697,11 +8675,11 @@ begin
         // 7: EPFD=lstring
         wbLString(EPF2, 'Button Label', 0, cpTranslate),
         wbStruct(EPF3, 'Script Flags', [
-          wbInteger('Script Flags', itU8, wbFlags([
+          wbInteger('Script Flags', itU16, wbFlags([
             'Run Immediately',
             'Replace Default'
           ])),
-          wbByteArray('Unknown', 3)
+          wbInteger('Fragment Index', itU16)
         ]),
         wbUnion(EPFD, 'Data', wbEPFDDecider, [
           {0} wbByteArray('Unknown'),
@@ -9110,7 +9088,99 @@ end;
 procedure DefineTES5i;
 var
   a, b, c : TVarRecs;
+  s: string;
 begin
+  // load map markes list from external file if present
+  s := ExtractFilePath(ParamStr(0)) + wbAppName + 'MapMarkers.txt';
+  if FileExists(s) then try
+    wbMapMarkerEnum := wbEnum(TFile.ReadAllLines(s));
+  except end;
+
+  if not Assigned(wbMapMarkerEnum) then
+    wbMapMarkerEnum := wbEnum([
+      { 0} 'None',
+      { 1} 'City',
+      { 2} 'Town',
+      { 3} 'Settlement',
+      { 4} 'Cave',
+      { 5} 'Camp',
+      { 6} 'Fort',
+      { 7} 'Nordic Ruins',
+      { 8} 'Dwemer Ruin',
+      { 9} 'Shipwreck',
+      {10} 'Grove',
+      {11} 'Landmark',
+      {12} 'Dragon Lair',
+      {13} 'Farm',
+      {14} 'Wood Mill',
+      {15} 'Mine',
+      {16} 'Imperial Camp',
+      {17} 'Stormcloak Camp',
+      {18} 'Doomstone',
+      {19} 'Wheat Mill',
+      {20} 'Smelter',
+      {21} 'Stable',
+      {22} 'Imperial Tower',
+      {23} 'Clearing',
+      {24} 'Pass',
+      {25} 'Altar',
+      {26} 'Rock',
+      {27} 'Lighthouse',
+      {28} 'Orc Stronghold',
+      {29} 'Giant Camp',
+      {30} 'Shack',
+      {31} 'Nordic Tower',
+      {32} 'Nordic Dwelling',
+      {33} 'Docks',
+      {34} 'Shrine',
+      {35} 'Riften Castle',
+      {36} 'Riften Capitol',
+      {37} 'Windhelm Castle',
+      {38} 'Windhelm Capitol',
+      {39} 'Whiterun Castle',
+      {40} 'Whiterun Capitol',
+      {41} 'Solitude Castle',
+      {42} 'Solitude Capitol',
+      {43} 'Markarth Castle',
+      {44} 'Markarth Capitol',
+      {45} 'Winterhold Castle',
+      {46} 'Winterhold Capitol',
+      {47} 'Morthal Castle',
+      {48} 'Morthal Capitol',
+      {49} 'Falkreath Castle',
+      {50} 'Falkreath Capitol',
+      {51} 'Dawnstar Castle',
+      {52} 'Dawnstar Capitol',
+      {53} 'DLC02 - Temple of Miraak',
+      {54} 'DLC02 - Raven Rock',
+      {55} 'DLC02 - Beast Stone',
+      {56} 'DLC02 - Tel Mithryn',
+      {57} 'DLC02 - To Skyrim',
+      {58} 'DLC02 - To Solstheim'
+    ]);
+
+  // load quest types list from external file if present
+  s := ExtractFilePath(ParamStr(0)) + wbAppName + 'QuestTypes.txt';
+  if FileExists(s) then try
+    wbQuestTypeEnum := wbEnum(TFile.ReadAllLines(s));
+  except end;
+
+  if not Assigned(wbQuestTypeEnum) then
+    wbQuestTypeEnum := wbEnum([
+      {0} 'None',
+      {1} 'Main Quest',
+      {2} 'Mages'' Guild',
+      {3} 'Thieves'' Guild',
+      {4} 'Dark Brotherhood',
+      {5} 'Companion Quests',
+      {6} 'Miscellaneous',
+      {7} 'Daedric',
+      {8} 'Side Quest',
+      {9} 'Civil War',
+     {10} 'DLC01 - Vampire',
+     {11} 'DLC02 - Dragonborn'
+    ]);
+
   wbRecord(MESG, 'Message', [
     wbEDID,
     wbDESCReq,
@@ -9129,366 +9199,411 @@ begin
   ], False, nil, cpNormal, False, wbMESGAfterLoad);
 
   a := MakeVarRecs([
-                        0, 'None',
-          Sig2Int('RADA'), 'RADA (Unused)',
-          Sig2Int('MORP'), 'MORP (Unused)',
-          Sig2Int('PPAR'), 'PPAR (Unused)',
-          Sig2Int('MYSN'), 'MYSN (Unused)',
-          Sig2Int('MYSF'), 'MYSF (Unused)',
-          Sig2Int('WWSP'), 'Werewolf Spell',
-          Sig2Int('SALT'), 'Sitting Angle Limit',
-          Sig2Int('APSH'), 'Allow Player Shout',
-          Sig2Int('GOLD'), 'Gold',
-          Sig2Int('LKPK'), 'Lockpick',
-          Sig2Int('SKLK'), 'SkeletonKey',
-          Sig2Int('PFAC'), 'Player Faction',
-          Sig2Int('GFAC'), 'Guard Faction',
-          Sig2Int('DFMS'), 'Default Music',
-          Sig2Int('BTMS'), 'Battle Music',
-          Sig2Int('DTMS'), 'Death Music',
-          Sig2Int('SCMS'), 'Success Music',
-          Sig2Int('LUMS'), 'Level Up Music',
-          Sig2Int('DCMS'), 'Dungeon Cleared Music',
-          Sig2Int('PVMA'), 'Player Voice (Male)',
-          Sig2Int('PVMC'), 'Player Voice (Male Child)',
-          Sig2Int('PVFA'), 'Player Voice (Female)',
-          Sig2Int('PVFC'), 'Player Voice (Female Child)',
-          Sig2Int('EPDF'), 'Eat Package Default Food',
-          Sig2Int('LHEQ'), 'LeftHand Equip',
-          Sig2Int('RHEQ'), 'RightHand Equip',
-          Sig2Int('EHEQ'), 'EitherHand Equip',
-          Sig2Int('VOEQ'), 'Voice Equip',
-          Sig2Int('POEQ'), 'Potion Equip',
-          Sig2Int('EACA'), 'Every Actor Ability',
-          Sig2Int('CACA'), 'Commanded Actor Ability',
-          Sig2Int('DEIS'), 'Drug Wears Off Image Space',
-          Sig2Int('DFTS'), 'Footstep Set',
-          Sig2Int('DLMT'), 'Landscape Material',
-          Sig2Int('DLZM'), 'Dragon Land Zone Marker',
-          Sig2Int('DCZM'), 'Dragon Crash Zone Marker',
-          Sig2Int('CSTY'), 'Combat Style',
-          Sig2Int('PLST'), 'Default Pack List',
-          Sig2Int('PWFD'), 'Wait-For-Dialogue Package',
-          Sig2Int('LRTB'), 'LocRefType Boss',
-          Sig2Int('VLOC'), 'Virtual Location',
-          Sig2Int('PLOC'), 'PersistAll Location',
-          Sig2Int('INVP'), 'Inventory Player',
-          Sig2Int('PTNP'), 'Pathing Test NPC',
-          Sig2Int('FPCS'), 'Favor Cost Small',
-          Sig2Int('FPCM'), 'Favor Cost Medium',
-          Sig2Int('FPCL'), 'Favor Cost Large',
-          Sig2Int('FGPD'), 'Favor Gifts Per Day',
-          Sig2Int('AASW'), 'Action Swim State Change',
-          Sig2Int('AALK'), 'Action Look',
-          Sig2Int('AALA'), 'Action LeftAttack',
-          Sig2Int('AALD'), 'Action LeftReady',
-          Sig2Int('AALR'), 'Action LeftRelease',
-          Sig2Int('AALI'), 'Action LeftInterrupt',
-          Sig2Int('AARA'), 'Action RightAttack',
-          Sig2Int('AARD'), 'Action RightReady',
-          Sig2Int('AARR'), 'Action RightRelease',
-          Sig2Int('AARI'), 'Action RightInterrupt',
-          Sig2Int('AADA'), 'Action DualAttack',
-          Sig2Int('AADL'), 'Action DualRelease',
-          Sig2Int('AAAC'), 'Action Activate',
-          Sig2Int('AAJP'), 'Action Jump',
-          Sig2Int('AAFA'), 'Action Fall',
-          Sig2Int('AALN'), 'Action Land',
-          Sig2Int('AASN'), 'Action Sneak',
-          Sig2Int('AAVC'), 'Action Voice',
-          Sig2Int('AAVD'), 'Action VoiceReady',
-          Sig2Int('AAVR'), 'Action VoiceRelease',
-          Sig2Int('AAVI'), 'Action VoiceInterrupt',
-          Sig2Int('AAID'), 'Action Idle',
-          Sig2Int('AAST'), 'Action Sprint Start',
-          Sig2Int('AASP'), 'Action Sprint Stop',
-          Sig2Int('AADR'), 'Action Draw',
-          Sig2Int('AASH'), 'Action Sheath',
-          Sig2Int('ALPA'), 'Action Left Power Attack',
-          Sig2Int('AAPA'), 'Action Right Power Attack',
-          Sig2Int('ADPA'), 'Action Dual Power Attack',
-          Sig2Int('AAS1'), 'Action Stagger Start',
-          Sig2Int('AABH'), 'Action Block Hit',
-          Sig2Int('AABA'), 'Action Block Anticipate',
-          Sig2Int('AARC'), 'Action Recoil',
-          Sig2Int('AAR2'), 'Action Large Recoil',
-          Sig2Int('AAB1'), 'Action Bleedout Start',
-          Sig2Int('AAB2'), 'Action Bleedout Stop',
-          Sig2Int('AAIS'), 'Action Idle Stop',
-          Sig2Int('AAWH'), 'Action Ward Hit',
-          Sig2Int('AAFQ'), 'Action Force Equip',
-          Sig2Int('AASC'), 'Action Shield Change',
-          Sig2Int('AAPS'), 'Action Path Start',
-          Sig2Int('AAPE'), 'Action Path End',
-          Sig2Int('AALM'), 'Action Large Movement Delta',
-          Sig2Int('AAF1'), 'Action Fly Start',
-          Sig2Int('AAF2'), 'Action Fly Stop',
-          Sig2Int('AAH1'), 'Action Hover Start',
-          Sig2Int('AAH2'), 'Action Hover Stop',
-          Sig2Int('AABI'), 'Action Bumped Into',
-          Sig2Int('AASS'), 'Action Summoned Start',
-          Sig2Int('ATKI'), 'Action Talking Idle',
-          Sig2Int('ALTI'), 'Action Listen Idle',
-          Sig2Int('AADE'), 'Action Death',
-          Sig2Int('AADW'), 'Action Death Wait',
-          Sig2Int('AIDW'), 'Action Idle Warn',
-          Sig2Int('AMST'), 'Action Move Start',
-          Sig2Int('AMSP'), 'Action Move Stop',
-          Sig2Int('ATRI'), 'Action Turn Right',
-          Sig2Int('ATLE'), 'Action Turn Left',
-          Sig2Int('ATSP'), 'Action Turn Stop',
-          Sig2Int('AMFD'), 'Action Move Forward',
-          Sig2Int('AMBK'), 'Action Move Backward',
-          Sig2Int('AMLT'), 'Action Move Left',
-          Sig2Int('AMRT'), 'Action Move Right',
-          Sig2Int('ARAG'), 'Action Reset Animation Graph',
-          Sig2Int('AKDN'), 'Action Knockdown',
-          Sig2Int('AAGU'), 'Action Get Up',
-          Sig2Int('ASID'), 'Action Idle Stop Instant',
-          Sig2Int('ARGI'), 'Action Ragdoll Instant',
-          Sig2Int('AWWS'), 'Action Waterwalk Start',
-          Sig2Int('AREL'), 'Action Reload',
-          Sig2Int('PUSG'), 'Pickup Sound Generic',
-          Sig2Int('PDSG'), 'Putdown Sound Generic',
-          Sig2Int('PUSW'), 'Pickup Sound Weapon',
-          Sig2Int('PDSW'), 'Putdown Sound Weapon',
-          Sig2Int('PUSA'), 'Pickup Sound Armor',
-          Sig2Int('PDSA'), 'Putdown Sound Armor',
-          Sig2Int('PUSB'), 'Pickup Sound Book',
-          Sig2Int('PDSB'), 'Putdown Sound Book',
-          Sig2Int('PUSI'), 'Pickup Sound Ingredient',
-          Sig2Int('PDSI'), 'Putdown Sound Ingredient',
-          Sig2Int('HVSS'), 'Harvest Sound',
-          Sig2Int('HVFS'), 'Harvest Failed Sound',
-          Sig2Int('WBSN'), 'Ward Break Sound',
-          Sig2Int('WASN'), 'Ward Absorb Sound',
-          Sig2Int('WDSN'), 'Ward Deflect Sound',
-          Sig2Int('MFSN'), 'Magic Fail Sound',
-          Sig2Int('SFSN'), 'Shout Fail Sound',
-          Sig2Int('HFSD'), 'Heartbeat Sound Fast',
-          Sig2Int('HSSD'), 'Heartbeat Sound Slow',
-          Sig2Int('IMLH'), 'Imagespace: Low Health',
-          Sig2Int('SCSD'), 'Soul Captured Sound',
-          Sig2Int('NASD'), 'No-Activation Sound',
-          Sig2Int('MMSD'), 'Map Menu Looping Sound',
-          Sig2Int('DDSC'), 'Dialogue Voice Category',
-          Sig2Int('NDSC'), 'Non-Dialogue Voice Category',
-          Sig2Int('SFDC'), 'SFX To Fade In Dialogue Category',
-          Sig2Int('PDMC'), 'Pause During Menu Category (Fade)',
-          Sig2Int('PIMC'), 'Pause During Menu Category (Immediate)',
-          Sig2Int('PDLC'), 'Pause During Loading Menu Category',
-          Sig2Int('MDSC'), 'Music Sound Category',
-          Sig2Int('SMSC'), 'Stats Mute Category',
-          Sig2Int('SSSC'), 'Stats Music',
-          Sig2Int('MTSC'), 'Master Sound Category',
-          Sig2Int('TSSC'), 'Time Sensitive Sound Category',
-          Sig2Int('DOP2'), 'Dialogue Output Model (3D)',
-          Sig2Int('DOP3'), 'Dialogue Output Model (2D)',
-          Sig2Int('POPM'), 'Player''s Output Model (1st Person)',
-          Sig2Int('P3OM'), 'Player''s Output Model (3rd Person)',
-          Sig2Int('IOPM'), 'Interface Output Model',
-          Sig2Int('RVBT'), 'Reverb Type',
-          Sig2Int('UWLS'), 'Underwater Loop Sound',
-          Sig2Int('URVT'), 'Underwater Reverb Type',
-          Sig2Int('HRSK'), 'Keyword - Horse',
-          Sig2Int('UNDK'), 'Keyword - Undead',
-          Sig2Int('NPCK'), 'Keyword - NPC',
-          Sig2Int('KWBR'), 'Keyword - BeastRace',
-          Sig2Int('KWDM'), 'Keyword - DummyObject',
-          Sig2Int('KWGE'), 'Keyword - UseGeometryEmitter',
-          Sig2Int('KWMS'), 'Keyword - MustStop',
-          Sig2Int('KWUA'), 'Keyword - UpdateDuringArchery',
-          Sig2Int('KWOT'), 'Keyword - Skip Outfit Items',
-          Sig2Int('FTHD'), 'Male Face Texture Set: Head',
-          Sig2Int('FTMO'), 'Male Face Texture Set: Mouth',
-          Sig2Int('FTEL'), 'Male Face Texture Set: Eyes',
-          Sig2Int('FTHF'), 'Female Face Texture Set: Head',
-          Sig2Int('FTMF'), 'Female Face Texture Set: Mouth',
-          Sig2Int('FTRF'), 'Female Face Texture Set: Eyes',
-          Sig2Int('IMID'), 'ImageSpaceModifier for inventory menu.',
-          Sig2Int('PTEM'), 'Package template',
-          Sig2Int('MMCL'), 'Main Menu Cell',
-          Sig2Int('DMWL'), 'Default MovementType: Walk',
-          Sig2Int('DMRN'), 'Default MovementType: Run',
-          Sig2Int('DMSW'), 'Default MovementType: Swim',
-          Sig2Int('DMFL'), 'Default MovementType: Fly',
-          Sig2Int('DMSN'), 'Default MovementType: Sneak',
-          Sig2Int('DMSP'), 'Default MovementType: Sprint',
-          Sig2Int('SPFK'), 'Keyword - Special Furniture',
-          Sig2Int('FFFP'), 'Keyword - Furniture Forces 1st Person',
-          Sig2Int('FFTP'), 'Keyword - Furniture Forces 3rd Person',
-          Sig2Int('AFNP'), 'Keyword - Activator Furniture No Player',
-          Sig2Int('TKGS'), 'Telekinesis Grab Sound',
-          Sig2Int('TKTS'), 'Telekinesis Throw Sound',
-          Sig2Int('WMWE'), 'World Map Weather',
-          Sig2Int('HMPC'), 'Help Manual PC',
-          Sig2Int('HMXB'), 'Help Manual XBox',
-          Sig2Int('TKAM'), 'Keyword - Type Ammo',
-          Sig2Int('TKAR'), 'Keyword - Type Armor',
-          Sig2Int('TKBK'), 'Keyword - Type Book',
-          Sig2Int('TKIG'), 'Keyword - Type Ingredient',
-          Sig2Int('TKKY'), 'Keyword - Type Key',
-          Sig2Int('TKMS'), 'Keyword - Type Misc',
-          Sig2Int('TKSG'), 'Keyword - Type SoulGem',
-          Sig2Int('TKWP'), 'Keyword - Type Weapon',
-          Sig2Int('TKPT'), 'Keyword - Type Potion',
-          Sig2Int('BENW'), 'Base Weapon Enchantment',
-          Sig2Int('BENA'), 'Base Armor Enchantment',
-          Sig2Int('BAPO'), 'Base Potion',
-          Sig2Int('BAPS'), 'Base Poison',
-          Sig2Int('DRAK'), 'Keyword - Dragon',
-          Sig2Int('MVBL'), 'Keyword - Movable',
-          Sig2Int('ABSE'), 'Art Object - Absorb Effect',
-          Sig2Int('WEML'), 'Weapon Material List',
-          Sig2Int('ARTL'), 'Armor Material List',
-          Sig2Int('DIEN'), 'Keyword - Disallow Enchanting',
-          Sig2Int('FTML'), 'Favor travel marker location',
-          Sig2Int('LKHO'), 'Keyword - Hold Location',
-          Sig2Int('CWOK'), 'Keyword - Civil War Owner',
-          Sig2Int('CWNE'), 'Keyword - Civil War Neutral',
-          Sig2Int('LRSO'), 'LocRefType - Civil War Soldier',
-          Sig2Int('KWDO'), 'Keyword - ClearableLocation',
-          Sig2Int('LRRD'), 'LocRefType - Resource Destructible',
-          Sig2Int('HCLL'), 'FormList - Hair Color List',
-          Sig2Int('CMPX'), 'Complex Scene Object',
-          Sig2Int('RUSG'), 'Keyword - Reusable SoulGem',
-          Sig2Int('ANML'), 'Keyword - Animal',
-          Sig2Int('DAED'), 'Keyword - Daedra'
-        ]);
+                  0, 'None',
+    Sig2Int('RADA'), 'RADA (Unused)',
+    Sig2Int('MORP'), 'MORP (Unused)',
+    Sig2Int('PPAR'), 'PPAR (Unused)',
+    Sig2Int('MYSN'), 'MYSN (Unused)',
+    Sig2Int('MYSF'), 'MYSF (Unused)',
+    Sig2Int('WWSP'), 'Werewolf Spell',
+    Sig2Int('SALT'), 'Sitting Angle Limit',
+    Sig2Int('APSH'), 'Allow Player Shout',
+    Sig2Int('GOLD'), 'Gold',
+    Sig2Int('LKPK'), 'Lockpick',
+    Sig2Int('SKLK'), 'SkeletonKey',
+    Sig2Int('PFAC'), 'Player Faction',
+    Sig2Int('GFAC'), 'Guard Faction',
+    Sig2Int('DFMS'), 'Default Music',
+    Sig2Int('BTMS'), 'Battle Music',
+    Sig2Int('DTMS'), 'Death Music',
+    Sig2Int('SCMS'), 'Success Music',
+    Sig2Int('LUMS'), 'Level Up Music',
+    Sig2Int('DCMS'), 'Dungeon Cleared Music',
+    Sig2Int('PVMA'), 'Player Voice (Male)',
+    Sig2Int('PVMC'), 'Player Voice (Male Child)',
+    Sig2Int('PVFA'), 'Player Voice (Female)',
+    Sig2Int('PVFC'), 'Player Voice (Female Child)',
+    Sig2Int('EPDF'), 'Eat Package Default Food',
+    Sig2Int('LHEQ'), 'LeftHand Equip',
+    Sig2Int('RHEQ'), 'RightHand Equip',
+    Sig2Int('EHEQ'), 'EitherHand Equip',
+    Sig2Int('VOEQ'), 'Voice Equip',
+    Sig2Int('POEQ'), 'Potion Equip',
+    Sig2Int('EACA'), 'Every Actor Ability',
+    Sig2Int('CACA'), 'Commanded Actor Ability',
+    Sig2Int('DEIS'), 'Drug Wears Off Image Space',
+    Sig2Int('DFTS'), 'Footstep Set',
+    Sig2Int('DLMT'), 'Landscape Material',
+    Sig2Int('DLZM'), 'Dragon Land Zone Marker',
+    Sig2Int('DCZM'), 'Dragon Crash Zone Marker',
+    Sig2Int('CSTY'), 'Combat Style',
+    Sig2Int('PLST'), 'Default Pack List',
+    Sig2Int('PWFD'), 'Wait-For-Dialogue Package',
+    Sig2Int('LRTB'), 'LocRefType Boss',
+    Sig2Int('VLOC'), 'Virtual Location',
+    Sig2Int('PLOC'), 'PersistAll Location',
+    Sig2Int('INVP'), 'Inventory Player',
+    Sig2Int('PTNP'), 'Pathing Test NPC',
+    Sig2Int('FPCS'), 'Favor Cost Small',
+    Sig2Int('FPCM'), 'Favor Cost Medium',
+    Sig2Int('FPCL'), 'Favor Cost Large',
+    Sig2Int('FGPD'), 'Favor Gifts Per Day',
+    Sig2Int('AASW'), 'Action Swim State Change',
+    Sig2Int('AALK'), 'Action Look',
+    Sig2Int('AALA'), 'Action LeftAttack',
+    Sig2Int('AALD'), 'Action LeftReady',
+    Sig2Int('AALR'), 'Action LeftRelease',
+    Sig2Int('AALI'), 'Action LeftInterrupt',
+    Sig2Int('AARA'), 'Action RightAttack',
+    Sig2Int('AARD'), 'Action RightReady',
+    Sig2Int('AARR'), 'Action RightRelease',
+    Sig2Int('AARI'), 'Action RightInterrupt',
+    Sig2Int('AADA'), 'Action DualAttack',
+    Sig2Int('AADL'), 'Action DualRelease',
+    Sig2Int('AAAC'), 'Action Activate',
+    Sig2Int('AAJP'), 'Action Jump',
+    Sig2Int('AAFA'), 'Action Fall',
+    Sig2Int('AALN'), 'Action Land',
+    Sig2Int('AASN'), 'Action Sneak',
+    Sig2Int('AAVC'), 'Action Voice',
+    Sig2Int('AAVD'), 'Action VoiceReady',
+    Sig2Int('AAVR'), 'Action VoiceRelease',
+    Sig2Int('AAVI'), 'Action VoiceInterrupt',
+    Sig2Int('AAID'), 'Action Idle',
+    Sig2Int('AAST'), 'Action Sprint Start',
+    Sig2Int('AASP'), 'Action Sprint Stop',
+    Sig2Int('AADR'), 'Action Draw',
+    Sig2Int('AASH'), 'Action Sheath',
+    Sig2Int('ALPA'), 'Action Left Power Attack',
+    Sig2Int('AAPA'), 'Action Right Power Attack',
+    Sig2Int('ADPA'), 'Action Dual Power Attack',
+    Sig2Int('AAS1'), 'Action Stagger Start',
+    Sig2Int('AABH'), 'Action Block Hit',
+    Sig2Int('AABA'), 'Action Block Anticipate',
+    Sig2Int('AARC'), 'Action Recoil',
+    Sig2Int('AAR2'), 'Action Large Recoil',
+    Sig2Int('AAB1'), 'Action Bleedout Start',
+    Sig2Int('AAB2'), 'Action Bleedout Stop',
+    Sig2Int('AAIS'), 'Action Idle Stop',
+    Sig2Int('AAWH'), 'Action Ward Hit',
+    Sig2Int('AAFQ'), 'Action Force Equip',
+    Sig2Int('AASC'), 'Action Shield Change',
+    Sig2Int('AAPS'), 'Action Path Start',
+    Sig2Int('AAPE'), 'Action Path End',
+    Sig2Int('AALM'), 'Action Large Movement Delta',
+    Sig2Int('AAF1'), 'Action Fly Start',
+    Sig2Int('AAF2'), 'Action Fly Stop',
+    Sig2Int('AAH1'), 'Action Hover Start',
+    Sig2Int('AAH2'), 'Action Hover Stop',
+    Sig2Int('AABI'), 'Action Bumped Into',
+    Sig2Int('AASS'), 'Action Summoned Start',
+    Sig2Int('ATKI'), 'Action Talking Idle',
+    Sig2Int('ALTI'), 'Action Listen Idle',
+    Sig2Int('AADE'), 'Action Death',
+    Sig2Int('AADW'), 'Action Death Wait',
+    Sig2Int('AIDW'), 'Action Idle Warn',
+    Sig2Int('AMST'), 'Action Move Start',
+    Sig2Int('AMSP'), 'Action Move Stop',
+    Sig2Int('ATRI'), 'Action Turn Right',
+    Sig2Int('ATLE'), 'Action Turn Left',
+    Sig2Int('ATSP'), 'Action Turn Stop',
+    Sig2Int('AMFD'), 'Action Move Forward',
+    Sig2Int('AMBK'), 'Action Move Backward',
+    Sig2Int('AMLT'), 'Action Move Left',
+    Sig2Int('AMRT'), 'Action Move Right',
+    Sig2Int('ARAG'), 'Action Reset Animation Graph',
+    Sig2Int('AKDN'), 'Action Knockdown',
+    Sig2Int('AAGU'), 'Action Get Up',
+    Sig2Int('ASID'), 'Action Idle Stop Instant',
+    Sig2Int('ARGI'), 'Action Ragdoll Instant',
+    Sig2Int('AWWS'), 'Action Waterwalk Start',
+    Sig2Int('AREL'), 'Action Reload',
+    Sig2Int('PUSG'), 'Pickup Sound Generic',
+    Sig2Int('PDSG'), 'Putdown Sound Generic',
+    Sig2Int('PUSW'), 'Pickup Sound Weapon',
+    Sig2Int('PDSW'), 'Putdown Sound Weapon',
+    Sig2Int('PUSA'), 'Pickup Sound Armor',
+    Sig2Int('PDSA'), 'Putdown Sound Armor',
+    Sig2Int('PUSB'), 'Pickup Sound Book',
+    Sig2Int('PDSB'), 'Putdown Sound Book',
+    Sig2Int('PUSI'), 'Pickup Sound Ingredient',
+    Sig2Int('PDSI'), 'Putdown Sound Ingredient',
+    Sig2Int('HVSS'), 'Harvest Sound',
+    Sig2Int('HVFS'), 'Harvest Failed Sound',
+    Sig2Int('WBSN'), 'Ward Break Sound',
+    Sig2Int('WASN'), 'Ward Absorb Sound',
+    Sig2Int('WDSN'), 'Ward Deflect Sound',
+    Sig2Int('MFSN'), 'Magic Fail Sound',
+    Sig2Int('SFSN'), 'Shout Fail Sound',
+    Sig2Int('HFSD'), 'Heartbeat Sound Fast',
+    Sig2Int('HSSD'), 'Heartbeat Sound Slow',
+    Sig2Int('IMLH'), 'Imagespace: Low Health',
+    Sig2Int('SCSD'), 'Soul Captured Sound',
+    Sig2Int('NASD'), 'No-Activation Sound',
+    Sig2Int('MMSD'), 'Map Menu Looping Sound',
+    Sig2Int('DDSC'), 'Dialogue Voice Category',
+    Sig2Int('NDSC'), 'Non-Dialogue Voice Category',
+    Sig2Int('SFDC'), 'SFX To Fade In Dialogue Category',
+    Sig2Int('PDMC'), 'Pause During Menu Category (Fade)',
+    Sig2Int('PIMC'), 'Pause During Menu Category (Immediate)',
+    Sig2Int('PDLC'), 'Pause During Loading Menu Category',
+    Sig2Int('MDSC'), 'Music Sound Category',
+    Sig2Int('SMSC'), 'Stats Mute Category',
+    Sig2Int('SSSC'), 'Stats Music',
+    Sig2Int('MTSC'), 'Master Sound Category',
+    Sig2Int('TSSC'), 'Time Sensitive Sound Category',
+    Sig2Int('DOP2'), 'Dialogue Output Model (3D)',
+    Sig2Int('DOP3'), 'Dialogue Output Model (2D)',
+    Sig2Int('POPM'), 'Player''s Output Model (1st Person)',
+    Sig2Int('P3OM'), 'Player''s Output Model (3rd Person)',
+    Sig2Int('IOPM'), 'Interface Output Model',
+    Sig2Int('RVBT'), 'Reverb Type',
+    Sig2Int('UWLS'), 'Underwater Loop Sound',
+    Sig2Int('URVT'), 'Underwater Reverb Type',
+    Sig2Int('HRSK'), 'Keyword - Horse',
+    Sig2Int('UNDK'), 'Keyword - Undead',
+    Sig2Int('NPCK'), 'Keyword - NPC',
+    Sig2Int('KWBR'), 'Keyword - BeastRace',
+    Sig2Int('KWDM'), 'Keyword - DummyObject',
+    Sig2Int('KWGE'), 'Keyword - UseGeometryEmitter',
+    Sig2Int('KWMS'), 'Keyword - MustStop',
+    Sig2Int('KWUA'), 'Keyword - UpdateDuringArchery',
+    Sig2Int('KWOT'), 'Keyword - Skip Outfit Items',
+    Sig2Int('FTHD'), 'Male Face Texture Set: Head',
+    Sig2Int('FTMO'), 'Male Face Texture Set: Mouth',
+    Sig2Int('FTEL'), 'Male Face Texture Set: Eyes',
+    Sig2Int('FTHF'), 'Female Face Texture Set: Head',
+    Sig2Int('FTMF'), 'Female Face Texture Set: Mouth',
+    Sig2Int('FTRF'), 'Female Face Texture Set: Eyes',
+    Sig2Int('IMID'), 'ImageSpaceModifier for inventory menu.',
+    Sig2Int('PTEM'), 'Package template',
+    Sig2Int('MMCL'), 'Main Menu Cell',
+    Sig2Int('DMWL'), 'Default MovementType: Walk',
+    Sig2Int('DMRN'), 'Default MovementType: Run',
+    Sig2Int('DMSW'), 'Default MovementType: Swim',
+    Sig2Int('DMFL'), 'Default MovementType: Fly',
+    Sig2Int('DMSN'), 'Default MovementType: Sneak',
+    Sig2Int('DMSP'), 'Default MovementType: Sprint',
+    Sig2Int('SPFK'), 'Keyword - Special Furniture',
+    Sig2Int('FFFP'), 'Keyword - Furniture Forces 1st Person',
+    Sig2Int('FFTP'), 'Keyword - Furniture Forces 3rd Person',
+    Sig2Int('AFNP'), 'Keyword - Activator Furniture No Player',
+    Sig2Int('TKGS'), 'Telekinesis Grab Sound',
+    Sig2Int('TKTS'), 'Telekinesis Throw Sound',
+    Sig2Int('WMWE'), 'World Map Weather',
+    Sig2Int('HMPC'), 'Help Manual PC',
+    Sig2Int('HMXB'), 'Help Manual XBox',
+    Sig2Int('TKAM'), 'Keyword - Type Ammo',
+    Sig2Int('TKAR'), 'Keyword - Type Armor',
+    Sig2Int('TKBK'), 'Keyword - Type Book',
+    Sig2Int('TKIG'), 'Keyword - Type Ingredient',
+    Sig2Int('TKKY'), 'Keyword - Type Key',
+    Sig2Int('TKMS'), 'Keyword - Type Misc',
+    Sig2Int('TKSG'), 'Keyword - Type SoulGem',
+    Sig2Int('TKWP'), 'Keyword - Type Weapon',
+    Sig2Int('TKPT'), 'Keyword - Type Potion',
+    Sig2Int('BENW'), 'Base Weapon Enchantment',
+    Sig2Int('BENA'), 'Base Armor Enchantment',
+    Sig2Int('BAPO'), 'Base Potion',
+    Sig2Int('BAPS'), 'Base Poison',
+    Sig2Int('DRAK'), 'Keyword - Dragon',
+    Sig2Int('MVBL'), 'Keyword - Movable',
+    Sig2Int('ABSE'), 'Art Object - Absorb Effect',
+    Sig2Int('WEML'), 'Weapon Material List',
+    Sig2Int('ARTL'), 'Armor Material List',
+    Sig2Int('DIEN'), 'Keyword - Disallow Enchanting',
+    Sig2Int('FTML'), 'Favor travel marker location',
+    Sig2Int('LKHO'), 'Keyword - Hold Location',
+    Sig2Int('CWOK'), 'Keyword - Civil War Owner',
+    Sig2Int('CWNE'), 'Keyword - Civil War Neutral',
+    Sig2Int('LRSO'), 'LocRefType - Civil War Soldier',
+    Sig2Int('KWDO'), 'Keyword - ClearableLocation',
+    Sig2Int('LRRD'), 'LocRefType - Resource Destructible',
+    Sig2Int('HCLL'), 'FormList - Hair Color List',
+    Sig2Int('CMPX'), 'Complex Scene Object',
+    Sig2Int('RUSG'), 'Keyword - Reusable SoulGem',
+    Sig2Int('ANML'), 'Keyword - Animal',
+    Sig2Int('DAED'), 'Keyword - Daedra'
+  ]);
 
   b := MakeVarRecs([
-          Sig2Int('BEEP'), 'Keyword - Robot',
-          Sig2Int('NRNT'), 'Keyword - Nirnroot',
-          Sig2Int('FTGF'), 'Fighters'' Guild Faction',
-          Sig2Int('MGGF'), 'Mages'' Guild Faction',
-          Sig2Int('TVGF'), 'Thieves'' Guild Faction',
-          Sig2Int('DBHF'), 'Dark Brotherhood Faction',
-          Sig2Int('JRLF'), 'Jarl Faction',
-          Sig2Int('AWWW'), 'Bunny Faction',
-          Sig2Int('PIVV'), 'Player Is Vampire Variable',
-          Sig2Int('PIWV'), 'Player Is Werewolf Variable',
-          Sig2Int('NMRD'), 'Road Marker',
-          Sig2Int('SAT1'), 'Keyword: Scale Actor To 1.0',
-          Sig2Int('VAMP'), 'Keyword: Vampire',
-          Sig2Int('FORG'), 'Keyword: Forge',
-          Sig2Int('COOK'), 'Keyword: Cooking Pot',
-          Sig2Int('SMLT'), 'Keyword: Smelter',
-          Sig2Int('TANN'), 'Keyword: Tanning Rack',
-          Sig2Int('HBLK'), 'Help - Basic Lockpicking (PC)',
-          Sig2Int('HBLX'), 'Help - Basic Lockpicking (Console)',
-          Sig2Int('HBFG'), 'Help - Basic Forging',
-          Sig2Int('HBCO'), 'Help - Basic Cooking',
-          Sig2Int('HBML'), 'Help - Basic Smelting',
-          Sig2Int('HBTA'), 'Help - Basic Tanning',
-          Sig2Int('HBOC'), 'Help - Basic Object Creation',
-          Sig2Int('HBEC'), 'Help - Basic Enchanting',
-          Sig2Int('HBSM'), 'Help - Basic Smithing Weapon',
-          Sig2Int('HBSA'), 'Help - Basic Smithing Armor',
-          Sig2Int('HBAL'), 'Help - Basic Alchemy',
-          Sig2Int('HBBR'), 'Help - Barter',
-          Sig2Int('HBLU'), 'Help - Leveling up',
-          Sig2Int('HBSK'), 'Help - Skills Menu',
-          Sig2Int('HBMM'), 'Help - Map Menu',
-          Sig2Int('HBJL'), 'Help - Journal',
-          Sig2Int('HBLH'), 'Help - Low Health',
-          Sig2Int('HBLM'), 'Help - Low Magicka',
-          Sig2Int('HBLS'), 'Help - Low Stamina',
-          Sig2Int('HBHJ'), 'Help - Jail',
-          Sig2Int('HBFT'), 'Help - Teamate Favor',
-          Sig2Int('HBWC'), 'Help - Weapon Charge',
-          Sig2Int('HBFS'), 'Help - Favorites',
-          Sig2Int('KHFL'), 'Kinect Help FormList',
-          Sig2Int('HBFM'), 'Help - Flying Mount',
-          Sig2Int('HBTL'), 'Help - Target Lock',
-          Sig2Int('HBAT'), 'Help - Attack Target',
-          Sig2Int('MHFL'), 'Help - Mods',
-          Sig2Int('LSIS'), 'Imagespace: Load screen',
-          Sig2Int('WMDA'), 'Keyword - Weapon Material Daedric',
-          Sig2Int('WMDR'), 'Keyword - Weapon Material Draugr',
-          Sig2Int('WMDH'), 'Keyword - Weapon Material DraugrHoned',
-          Sig2Int('WMDW'), 'Keyword - Weapon Material Dwarven',
-          Sig2Int('WMEB'), 'Keyword - Weapon Material Ebony',
-          Sig2Int('WMEL'), 'Keyword - Weapon Material Elven',
-          Sig2Int('WMFA'), 'Keyword - Weapon Material Falmer',
-          Sig2Int('WMFH'), 'Keyword - Weapon Material FalmerHoned',
-          Sig2Int('WMGL'), 'Keyword - Weapon Material Glass',
-          Sig2Int('WMIM'), 'Keyword - Weapon Material Imperial',
-          Sig2Int('WMIR'), 'Keyword - Weapon Material Iron',
-          Sig2Int('WMOR'), 'Keyword - Weapon Material Orcish',
-          Sig2Int('WMST'), 'Keyword - Weapon Material Steel',
-          Sig2Int('WMWO'), 'Keyword - Weapon Material Wood',
-          Sig2Int('WTBA'), 'Keyword - WeaponTypeBoundArrow',
-          Sig2Int('AODA'), 'Keyword - Armor Material Daedric',
-          Sig2Int('AODP'), 'Keyword - Armor Material Dragonplate',
-          Sig2Int('AODS'), 'Keyword - Armor Material Dragonscale',
-          Sig2Int('AODB'), 'Keyword - Armor Material Dragonbone',
-          Sig2Int('AODW'), 'Keyword - Armor Material Dwarven',
-          Sig2Int('AOEB'), 'Keyword - Armor Material Ebony',
-          Sig2Int('AOEL'), 'Keyword - Armor Material Elven',
-          Sig2Int('AOES'), 'Keyword - Armor Material ElvenSplinted',
-          Sig2Int('AOFL'), 'Keyword - Armor Material FullLeather',
-          Sig2Int('AOGL'), 'Keyword - Armor Material Glass',
-          Sig2Int('AOHI'), 'Keyword - Armor Material Hide',
-          Sig2Int('AOIM'), 'Keyword - Armor Material Imperial',
-          Sig2Int('AOIH'), 'Keyword - Armor Material ImperialHeavy',
-          Sig2Int('AOIR'), 'Keyword - Armor Material ImperialReinforced',
-          Sig2Int('AOFE'), 'Keyword - Armor Material Iron',
-          Sig2Int('AOIB'), 'Keyword - Armor Material IronBanded',
-          Sig2Int('AOOR'), 'Keyword - Armor Material Orcish',
-          Sig2Int('AOSC'), 'Keyword - Armor Material Scaled',
-          Sig2Int('AOST'), 'Keyword - Armor Material Steel',
-          Sig2Int('AOSP'), 'Keyword - Armor Material SteelPlate',
-          Sig2Int('AOSK'), 'Keyword - Armor Material Stormcloak',
-          Sig2Int('AOSD'), 'Keyword - Armor Material Studded',
-          Sig2Int('GCK1'), 'Keyword - Generic Craftable Keyword 01',
-          Sig2Int('GCK2'), 'Keyword - Generic Craftable Keyword 02',
-          Sig2Int('GCK3'), 'Keyword - Generic Craftable Keyword 03',
-          Sig2Int('GCK4'), 'Keyword - Generic Craftable Keyword 04',
-          Sig2Int('GCK5'), 'Keyword - Generic Craftable Keyword 05',
-          Sig2Int('GCK6'), 'Keyword - Generic Craftable Keyword 06',
-          Sig2Int('GCK7'), 'Keyword - Generic Craftable Keyword 07',
-          Sig2Int('GCK8'), 'Keyword - Generic Craftable Keyword 08',
-          Sig2Int('GCK9'), 'Keyword - Generic Craftable Keyword 09',
-          Sig2Int('GCKX'), 'Keyword - Generic Craftable Keyword 10',
-          Sig2Int('JWLR'), 'Keyword - Jewelry',
-          Sig2Int('KWCU'), 'Keyword - Cuirass',
-          Sig2Int('MNTK'), 'Keyword - Mount',
-          Sig2Int('LMHP'), 'Local Map Hide Plane',
-          Sig2Int('SLDM'), 'Snow LOD Material',
-          Sig2Int('SLHD'), 'Snow LOD Material (HD)',
-          Sig2Int('ALDM'), 'Ash LOD Material',
-          Sig2Int('ALHD'), 'Ash LOD Material (HD)',
-          Sig2Int('DGFL'), 'DialogueFollower Quest',
-          Sig2Int('PTFR'), 'PotentialFollower Faction',
-          Sig2Int('AVWP'), 'Werewolf Available Perks',
-          Sig2Int('AVVP'), 'Vampire Available Perks',
-          Sig2Int('RIWR'), 'Werewolf Race',
-          Sig2Int('RIVR'), 'Vampire Race',
-          Sig2Int('RIVS'), 'Vampire Spells',
-          Sig2Int('DMXL'), 'Dragon Mount No Land List',
-          Sig2Int('PCMD'), 'Player Can Mount Dragon Here List',
-          Sig2Int('FMYS'), 'Flying Mount - Allowed Spells',
-          Sig2Int('FMNS'), 'Flying Mount - Disallowed Spells',
-          Sig2Int('MNT2'), 'Keyword - Mount',
-          Sig2Int('AIVC'), 'Verlet Cape',
-          Sig2Int('FTNP'), 'Furniture Test NPC',
-          Sig2Int('COEX'), 'Keyword - Conditional Explosion',
-          Sig2Int('VFNC'), 'Vampire Feed No Crime Faction',
-          Sig2Int('KWSP'), 'Skyrim - Worldspace',
-          Sig2Int('ALBM'), 'Keyword - Armor Material Light Bonemold',
-          Sig2Int('ALCH'), 'Keyword - Armor Material Light Chitin',
-          Sig2Int('ALNC'), 'Keyword - Armor Material Light Nordic',
-          Sig2Int('ALSM'), 'Keyword - Armor Material Light Stalhrim',
-          Sig2Int('FMFF'), 'Flying Mount - Fly Fast Worldspaces',
-          Sig2Int('AHBM'), 'Keyword - Armor Material Heavy Bonemold',
-          Sig2Int('AHCH'), 'Keyword - Armor Material Heavy Chitin',
-          Sig2Int('AHNC'), 'Keyword - Armor Material Heavy Nordic',
-          Sig2Int('AHSM'), 'Keyword - Armor Material Heavy Stalhrim',
-          Sig2Int('WPNC'), 'Keyword - Weapon Material Nordic',
-          Sig2Int('WPSM'), 'Keyword - Weapon Material Stalhrim'
-        ]);
+    Sig2Int('BEEP'), 'Keyword - Robot',
+    Sig2Int('NRNT'), 'Keyword - Nirnroot',
+    Sig2Int('FTGF'), 'Fighters'' Guild Faction',
+    Sig2Int('MGGF'), 'Mages'' Guild Faction',
+    Sig2Int('TVGF'), 'Thieves'' Guild Faction',
+    Sig2Int('DBHF'), 'Dark Brotherhood Faction',
+    Sig2Int('JRLF'), 'Jarl Faction',
+    Sig2Int('AWWW'), 'Bunny Faction',
+    Sig2Int('PIVV'), 'Player Is Vampire Variable',
+    Sig2Int('PIWV'), 'Player Is Werewolf Variable',
+    Sig2Int('NMRD'), 'Road Marker',
+    Sig2Int('SAT1'), 'Keyword: Scale Actor To 1.0',
+    Sig2Int('VAMP'), 'Keyword: Vampire',
+    Sig2Int('FORG'), 'Keyword: Forge',
+    Sig2Int('COOK'), 'Keyword: Cooking Pot',
+    Sig2Int('SMLT'), 'Keyword: Smelter',
+    Sig2Int('TANN'), 'Keyword: Tanning Rack',
+    Sig2Int('HBLK'), 'Help - Basic Lockpicking (PC)',
+    Sig2Int('HBLX'), 'Help - Basic Lockpicking (Console)',
+    Sig2Int('HBFG'), 'Help - Basic Forging',
+    Sig2Int('HBCO'), 'Help - Basic Cooking',
+    Sig2Int('HBML'), 'Help - Basic Smelting',
+    Sig2Int('HBTA'), 'Help - Basic Tanning',
+    Sig2Int('HBOC'), 'Help - Basic Object Creation',
+    Sig2Int('HBEC'), 'Help - Basic Enchanting',
+    Sig2Int('HBSM'), 'Help - Basic Smithing Weapon',
+    Sig2Int('HBSA'), 'Help - Basic Smithing Armor',
+    Sig2Int('HBAL'), 'Help - Basic Alchemy',
+    Sig2Int('HBBR'), 'Help - Barter',
+    Sig2Int('HBLU'), 'Help - Leveling up',
+    Sig2Int('HBSK'), 'Help - Skills Menu',
+    Sig2Int('HBMM'), 'Help - Map Menu',
+    Sig2Int('HBJL'), 'Help - Journal',
+    Sig2Int('HBLH'), 'Help - Low Health',
+    Sig2Int('HBLM'), 'Help - Low Magicka',
+    Sig2Int('HBLS'), 'Help - Low Stamina',
+    Sig2Int('HBHJ'), 'Help - Jail',
+    Sig2Int('HBFT'), 'Help - Teamate Favor',
+    Sig2Int('HBWC'), 'Help - Weapon Charge',
+    Sig2Int('HBFS'), 'Help - Favorites',
+    Sig2Int('KHFL'), 'Kinect Help FormList',
+    Sig2Int('HBFM'), 'Help - Flying Mount',
+    Sig2Int('HBTL'), 'Help - Target Lock',
+    Sig2Int('HBAT'), 'Help - Attack Target',
+    Sig2Int('MHFL'), 'Help - Mods',
+    Sig2Int('LSIS'), 'Imagespace: Load screen',
+    Sig2Int('WMDA'), 'Keyword - Weapon Material Daedric',
+    Sig2Int('WMDR'), 'Keyword - Weapon Material Draugr',
+    Sig2Int('WMDH'), 'Keyword - Weapon Material DraugrHoned',
+    Sig2Int('WMDW'), 'Keyword - Weapon Material Dwarven',
+    Sig2Int('WMEB'), 'Keyword - Weapon Material Ebony',
+    Sig2Int('WMEL'), 'Keyword - Weapon Material Elven',
+    Sig2Int('WMFA'), 'Keyword - Weapon Material Falmer',
+    Sig2Int('WMFH'), 'Keyword - Weapon Material FalmerHoned',
+    Sig2Int('WMGL'), 'Keyword - Weapon Material Glass',
+    Sig2Int('WMIM'), 'Keyword - Weapon Material Imperial',
+    Sig2Int('WMIR'), 'Keyword - Weapon Material Iron',
+    Sig2Int('WMOR'), 'Keyword - Weapon Material Orcish',
+    Sig2Int('WMST'), 'Keyword - Weapon Material Steel',
+    Sig2Int('WMWO'), 'Keyword - Weapon Material Wood',
+    Sig2Int('WTBA'), 'Keyword - WeaponTypeBoundArrow',
+    Sig2Int('AODA'), 'Keyword - Armor Material Daedric',
+    Sig2Int('AODP'), 'Keyword - Armor Material Dragonplate',
+    Sig2Int('AODS'), 'Keyword - Armor Material Dragonscale',
+    Sig2Int('AODB'), 'Keyword - Armor Material Dragonbone',
+    Sig2Int('AODW'), 'Keyword - Armor Material Dwarven',
+    Sig2Int('AOEB'), 'Keyword - Armor Material Ebony',
+    Sig2Int('AOEL'), 'Keyword - Armor Material Elven',
+    Sig2Int('AOES'), 'Keyword - Armor Material ElvenSplinted',
+    Sig2Int('AOFL'), 'Keyword - Armor Material FullLeather',
+    Sig2Int('AOGL'), 'Keyword - Armor Material Glass',
+    Sig2Int('AOHI'), 'Keyword - Armor Material Hide',
+    Sig2Int('AOIM'), 'Keyword - Armor Material Imperial',
+    Sig2Int('AOIH'), 'Keyword - Armor Material ImperialHeavy',
+    Sig2Int('AOIR'), 'Keyword - Armor Material ImperialReinforced',
+    Sig2Int('AOFE'), 'Keyword - Armor Material Iron',
+    Sig2Int('AOIB'), 'Keyword - Armor Material IronBanded',
+    Sig2Int('AOOR'), 'Keyword - Armor Material Orcish',
+    Sig2Int('AOSC'), 'Keyword - Armor Material Scaled',
+    Sig2Int('AOST'), 'Keyword - Armor Material Steel',
+    Sig2Int('AOSP'), 'Keyword - Armor Material SteelPlate',
+    Sig2Int('AOSK'), 'Keyword - Armor Material Stormcloak',
+    Sig2Int('AOSD'), 'Keyword - Armor Material Studded',
+    Sig2Int('GCK1'), 'Keyword - Generic Craftable Keyword 01',
+    Sig2Int('GCK2'), 'Keyword - Generic Craftable Keyword 02',
+    Sig2Int('GCK3'), 'Keyword - Generic Craftable Keyword 03',
+    Sig2Int('GCK4'), 'Keyword - Generic Craftable Keyword 04',
+    Sig2Int('GCK5'), 'Keyword - Generic Craftable Keyword 05',
+    Sig2Int('GCK6'), 'Keyword - Generic Craftable Keyword 06',
+    Sig2Int('GCK7'), 'Keyword - Generic Craftable Keyword 07',
+    Sig2Int('GCK8'), 'Keyword - Generic Craftable Keyword 08',
+    Sig2Int('GCK9'), 'Keyword - Generic Craftable Keyword 09',
+    Sig2Int('GCKX'), 'Keyword - Generic Craftable Keyword 10',
+    Sig2Int('JWLR'), 'Keyword - Jewelry',
+    Sig2Int('KWCU'), 'Keyword - Cuirass',
+    Sig2Int('MNTK'), 'Keyword - Mount',
+    Sig2Int('LMHP'), 'Local Map Hide Plane',
+    Sig2Int('SLDM'), 'Snow LOD Material',
+    Sig2Int('SLHD'), 'Snow LOD Material (HD)',
+    Sig2Int('ALDM'), 'Ash LOD Material',
+    Sig2Int('ALHD'), 'Ash LOD Material (HD)',
+    Sig2Int('DGFL'), 'DialogueFollower Quest',
+    Sig2Int('PTFR'), 'PotentialFollower Faction',
+    Sig2Int('AVWP'), 'Werewolf Available Perks',
+    Sig2Int('AVVP'), 'Vampire Available Perks',
+    Sig2Int('RIWR'), 'Werewolf Race',
+    Sig2Int('RIVR'), 'Vampire Race',
+    Sig2Int('RIVS'), 'Vampire Spells',
+    Sig2Int('DMXL'), 'Dragon Mount No Land List',
+    Sig2Int('PCMD'), 'Player Can Mount Dragon Here List',
+    Sig2Int('FMYS'), 'Flying Mount - Allowed Spells',
+    Sig2Int('FMNS'), 'Flying Mount - Disallowed Spells',
+    Sig2Int('MNT2'), 'Keyword - Mount',
+    Sig2Int('AIVC'), 'Verlet Cape',
+    Sig2Int('FTNP'), 'Furniture Test NPC',
+    Sig2Int('COEX'), 'Keyword - Conditional Explosion',
+    Sig2Int('VFNC'), 'Vampire Feed No Crime Faction',
+    Sig2Int('KWSP'), 'Skyrim - Worldspace',
+    Sig2Int('ALBM'), 'Keyword - Armor Material Light Bonemold',
+    Sig2Int('ALCH'), 'Keyword - Armor Material Light Chitin',
+    Sig2Int('ALNC'), 'Keyword - Armor Material Light Nordic',
+    Sig2Int('ALSM'), 'Keyword - Armor Material Light Stalhrim',
+    Sig2Int('FMFF'), 'Flying Mount - Fly Fast Worldspaces',
+    Sig2Int('AHBM'), 'Keyword - Armor Material Heavy Bonemold',
+    Sig2Int('AHCH'), 'Keyword - Armor Material Heavy Chitin',
+    Sig2Int('AHNC'), 'Keyword - Armor Material Heavy Nordic',
+    Sig2Int('AHSM'), 'Keyword - Armor Material Heavy Stalhrim',
+    Sig2Int('WPNC'), 'Keyword - Weapon Material Nordic',
+    Sig2Int('WPSM'), 'Keyword - Weapon Material Stalhrim',
+    Sig2Int('SKAB'), 'Survival - Keyword Armor Body',
+    Sig2Int('SKAF'), 'Survival - Keyword Armor Feet',
+    Sig2Int('SKAH'), 'Survival - Keyword Armor Hands',
+    Sig2Int('SKAO'), 'Survival - Keyword Armor Head',
+    Sig2Int('SKCB'), 'Survival - Keyword Clothing Body',
+    Sig2Int('SKCD'), 'Survival - Keyword Cold',
+    Sig2Int('SKCF'), 'Survival - Keyword Clothing Feet',
+    Sig2Int('SKCH'), 'Survival - Keyword Clothing Hands',
+    Sig2Int('SKCO'), 'Survival - Keyword Clothing Head',
+    Sig2Int('SKWM'), 'Survival - Keyword Warm',
+    Sig2Int('SRCP'), 'Survival - Cold Penalty',
+    Sig2Int('SRHP'), 'Survival - Hunger Penalty',
+    Sig2Int('SRSP'), 'Survival - Sleep Penalty',
+    Sig2Int('SRTP'), 'Survival - Temperature',
+    Sig2Int('SRVE'), 'Survival Mode Enabled',
+    Sig2Int('SRVS'), 'Survival Mode - Show Option',
+    Sig2Int('SRVT'), 'Survival Mode - Toggle'
+  ]);
 
   c := CombineVarRecs(a, b);
+
+  if wbGameMode = gmTES5VR then begin
+    b := MakeVarRecs([
+      Sig2Int('FIJC'), 'FIJC',
+      Sig2Int('HMMC'), 'HMMC',
+      Sig2Int('FISC'), 'FISC',
+      Sig2Int('FASF'), 'FASF',
+      Sig2Int('HBVM'), 'HBVM',
+      Sig2Int('HSVM'), 'HSVM',
+      Sig2Int('VRPR'), 'VRPR',
+      Sig2Int('VRRR'), 'VRRR',
+      Sig2Int('CBTR'), 'CBTR',
+      Sig2Int('PSIS'), 'PSIS',
+      Sig2Int('VRWS'), 'VRWS',
+      Sig2Int('CBIT'), 'CBIT',
+      Sig2Int('FSIT'), 'FSIT',
+      Sig2Int('CBLT'), 'CBLT',
+      Sig2Int('CBST'), 'CBST',
+      Sig2Int('CBTT'), 'CBTT',
+      Sig2Int('HTLV'), 'HTLV',
+      Sig2Int('HFMV'), 'HFMV',
+      Sig2Int('HMOV'), 'HMOV',
+      Sig2Int('HATV'), 'HATV'
+    ]);
+
+    c := CombineVarRecs(c, b);
+  end;
+
 
   wbRecord(DOBJ, 'Default Object Manager', [
     wbEDID,
@@ -9571,7 +9686,7 @@ begin
     wbEDID,
     wbFormIDCk(PNAM, 'Parent ', [SMQN, SMBN, SMEN, NULL]),
     wbFormIDCk(SNAM, 'Child ', [SMQN, SMBN, SMEN, NULL]),
-    wbCITC,
+    wbCITCReq,
     wbCTDAsCount,
     wbInteger(DNAM, 'Flags', itU32, wbSMNodeFlags),
     wbUnknown(XNAM)
@@ -9581,7 +9696,7 @@ begin
     wbEDID,
     wbFormIDCk(PNAM, 'Parent ', [SMQN, SMBN, SMEN, NULL]),
     wbFormIDCk(SNAM, 'Child ', [SMQN, SMBN, SMEN, NULL]),
-    wbCITC,
+    wbCITCReq,
     wbCTDAsCount,
     wbStruct(DNAM, 'Flags', [
       wbInteger('Node Flags', itU16, wbSMNodeFlags),
@@ -9593,7 +9708,7 @@ begin
     ]),
     wbInteger(XNAM, 'Max concurrent quests', itU32),
     wbInteger(MNAM, 'Num quests to run', itU32),
-    wbInteger(QNAM, 'Quest Count', itU32, nil, cpBenign),
+    wbInteger(QNAM, 'Quest Count', itU32, nil, cpBenign, True),
     wbRArray('Quests', wbRStructSK([0], 'Quest', [
       wbFormIDCk(NNAM, 'Quest', [QUST]),
       wbUnknown(FNAM),
@@ -9605,7 +9720,7 @@ begin
     wbEDID,
     wbFormIDCk(PNAM, 'Parent ', [SMQN, SMBN, SMEN, NULL]),
     wbFormIDCk(SNAM, 'Child ', [SMQN, SMBN, SMEN, NULL]),
-    wbCITC,
+    wbCITCReq,
     wbCTDAsCount,
     wbInteger(DNAM, 'Flags', itU32, wbSMNodeFlags),
     wbUnknown(XNAM),
@@ -9703,7 +9818,7 @@ begin
         'Ally',
         'Confidant',
         'Friend',
-        'Acquaitance',
+        'Acquaintance',
         'Rival',
         'Foe',
         'Enemy',
@@ -10694,8 +10809,8 @@ begin
         wbFloat('Scale')
       ]),
       wbFormIDCk('Enchant Art', [ARTO, NULL]),
-      wbByteArray('Unknown', 4),
-      wbByteArray('Unknown', 4),
+      wbFormID('Unknown'),  // BGSReferenceEffect
+      wbFormID('Unknown'),  // BGSReferenceEffect
       wbFormIDCk('Equip Ability', [SPEL, NULL]),
       wbFormIDCk('Image Space Modifier', [IMAD, NULL]),
       wbFormIDCk('Perk to Apply', [PERK, NULL]),
@@ -11211,7 +11326,7 @@ begin
     wbRStruct('Procedure Tree', [
       wbRArray('Branches', wbRStruct('Branch', [
         wbString(ANAM, 'Branch Type'),
-        wbCITC,
+        wbCITCReq,
         wbCTDAsCount,
         wbStruct(PRCB, 'Root', [
           wbInteger('Branch Count', itU32),
@@ -11328,20 +11443,7 @@ begin
       wbInteger('Priority', itU8),
       wbInteger('Form Version', itU8, nil, cpIgnore),
       wbByteArray('Unknown', 4),
-      wbInteger('Type', itU32, wbEnum([
-        {0} 'None',
-        {1} 'Main Quest',
-        {2} 'Mages'' Guild',
-        {3} 'Thieves'' Guild',
-        {4} 'Dark Brotherhood',
-        {5} 'Companion Quests',
-        {6} 'Miscellaneous',
-        {7} 'Daedric',
-        {8} 'Side Quest',
-        {9} 'Civil War',
-       {10} 'DLC01 - Vampire',
-       {11} 'DLC02 - Dragonborn'
-      ]))
+      wbInteger('Type', itU32, wbQuestTypeEnum)
     ]),
     wbString(ENAM, 'Event', 4),
     wbRArray('Text Display Globals', wbFormIDCk(QTGL, 'Global', [GLOB])),
@@ -11390,7 +11492,7 @@ begin
         wbCTDAs
       ], []))
     ], [])),
-    wbByteArray(ANAM, 'Aliases Marker', 4),
+    wbInteger(ANAM, 'Next Alias ID', itU32),
     wbRArray('Aliases',
       wbRUnion('Alias', [
 
@@ -12411,108 +12513,7 @@ begin
       ]), cpNormal, True),
       wbFULLReq,
       wbStruct(TNAM, '', [
-        wbInteger('Type', itU8, wbEnum([], [
-          0, 'None',
-          1, 'City',
-          2, 'Town',
-          3, 'Settlement',
-          4, 'Cave',
-          5, 'Camp',
-          6, 'Fort',
-          7, 'Nordic Ruins',
-          8, 'Dwemer Ruin',
-          9, 'Shipwreck',
-          10, 'Grove',
-          11, 'Landmark',
-          12, 'Dragon Lair',
-          13, 'Farm',
-          14, 'Wood Mill',
-          15, 'Mine',
-          16, 'Imperial Camp',
-          17, 'Stormcloak Camp',
-          18, 'Doomstone',
-          19, 'Wheat Mill',
-          20, 'Smelter',
-          21, 'Stable',
-          22, 'Imperial Tower',
-          23, 'Clearing',
-          24, 'Pass',
-          25, 'Altar',
-          26, 'Rock',
-          27, 'Lighthouse',
-          28, 'Orc Stronghold',
-          29, 'Giant Camp',
-          30, 'Shack',
-          31, 'Nordic Tower',
-          32, 'Nordic Dwelling',
-          33, 'Docks',
-          34, 'Shrine',
-          35, 'Riften Castle',
-          36, 'Riften Capitol',
-          37, 'Windhelm Castle',
-          38, 'Windhelm Capitol',
-          39, 'Whiterun Castle',
-          40, 'Whiterun Capitol',
-          41, 'Solitude Castle',
-          42, 'Solitude Capitol',
-          43, 'Markarth Castle',
-          44, 'Markarth Capitol',
-          45, 'Winterhold Castle',
-          46, 'Winterhold Capitol',
-          47, 'Morthal Castle',
-          48, 'Morthal Capitol',
-          49, 'Falkreath Castle',
-          50, 'Falkreath Capitol',
-          51, 'Dawnstar Castle',
-          52, 'Dawnstar Capitol',
-          53, 'DLC02 - Temple of Miraak',
-          54, 'DLC02 - Raven Rock',
-          55, 'DLC02 - Beast Stone',
-          56, 'DLC02 - Tel Mithryn',
-          57, 'DLC02 - To Skyrim',
-          58, 'DLC02 - To Solstheim',
-          59, 'Custom 59',
-          60, 'Custom 60',
-          61, 'Custom 61',
-          62, 'Custom 62',
-          63, 'Custom 63',
-          64, 'Custom 64',
-          65, 'Custom 65',
-          66, 'Custom 66',
-          67, 'Custom 67',
-          68, 'Custom 68',
-          69, 'Custom 69',
-          70, 'Custom 70',
-          71, 'Custom 71',
-          72, 'Custom 72',
-          73, 'Custom 73',
-          74, 'Custom 74',
-          75, 'Custom 75',
-          76, 'Custom 76',
-          77, 'Custom 77',
-          78, 'Custom 78',
-          79, 'Custom 79',
-          80, 'Custom 80',
-          81, 'Custom 81',
-          82, 'Custom 82',
-          83, 'Custom 83',
-          84, 'Custom 84',
-          85, 'Custom 85',
-          86, 'Custom 86',
-          87, 'Custom 87',
-          88, 'Custom 88',
-          89, 'Custom 89',
-          90, 'Custom 90',
-          91, 'Custom 91',
-          92, 'Custom 92',
-          93, 'Custom 93',
-          94, 'Custom 94',
-          95, 'Custom 95',
-          96, 'Custom 96',
-          97, 'Custom 97',
-          98, 'Custom 98',
-          99, 'Custom 99'
-        ])),
+        wbInteger('Type', itU8, wbMapMarkerEnum),
         wbByteArray('Unused', 1)
       ], cpNormal, True)
     ], []),
@@ -12813,7 +12814,8 @@ begin
   wbRecord(TES4, 'Main File Header',
     wbFlags(wbRecordFlagsFlags, wbFlagsList([
       {0x00000001}  0, 'ESM',
-      {0x00000080}  7, 'Localized'
+      {0x00000080}  7, 'Localized',
+      {0x00000200}  9, IsSSE('ESL', '')
     ], False), True), [
     wbStruct(HEDR, 'Header', [
       wbFloat('Version'),
@@ -13659,6 +13661,14 @@ begin
     wbOfficialDLC[0] := 'Dawnguard.esm';
     wbOfficialDLC[1] := 'HearthFires.esm';
     wbOfficialDLC[2] := 'Dragonborn.esm';
+
+    if wbGameMode = gmTES5VR then begin
+      // new VR esm is loaded after DLCs
+      SetLength(wbOfficialDLC, Succ(Length(wbOfficialDLC)));
+      wbOfficialDLC[Pred(Length(wbOfficialDLC))] := 'SkyrimVR.esm';
+    end else
+      wbCreationClubContentFileName := 'Skyrim.ccc';
+
   end;
 
 end;
