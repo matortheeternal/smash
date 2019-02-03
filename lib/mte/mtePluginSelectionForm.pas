@@ -429,21 +429,27 @@ procedure TPluginSelectionForm.lvPluginsMouseMove(Sender: TObject;
 var
   pt: TPoint;
   li : TListItem;
-  hint: string;
+  hint, str: string;
   slTempMasters, slTempReq: TStringList;
+  i: Integer;
 begin
   // get list item at mouse position
-  pt := lvPlugins.ScreenToClient(Mouse.CursorPos);
-  li := lvPlugins.GetItemAt(pt.x, pt.y);
+  li := lvPlugins.GetItemAt(X, Y);
   // if mouse not over an item, exit
   if not Assigned(li) then
     exit;
 
-  // get plugin masters and display them if they're present
   slTempMasters := TStringList.Create;
   try
     GetPluginMasters(li.Caption, slTempMasters);
-    if slTempMasters.Count > 0 then
+    if slMissing.IndexOf(li.Caption) > -1 then begin
+      str := '';
+      for i := 0 to Pred(slTempMasters.Count) do
+        if slAllPlugins.IndexOf(slTempMasters[i]) = -1 then
+          str := str + slTempMasters[i] + #13#10;
+      hint := Format('Missing masters:'#13#10'%s', [str]);
+    end
+    else if slTempMasters.Count > 0 then
       hint := Format('Masters:'#13#10'%s'#13#10, [slTempMasters.Text]);
   finally
     slTempMasters.Free;
@@ -465,6 +471,7 @@ begin
   // activate hint if it differs from previously displayed hint
   if (hint <> sLastHint) then begin
     sLastHint := hint;
+    lvPlugins.ShowHint := True;
     lvPlugins.Hint := hint;
     Application.ActivateHint(Mouse.CursorPos);
   end;
