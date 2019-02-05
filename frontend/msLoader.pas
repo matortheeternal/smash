@@ -95,7 +95,6 @@ begin
   LoadLanguage;
 
   // INITIALIZE XEDIT
-  wbStringEncoding := seUTF8;
   wbDisplayLoadOrderFormID := True;
   wbSortSubRecords := True;
   wbDisplayShorterNames := True;

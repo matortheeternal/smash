@@ -80,7 +80,7 @@ const
 {$SetPEFlags IMAGE_FILE_LARGE_ADDRESS_AWARE}
 
 var
-  bProfileProvided: boolean;
+  bProfileProvided, bUseUTF8: boolean;
   sParam, sProfile, sPath: string;
   i: Integer;
   aSettings: TSettings;
@@ -96,6 +96,8 @@ begin
     sParam := ParamStr(i);
     if sParam = '-profile' then
       sProfile := ParamStr(i + 1);
+    if sParam = '-utf8' then
+      wbStringEncoding := seUTF8;
   end;
   bProfileProvided := sProfile <> '';
   sPath := Format('%sprofiles\%s\settings.ini', [ProgramPath, sProfile]);
