@@ -445,6 +445,19 @@ begin
     exit;
   end;
 
+  // exit if master element not assigned and not array
+  if not Assigned(me) then begin
+    if bCanAdd and (srcType in stArrays) then
+      me := de
+    else begin
+      if settings.debugSkips then begin
+        Tracker.Write('      Master element not found!');
+        Tracker.Write('      Skipping '+se.Path);
+      end;
+      exit;
+    end;
+  end;
+
   // debug messages
   if settings.debugTraversal then
     Tracker.Write('      '+se.Path);
@@ -557,15 +570,6 @@ begin
     se := srcCont.Elements[i];
     de := dstCont.ElementByName[se.Name];
     me := mstCont.ElementByName[se.Name];
-
-    // skip if master element not assigned
-    if not Assigned(me) then begin
-      if settings.debugSkips then begin
-        Tracker.Write('      Master element not found!');
-        Tracker.Write('      Skipping '+se.Path);
-      end;
-      continue;
-    end;
 
     // skip if destination element not assigned
     if not Assigned(de) then begin
