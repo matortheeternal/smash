@@ -1447,8 +1447,10 @@ begin
   end
   // try IwbArrayDef
   else if Supports(def, IwbArrayDef, aDef) then begin
+    if aDef.ElementCount = 0 then exit;
     obj.O['c'] := SA([]);
-    BuildChildDef(aDef.Element as IwbNamedDef, obj);
+    for i := 0 to Pred(aDef.ElementCount) do
+      AddDefIfMissing(obj, aDef.Element as IwbNamedDef, aDef.ElementLabel[i]);
   end;
 end;
 
