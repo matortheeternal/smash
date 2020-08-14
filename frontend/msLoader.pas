@@ -247,12 +247,11 @@ end;
 procedure LoadDefinitions;
 begin
   case wbGameMode of
-    gmTES5: DefineTES5;
+    gmTES5, gmTES5VR, gmSSE: DefineTES5;
     gmFNV: DefineFNV;
     gmTES4: DefineTES4;
     gmFO3: DefineFO3;
     gmFO4: DefineFO4;
-    gmSSE: DefineTES5;
   end;
 end;
 
@@ -427,8 +426,8 @@ var
   IsESM1, IsESM2: Boolean;
   FileSK1, FileSK2: Integer;
 begin
-  IsESM1 := IsFileESM(List[Index1]);
-  IsESM2 := IsFileESM(List[Index2]);
+  IsESM1 := List[Index1].EndsWith(csDotESM);
+  IsESM2 := List[Index2].EndsWith(csDotESM);
 
   if IsESM1 = IsESM2 then begin
     FileSK1 := Cardinal(List.Objects[Index1]);
@@ -460,7 +459,7 @@ begin
     // search for missing plugins and masters
     if FindFirst(wbDataPath + '*.*', faAnyFile, F) = 0 then try
       repeat
-        if not (IsFileESM(F.Name) or IsFileESP(F.Name) or IsFileESL(F.Name)) then
+        if not (wbIsPlugin(F.Name)) then
           continue;
         if sl.IndexOf(F.Name) = -1 then begin
           fileSortKey := GetPluginDate(wbDataPath + F.Name);
@@ -481,13 +480,13 @@ begin
     else
       // find position of last master
       for j := Pred(sl.Count) downto 0 do
-        if IsFileESM(sl[j]) then
+        if sl[j].EndsWith(csDotESM) then
           Break;
 
     // add esm masters after the last master, add esp plugins at the end
     Inc(j);
     for i := 0 to Pred(slNew.Count) do begin
-      if IsFileESM(slNew[i]) then begin
+      if (slNew[i].EndsWith(csDotESM)) then begin
         sl.InsertObject(j, slNew[i], slNew.Objects[i]);
         Inc(j);
       end else

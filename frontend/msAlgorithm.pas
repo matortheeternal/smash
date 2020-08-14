@@ -397,7 +397,7 @@ begin
       if Assigned(de) then
         de.Assign(Low(Integer), le, false)
       else
-        dstCont.AddIfMissing(le, true, true, '', '', '');
+        dstCont.AddIfMissing(le, true, true, '', '', '', '', false);
       // follow chain
       cLink := cObj.S['lf'];
       if cLink <> '' then

@@ -7,7 +7,9 @@ uses
   // third party libraries
   superobject,
   // mte units
-  mteBase;
+  mteBase,
+  // xEdit
+  wbInterface;
 
 type
   // SMASH CLASSES
@@ -188,7 +190,6 @@ const
   // IMPORTANT CONSTANTS
   ProgramTesters = ' ';
   ProgramTranslators = ' ';
-  xEditVersion = '3.1.1';
 
   // CHECKBOX STATES
   csUnknown = 0;
@@ -225,6 +226,7 @@ const
   FailedStatuses = [psFailed];
 
 var
+  xEditVersion: string;
   PatchesList, SmashSettings, pluginsToHandle, patchesToBuild: TList;
   ActiveMods, SavedPluginPaths: TStringList;
   ActiveModProfile, xEditLogGroup, xEditLogLabel, DictionaryFilename: string;
@@ -238,12 +240,13 @@ uses
   // mp units
   msConfiguration,
   // xEdit units
-  wbInterface, wbImplementation;
+  wbImplementation;
 
 { TPlugin Constructor }
 constructor TPlugin.Create;
 begin
   patch := ' ';
+  xEditVersion := VersionString;
   inherited;
 end;
 
@@ -443,7 +446,7 @@ begin
   FileStream := nil;
   try
     FileStream := TFileStream.Create(path, fmCreate);
-    _File.WriteToStream(FileStream, False);
+    _File.WriteToStream(FileStream, TwbResetModified.rmNo);
     if SavedPluginPaths.IndexOf(path) = -1 then
       SavedPluginPaths.Add(dataPath + filename);
   except
@@ -1534,7 +1537,7 @@ var
   i, j: Integer;
   plugin: TPlugin;
   rec: IwbMainRecord;
-  RecordDef: PwbRecordDef;
+  RecordDef: PwbMainRecordDef;
   def: TwbRecordDefEntry;
   sName, sSignature: string;
   slRecordSignatures: TStringList;

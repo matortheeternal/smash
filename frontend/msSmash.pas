@@ -306,7 +306,7 @@ begin
         else
           e := WinningOverrideInFiles(rec, patch.plugins);
         Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
-        eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'');
+        eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'', '', false);
         patchRec := eCopy as IwbMainRecord;
         if bForce then continue;
       except

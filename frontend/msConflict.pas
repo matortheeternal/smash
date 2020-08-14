@@ -153,7 +153,7 @@ begin
   end else if (aMainRecord.Signature = 'NAVI') (* or (aMainRecord.Signature = 'TES4') *) then begin
     IsNonOverride := True;
     Signature := aMainRecord.Signature;
-    FormID := aMainRecord.FormID;
+    FormID := aMainRecord.FormID.ToCardinal;
     LoadOrder := aMainRecord.GetFile.LoadOrder;
     SetLength(Result, 0);
     Master := nil;
@@ -163,7 +163,7 @@ begin
       if aFile.LoadOrder = LoadOrder then begin
         Group := aFile.GroupBySignature[Signature];
         if Assigned(Group) then begin
-          Rec := Group.MainRecordByFormID[FormID];
+          Rec := Group.MainRecordByFormID[TwbFormID.fromCardinal(FormID)];
           if Assigned(Rec) then begin
             j := Length(Result);
             SetLength(Result, j+1);
@@ -391,7 +391,7 @@ var
   i, j, k                     : Integer;
   SortedCount                 : Integer;
   NonSortedCount              : Integer;
-  SortedKeys                  : array of TnxFastStringListCS;
+  SortedKeys                  : array of TStringList;
   Sortables                   : array of IwbSortableContainer;
   SortKey                     : string;
   LastSortKey                 : string;
@@ -423,7 +423,7 @@ begin
 
     SetLength(SortedKeys, Succ(aNodeCount));
     for i := Low(SortedKeys) to High(SortedKeys) do begin
-      SortedKeys[i] := TnxFastStringListCS.Create;
+      SortedKeys[i] := TStringList.Create;
       SortedKeys[i].Sorted := True;
       SortedKeys[i].Duplicates := dupError;
     end;
@@ -638,7 +638,7 @@ var
   Element                : IwbElement;
   CompareElement         : IwbElement;
   i, j                   : Integer;
-  UniqueValues           : TnxFastStringListCS;
+  UniqueValues           : TStringList;
 
   MasterPosition         : Integer;
   FirstElement           : IwbElement;
@@ -676,7 +676,7 @@ begin
     LastElement := aNodeDatas[Pred(aNodeCount)].Element;
     FirstElement := aNodeDatas[0].Element;
 
-    UniqueValues := TnxFastStringListCS.Create;
+    UniqueValues := TStringList.Create;
     UniqueValues.Sorted := True;
     UniqueValues.Duplicates := dupIgnore;
     Priority := cpNormal;

@@ -9,7 +9,7 @@ uses
   // mte units
   mteTracker,
   // xEdit units
-  wbHelpers, wbInterface, wbImplementation;
+  wbHelpers, wbLoadOrder, wbInterface, wbImplementation;
 
 type
   TSmashType = ( stUnknown, stRecord, stString, stInteger, stFlag, stFloat,
@@ -209,7 +209,7 @@ begin
 
   // create new plugin file
   SysUtils.FormatSettings.DecimalSeparator := '.';
-  aFile := wbNewFile(wbDataPath + filename, LoadOrder);
+  aFile := wbNewFile(wbDataPath + filename, LoadOrder, false);
   aFile._AddRef;
 
   // create new plugin object
@@ -262,7 +262,10 @@ begin
 
   // load plugin headers for each plugin in @sl
   for i := 0 to Pred(sl.Count) do try
-    aFile := wbFile(wbDataPath + sl[i], -1, '', False, True);
+    wbModuleByName(sl[i]); // Hack to fix crash
+    // TODO: Figure out why above is needed (probably using API wrong)
+    //aFile := wbFile(wbDataPath + sl[i], -1, '', []);
+    aFile := wbFile(sl[i], i, '', []);
     plugin := TBasePlugin.Create;
     plugin._File := aFile;
     HeaderList.Add(plugin);
@@ -653,13 +656,13 @@ end;
 { Gets the local formID of a record (so no load order prefix) }
 function LocalFormID(aRecord: IwbMainRecord): integer;
 begin
-  Result := aRecord.LoadOrderFormID and $00FFFFFF;
+  Result := aRecord.LoadOrderFormID.ToCardinal and $00FFFFFF;
 end;
 
 { Gets the load order prefix from the FormID of a record }
 function LoadOrderPrefix(aRecord: IwbMainRecord): integer;
 begin
-  Result := aRecord.LoadOrderFormID and $FF000000;
+  Result := aRecord.LoadOrderFormID.ToCardinal and $FF000000;
 end;
 
 { Returns the number of override records in a file }
@@ -1514,7 +1517,7 @@ end;
 procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
 var
   i: Integer;
-  RecordDef: PwbRecordDef;
+  RecordDef: PwbMainRecordDef;
   item: TMenuItem;
 begin
   // populate wbGroupOrder to additem

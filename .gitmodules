@@ -1,0 +1,3 @@
+[submodule "lib/xedit"]
+	path = lib/xedit
+	url = git@github.com:TES5Edit/TES5Edit.git
