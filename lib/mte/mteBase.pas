@@ -1398,10 +1398,20 @@ var
   intDef: IwbIntegerDefFormaterUnion;
   sraDef: IwbSubRecordArrayDef;
   aDef: IwbArrayDef;
+  iDef: IwbIntegerDef;
+  fDef: IwbFlagsDef;
 begin
   // try SubRecordDef ValueDef
   if Supports(def, IwbSubRecordDef, subDef) then
     BuildChildDefs(obj, subDef.GetValue as IwbNamedDef)
+  // try IwbFlagsDef
+  // TODO: Is this nil bad?? It seems to work...
+  else if Supports(def, IwbIntegerDef, iDef) and Supports(iDef.Formater[nil], IwbFlagsDef, fDef) then begin
+    if fDef.FlagCount = 0 then exit;
+    obj.O['c'] := SA([]);
+    for i := 0 to Pred(fDef.FlagCount) do
+      BuildChildDef(fDef.FlagDef[i] as IwbNamedDef, obj);
+  end
   // try IwbRecordDef
   else if Supports(def, IwbRecordDef, recDef) then begin
     if recDef.MemberCount = 0 then exit;
