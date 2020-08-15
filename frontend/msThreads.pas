@@ -12,7 +12,7 @@ uses
   // ms units
   msCore, msConfiguration, msLoader, msSmash,
   // xedit units
-  wbBSA, wbHardcoded, wbInterface, wbImplementation;
+  wbBSA, wbHardcoded, wbInterface, wbImplementation, wbLoadOrder;
 
 
 type
@@ -66,6 +66,7 @@ var
   plugin: TPlugin;
   b: TBytes;
   aFile: IwbFile;
+  aModule: PwbModuleInfo;
 begin
   try
     // PRINT LOAD ORDER TO LOG
@@ -83,7 +84,8 @@ begin
       try
         plugin := TPlugin.Create;
         plugin.filename := slPlugins[i];
-        plugin._File := wbFile(wbDataPath + slPlugins[i], i, '');
+        //aModule := wbModuleByName(slPlugins[i]);
+        plugin._File := wbFile(slPlugins[i], i);
         plugin._File._AddRef;
         plugin.GetMsData;
         PluginsList.Add(Pointer(plugin));

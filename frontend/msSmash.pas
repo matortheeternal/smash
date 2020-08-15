@@ -90,20 +90,16 @@ begin
   Tracker.Write('Patch is using plugin: '+patch.plugin.filename);
 end;
 
-procedure AddRequiredMasters(var patch: TPatch; var lst: TList);
+procedure AddRequiredMaster(var patch: TPatch; const aFile: IwbFile);
 var
   slMasters: TStringList;
-  i: Integer;
-  plugin: TPlugin;
 begin
   slMasters := TStringList.Create;
   try
-    Tracker.Write('Adding masters...');
-    for i := 0 to Pred(lst.Count) do begin
-      plugin := TPlugin(lst[i]);
-      GetMasters(plugin._File, slMasters);
-      slMasters.AddObject(plugin.filename, patch.plugins.Objects[i]);
-    end;
+    Tracker.Write('Adding master...');
+    GetMasters(aFile, slMasters);
+    // TODO: IDK what this line is for...
+    slMasters.AddObject(aFile.FileName, TObject(aFile));
     try
       slMasters.CustomSort(LoadOrderCompare);
       AddMasters(patch.plugin._File, slMasters);
@@ -306,6 +302,7 @@ begin
         else
           e := WinningOverrideInFiles(rec, patch.plugins);
         Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
+        AddRequiredMaster(patch, e._File);
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'', '', false);
         patchRec := eCopy as IwbMainRecord;
         if bForce then continue;
@@ -334,6 +331,7 @@ begin
           mst := WinningOverrideInFiles(rec, plugin.masters);
         Tracker.Write(Format('    Smashing override from: %s, master: %s',
           [f.FileName, mst._File.FileName]));
+        AddRequiredMaster(patch, rec._File);
         rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
           recObj, false, bDeletions, bOverride);
       except
@@ -518,8 +516,8 @@ begin
     SetPatchAttributes(patch);
 
     // add masters to patch file
-    AddRequiredMasters(patch, pluginsToPatch);
-    HandleCanceled(msg);
+    //AddRequiredMasters(patch, pluginsToPatch);
+    //HandleCanceled(msg);
 
     // build list of overrides
     recordsList := TInterfaceList.Create;

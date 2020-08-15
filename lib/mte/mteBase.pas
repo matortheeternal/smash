@@ -200,12 +200,6 @@ var
   plugin: TBasePlugin;
 begin
   Result := nil;
-  LoadOrder := PluginsList.Count + 1;
-  // fail if maximum load order reached
-  if LoadOrder > 254 then begin
-    Tracker.Write('Maximum load order reached!  Can''t create file '+filename);
-    exit;
-  end;
 
   // create new plugin file
   SysUtils.FormatSettings.DecimalSeparator := '.';
@@ -262,10 +256,7 @@ begin
 
   // load plugin headers for each plugin in @sl
   for i := 0 to Pred(sl.Count) do try
-    wbModuleByName(sl[i]); // Hack to fix crash
-    // TODO: Figure out why above is needed (probably using API wrong)
-    //aFile := wbFile(wbDataPath + sl[i], -1, '', []);
-    aFile := wbFile(sl[i], i, '', []);
+    aFile := wbFile(sl[i], -1, '', [fsOnlyHeader]);
     plugin := TBasePlugin.Create;
     plugin._File := aFile;
     HeaderList.Add(plugin);
