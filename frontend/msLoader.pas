@@ -403,6 +403,25 @@ begin
   end;
 end;
 
+// Put Creation Club plugins in load order
+procedure AddCCPlugins(var slLoadOrder: TStringList);
+var
+  sPath: string;
+  slCC: TStringList;
+  i: integer;
+  index: Integer;
+begin
+  slCC := TStringList.Create;
+  sPath := CurrentProfile.GamePath + wbGameName + '.ccc';
+  if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4) then exit;
+  if FileExists(sPath) then begin
+    slCC.LoadFromFile(sPath);
+    index := 0;
+    for i := 0 to Pred(slCC.Count) do
+      FixLoadOrder(slLoadOrder, slCC[i], index);
+  end;
+end;
+
 function GetPluginDate(const aFileName: string): Cardinal;
 const
   DateOmitYears = 60;
@@ -521,6 +540,7 @@ procedure LoadPluginsList(const sLoadPath: String; var sl: TStringList; noDelete
 var
   sPath: String;
 begin
+
   sPath := sLoadPath + 'plugins.txt';
   if FileExists(sPath) then begin
     sl.LoadFromFile(sPath);
@@ -530,8 +550,9 @@ begin
   else
     AddMissingFiles(sl);
 
-  // remove comments and missing files
+  AddCCPlugins(sl);
   AddBaseMasters(sl);
+  // remove comments and missing files
   RemoveCommentsAndEmpty(sl);
   RemoveMissingFiles(sl);
   if noDelete then AddMissingFiles(sl);
