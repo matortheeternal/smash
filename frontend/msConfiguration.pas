@@ -107,7 +107,7 @@ const
   bTranslationDump = false;
 
   // GAME MODES
-  GameArray: array[1..6] of TGameMode = (
+  GameArray: array[1..7] of TGameMode = (
     ( longName: 'Skyrim'; gameName: 'Skyrim'; gameMode: gmTES5;
       regName: 'Skyrim'; appName: 'TES5'; exeName: 'TESV.exe'; appIDs: '72850';
       bsaOptMode: 'sk'; ),
@@ -125,7 +125,10 @@ const
       appIDs: '377160'; bsaOptMode: ''; ),
     ( longName: 'Skyrim Special Edition'; gameName: 'Skyrim'; gameMode: gmSSE;
       regName: 'Skyrim Special Edition'; appName: 'SSE';
-      exeName: 'SkyrimSE.exe'; appIDs: '489830'; bsaOptMode: ''; )
+      exeName: 'SkyrimSE.exe'; appIDs: '489830'; bsaOptMode: ''; ),
+    ( longName: 'Skyrim VR'; gameName: 'Skyrim'; gameMode: gmTES5VR;
+      regName: 'SkyrimVR'; appName: 'TES5VR';
+      exeName: 'SkyrimVR.exe'; appIDs: '611670'; bsaOptMode: ''; )
   );
 
 implementation

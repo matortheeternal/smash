@@ -69,7 +69,8 @@ const
               'Fallout: New Vegas'#13#10 +
               'Fallout 3'#13#10 +
               'Fallout 4'#13#10 +
-              'Skyrim: Special Edition';
+              'Skyrim: Special Edition'#13#10 +
+              'Skyrim: VR';
 begin
   // set up panel
   inherited Create(AOwner);

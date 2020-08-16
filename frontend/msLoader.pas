@@ -82,10 +82,10 @@ begin
 
   // SET GAME VARS
   SetGame(CurrentProfile.gameMode);
-  wbVWDInTemporary := wbGameMode in [gmSSE, gmTES5, gmFO3, gmFNV];
+  wbVWDInTemporary := wbGameMode in [gmSSE, gmTES5VR, gmTES5, gmFO3, gmFNV];
   wbVWDAsQuestChildren := wbGameMode = gmFO4;
   wbArchiveExtension := IfThen(wbGameMode = gmFO4, '.ba2', '.bsa');
-  wbLoadBSAs := wbGameMode in [gmFO4, gmSSE, gmTES5, gmTES4];
+  wbLoadBSAs := wbGameMode in [gmFO4, gmSSE, gmTES5VR, gmTES5, gmTES4];
   Logger.Write('GENERAL', 'Game', 'Using '+wbGameName);
   Logger.Write('GENERAL', 'Path', 'Using '+wbDataPath);
   Logger.Write('GENERAL', 'GameIni', 'Using '+wbTheGameIniFileName);
@@ -291,7 +291,7 @@ begin
         slBSAFileNames.Clear;
         slErrors.Clear;
         plugin := TPlugin(PluginsList[modIndex]);
-        bIsTES5 := wbGameMode in [gmTES5, gmSSE];
+        bIsTES5 := wbGameMode in [gmTES5, gmSSE, gmTES5VR];
 
         HasBSAs(ChangeFileExt(plugin.filename, ''), wbDataPath, bIsTES5,
           bIsTES5, slBSAFileNames, slErrors);
@@ -386,7 +386,7 @@ begin
   FixLoadOrder(sl, wbGameName + '.esm', index);
   if (wbGameMode = gmTES5) then
     FixLoadOrder(sl, 'Update.esm', index)
-  else if (wbGameMode = gmSSE) then begin
+  else if (wbGameMode = gmSSE) or (wbGameMode = gmTES5VR) then begin
     FixLoadOrder(sl, 'Update.esm', index);
     FixLoadOrder(sl, 'Dawnguard.esm', index);
     FixLoadOrder(sl, 'HearthFires.esm', index);
@@ -524,7 +524,7 @@ begin
   sPath := sLoadPath + 'plugins.txt';
   if FileExists(sPath) then begin
     sl.LoadFromFile(sPath);
-    if (wbGameMode = gmSSE) or (wbGameMode = gmFO4) then
+    if (wbGameMode = gmSSE) or (wbGameMode = gmTES5VR) or (wbGameMode = gmFO4) then
       ProcessPluginsFormat(sl, noDelete);
   end
   else
@@ -543,7 +543,7 @@ var
   sPath: String;
 begin
   sPath := sLoadPath + 'loadorder.txt';
-  if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4)
+  if (wbGameMode <> gmSSE) and (wbGameMode <> gmTES5VR) and (wbGameMode <> gmFO4)
   and FileExists(sPath) then begin
     slLoadOrder.LoadFromFile(sPath);
 
