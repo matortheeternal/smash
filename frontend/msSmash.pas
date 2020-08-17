@@ -101,6 +101,7 @@ begin
     // TODO: IDK what this line is for...
     slMasters.AddObject(aFile.FileName, TObject(aFile));
     try
+      if patch.plugin._File.MasterCount[true] >= 253 then patch.plugin._File.CleanMasters;
       slMasters.CustomSort(LoadOrderCompare);
       AddMasters(patch.plugin._File, slMasters);
       if settings.debugMasters then begin
@@ -459,10 +460,12 @@ var
 begin
   patchFile := patch.plugin._File;
 
-  // remove ITPOs
+
   try
+    // remove ITPOs
     if not settings.preserveITPOs then
       RemoveITPOs(patchFile);
+    patchFIle.CleanMasters;
   except
     on x: Exception do
       Tracker.Write('    Exception removing ITPOs: '+x.Message);
