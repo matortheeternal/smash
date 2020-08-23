@@ -200,6 +200,7 @@ var
   plugin: TBasePlugin;
 begin
   Result := nil;
+  LoadOrder := PluginsList.Count + 1;
 
   // create new plugin file
   SysUtils.FormatSettings.DecimalSeparator := '.';
@@ -1396,7 +1397,6 @@ begin
   if Supports(def, IwbSubRecordDef, subDef) then
     BuildChildDefs(obj, subDef.GetValue as IwbNamedDef)
   // try IwbFlagsDef
-  // TODO: Is this nil bad?? It seems to work...
   else if Supports(def, IwbIntegerDef, iDef) and Supports(iDef.Formater[nil], IwbFlagsDef, fDef) then begin
     if fDef.FlagCount = 0 then exit;
     obj.O['c'] := SA([]);

@@ -90,41 +90,62 @@ begin
   Tracker.Write('Patch is using plugin: '+patch.plugin.filename);
 end;
 
-procedure AddRequiredMaster(var patch: TPatch; const aFile: IwbFile);
+function CompareLoadOrder(List: TStringList; Index1, Index2: Integer): Integer;
+begin
+  if Index1 = Index2 then begin
+    Result := 0;
+    Exit;
+  end;
+
+  Result := CmpI32(
+    IwbFile(Pointer(List.Objects[Index1])).LoadOrder,
+    IwbFile(Pointer(List.Objects[Index2])).LoadOrder);
+end;
+
+procedure AddRequiredMasters(var aFile: IwbFile; const el: IwbElement);
 var
   slMasters: TStringList;
+  i, j: Integer;
 begin
   slMasters := TStringList.Create;
+  slMasters.Sorted := True;
+  slMasters.Duplicates := dupIgnore;
   try
+    // TODO: Investigate other params to this function
+    el.ReportRequiredMasters(slMasters, true, true, true);
+
     Tracker.Write('Adding master...');
-    GetMasters(aFile, slMasters);
-    // TODO: IDK what this line is for...
-    slMasters.AddObject(aFile.FileName, TObject(aFile));
-    try
-      if patch.plugin._File.MasterCount[true] >= 253 then patch.plugin._File.CleanMasters;
-      slMasters.CustomSort(LoadOrderCompare);
-      AddMasters(patch.plugin._File, slMasters);
-      if settings.debugMasters then begin
-        Tracker.Write('Masters added:');
-        Tracker.Write(slMasters.Text);
-        slMasters.Clear;
-        GetMasters(patch.plugin._File, slMasters);
-        Tracker.Write('Actual masters:');
-        Tracker.Write(slMasters.Text);
-      end;
-    except
-      on x: Exception do begin
-        Tracker.Write('Critical exception adding masters!');
-        Tracker.Write(x.Message);
-        raise x;
-      end;
+    for i := 0 to Pred(aFile.MasterCount[true]) do
+      if slMasters.Find(aFile.Masters[i, true].FileName, j) then
+        slMasters.Delete(j);
+    if slMasters.Find(aFile.FileName, j) then
+      slMasters.Delete(j);
+
+    if slMasters.Count > 0 then begin
+      for i := 0 to Pred(slMasters.Count) do
+        if IwbFile(Pointer(slMasters.Objects[i])).LoadOrder >= aFile.LoadOrder then
+          raise Exception.Create('The required master "' + slMasters[i] + '" can not be added to "' + aFile.FileName + '" as it has a higher load order');
+
+      slMasters.Sorted := False;
+      slMasters.CustomSort(CompareLoadOrder);
+
+      if aFile.MasterCount[true] + slMasters.Count >= 253 then
+        aFile.CleanMasters;
+
+      aFile.AddMasters(slMasters);
     end;
-  finally
-    slMasters.Free;
-    if Tracker.Cancel then
-      raise Exception.Create('User cancelled smashing.');
-    Tracker.Write('Done adding masters');
+
+  except
+    on x: Exception do begin
+      Tracker.Write('Critical exception adding masters!');
+      Tracker.Write(x.Message);
+      raise x;
+    end;
   end;
+  slMasters.Free;
+  if Tracker.Cancel then
+    raise Exception.Create('User cancelled smashing.');
+  Tracker.Write('Done adding masters');
 end;
 
 procedure BuildOverridesList(var patch: TPatch; var lst: TList;
@@ -303,7 +324,7 @@ begin
         else
           e := WinningOverrideInFiles(rec, patch.plugins);
         Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
-        AddRequiredMaster(patch, e._File);
+        AddRequiredMasters(patch.plugin._File, e);
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'', '', false);
         patchRec := eCopy as IwbMainRecord;
         if bForce then continue;
@@ -332,7 +353,7 @@ begin
           mst := WinningOverrideInFiles(rec, plugin.masters);
         Tracker.Write(Format('    Smashing override from: %s, master: %s',
           [f.FileName, mst._File.FileName]));
-        AddRequiredMaster(patch, rec._File);
+        AddRequiredMasters(patch.plugin._File, e);
         rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
           recObj, false, bDeletions, bOverride);
       except
@@ -465,7 +486,8 @@ begin
     // remove ITPOs
     if not settings.preserveITPOs then
       RemoveITPOs(patchFile);
-    patchFIle.CleanMasters;
+    // Mator didn't like cleaning the masters unnecessarily
+    // patchFIle.CleanMasters;
   except
     on x: Exception do
       Tracker.Write('    Exception removing ITPOs: '+x.Message);
