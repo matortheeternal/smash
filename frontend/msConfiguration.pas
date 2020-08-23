@@ -127,7 +127,7 @@ const
       regName: 'Skyrim Special Edition'; appName: 'SSE';
       exeName: 'SkyrimSE.exe'; appIDs: '489830'; bsaOptMode: ''; ),
     ( longName: 'Skyrim VR'; gameName: 'Skyrim'; gameMode: gmTES5VR;
-      regName: 'SkyrimVR'; appName: 'TES5VR';
+      regName: 'Skyrim VR'; appName: 'TES5VR';
       exeName: 'SkyrimVR.exe'; appIDs: '611670'; bsaOptMode: ''; )
   );
 
