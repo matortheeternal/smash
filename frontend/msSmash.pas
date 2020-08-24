@@ -115,7 +115,6 @@ begin
       // TODO: Investigate other params to this function
       el.ReportRequiredMasters(slMasters, true, true, true);
 
-      Tracker.Write('Adding master...');
       for i := 0 to Pred(aFile.MasterCount[true]) do
         if slMasters.Find(aFile.Masters[i, true].FileName, j) then
           slMasters.Delete(j);
@@ -134,8 +133,8 @@ begin
           aFile.CleanMasters;
 
         aFile.AddMasters(slMasters);
+        Logger.Write('PATCH', 'MASTERS', 'Added masters: ' + slMasters.CommaText);
       end;
-      Tracker.Write('Done adding masters');
 
     except
       on x: Exception do begin
