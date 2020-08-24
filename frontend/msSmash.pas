@@ -111,41 +111,44 @@ begin
   slMasters.Sorted := True;
   slMasters.Duplicates := dupIgnore;
   try
-    // TODO: Investigate other params to this function
-    el.ReportRequiredMasters(slMasters, true, true, true);
+    try
+      // TODO: Investigate other params to this function
+      el.ReportRequiredMasters(slMasters, true, true, true);
 
-    Tracker.Write('Adding master...');
-    for i := 0 to Pred(aFile.MasterCount[true]) do
-      if slMasters.Find(aFile.Masters[i, true].FileName, j) then
+      Tracker.Write('Adding master...');
+      for i := 0 to Pred(aFile.MasterCount[true]) do
+        if slMasters.Find(aFile.Masters[i, true].FileName, j) then
+          slMasters.Delete(j);
+      if slMasters.Find(aFile.FileName, j) then
         slMasters.Delete(j);
-    if slMasters.Find(aFile.FileName, j) then
-      slMasters.Delete(j);
 
-    if slMasters.Count > 0 then begin
-      for i := 0 to Pred(slMasters.Count) do
-        if IwbFile(Pointer(slMasters.Objects[i])).LoadOrder >= aFile.LoadOrder then
-          raise Exception.Create('The required master "' + slMasters[i] + '" can not be added to "' + aFile.FileName + '" as it has a higher load order');
+      if slMasters.Count > 0 then begin
+        for i := 0 to Pred(slMasters.Count) do
+          if IwbFile(Pointer(slMasters.Objects[i])).LoadOrder >= aFile.LoadOrder then
+            raise Exception.Create('The required master "' + slMasters[i] + '" can not be added to "' + aFile.FileName + '" as it has a higher load order');
 
-      slMasters.Sorted := False;
-      slMasters.CustomSort(CompareLoadOrder);
+        slMasters.Sorted := False;
+        slMasters.CustomSort(CompareLoadOrder);
 
-      if aFile.MasterCount[true] + slMasters.Count >= 253 then
-        aFile.CleanMasters;
+        if aFile.MasterCount[true] + slMasters.Count >= 253 then
+          aFile.CleanMasters;
 
-      aFile.AddMasters(slMasters);
-    end;
+        aFile.AddMasters(slMasters);
+      end;
+      Tracker.Write('Done adding masters');
 
-  except
-    on x: Exception do begin
-      Tracker.Write('Critical exception adding masters!');
-      Tracker.Write(x.Message);
-      raise x;
-    end;
+    except
+      on x: Exception do begin
+        Tracker.Write('Critical exception adding masters!');
+        Tracker.Write(x.Message);
+        raise x;
+      end;
+    end
+  finally
+    slMasters.Free;
+    if Tracker.Cancel then
+      raise Exception.Create('User cancelled smashing.');
   end;
-  slMasters.Free;
-  if Tracker.Cancel then
-    raise Exception.Create('User cancelled smashing.');
-  Tracker.Write('Done adding masters');
 end;
 
 procedure BuildOverridesList(var patch: TPatch; var lst: TList;
