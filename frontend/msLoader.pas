@@ -44,7 +44,7 @@ uses
   msCore,
   // mp forms
   // xEdit units
-  wbHelpers, wbInterface, wbImplementation, wbLocalization, wbBSA,
+  wbHelpers, wbInterface, wbImplementation, wbBSA,
   wbDefinitionsFNV, wbDefinitionsFO3, wbDefinitionsTES3, wbDefinitionsTES4,
   wbDefinitionsTES5, wbDefinitionsFO4;
 
@@ -106,7 +106,6 @@ begin
   wbEditAllowed := True;
   wbContainerHandler := wbCreateContainerHandler;
   wbContainerHandler._AddRef;
-  wbLocalizationHandler.NoTranslate := true;
 
   // INITIALIZE DEFINITIONS
   Logger.Write('GENERAL', 'Definitions', 'Using '+wbAppName+'Edit Definitions');

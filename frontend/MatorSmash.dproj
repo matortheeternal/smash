@@ -264,9 +264,9 @@
             </Platforms>
             <ModelSupport>True</ModelSupport>
             <Deployment Version="3">
-                <DeployFile LocalName="MatorSmash.exe" Configuration="Release" Class="ProjectOutput">
+                <DeployFile LocalName="ModelSupport_MatorSmash\default.txvpck" Configuration="Release" Class="ProjectFile">
                     <Platform Name="Win32">
-                        <RemoteName>MatorSmash.exe</RemoteName>
+                        <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -277,9 +277,9 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="ModelSupport_MatorSmash\default.txvpck" Configuration="Release" Class="ProjectFile">
+                <DeployFile LocalName="MatorSmash.exe" Configuration="Release" Class="ProjectOutput">
                     <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
+                        <RemoteName>MatorSmash.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
