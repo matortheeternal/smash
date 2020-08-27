@@ -391,6 +391,9 @@ begin
     FixLoadOrder(sl, 'Dawnguard.esm', index);
     FixLoadOrder(sl, 'HearthFires.esm', index);
     FixLoadOrder(sl, 'Dragonborn.esm', index);
+    if (wbGameMode = gmTES5VR) then
+      FixLoadOrder(sl, 'SkyrimVR.esm', index);
+
   end
   else if (wbGameMode = gmFO4) then begin
     FixLoadOrder(sl, 'DLCRobot.esm', index);
