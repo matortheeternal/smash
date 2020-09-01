@@ -1372,6 +1372,9 @@ begin
     for i := 0 to Pred(recDef.MemberCount) do
       BuildChildDef(recDef.Members[i] as IwbNamedDef, recObj);
   end
+  else if (def.DefType = dtSubRecordStruct) or (def.DefType = dtSubRecordArray) then begin
+    AddDefIfMissing(recObj, def, def.Name);
+  end
   else if Supports(def, IwbSignatureDef, sigDef) then begin
     name := SigToStr(sigDef.DefaultSignature) + ' - ' + sigDef.Name;
     AddDefIfMissing(recObj, def, name);
