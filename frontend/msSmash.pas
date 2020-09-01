@@ -355,7 +355,7 @@ begin
           mst := WinningOverrideInFiles(rec, plugin.masters);
         Tracker.Write(Format('    Smashing override from: %s, master: %s',
           [f.FileName, mst._File.FileName]));
-        AddRequiredMasters(patch.plugin._File, e);
+        AddRequiredMasters(patch.plugin._File, ovr);
         rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
           recObj, false, bDeletions, bOverride);
       except
