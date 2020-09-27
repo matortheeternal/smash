@@ -39,6 +39,7 @@ type
     logMessageTemplate: string;
     preserveTempPath: boolean;
     allowTagging: boolean;
+    flagESL: boolean;
     smashSound: boolean;
     [IniSection('Patching')]
     patchDirectory: string;

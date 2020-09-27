@@ -34,14 +34,16 @@ end;
 procedure SetPatchAttributes(var patch: TPatch);
 var
   patchFile: IwbFile;
-  fileHeader: IwbContainer;
+  fileHeader: IwbMainRecord;
 begin
   patchFile := patch.plugin._File;
-  fileHeader := patchFile.Elements[0] as IwbContainer;
+  fileHeader := patchFile.Elements[0] as IwbMainRecord;
   // set author
   fileHeader.ElementEditValues['CNAM'] := 'Mator Smash v' + ProgramStatus.Version;
   // set description
   fileHeader.ElementEditValues['SNAM'] := 'Smashed patch:'#13#10 + patch.plugins.Text;
+  // set ESL flag
+  fileHeader.IsESL := settings.flagESL;
 end;
 
 function GetPatchFile(var patch: TPatch; var lst: TList): IwbFile;
