@@ -89,9 +89,6 @@ begin
         plugin._File._AddRef;
         plugin.GetMsData;
         PluginsList.Add(Pointer(plugin));
-        // TODO: Seems like xEdit should load them for me... wbLoadBSAs??
-        // Must be setting xEdit up wrong still
-        BSAExists(slPlugins[i])
       except
         on x: Exception do begin
           Logger.Write('ERROR', 'Load', 'Exception loading '+slPlugins[i]);
@@ -113,6 +110,11 @@ begin
         end;
       end;
     end;
+
+    // LOAD RESOURCES
+    Tracker.Write('Loading Resources');
+    wbContainerHandler.AddFolder(wbDataPath);
+    LoadBSAs;
 
     // LOAD PLUGIN INFORMATION
     Tracker.Write('Loading plugin information');
