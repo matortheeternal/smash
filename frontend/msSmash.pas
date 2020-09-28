@@ -426,39 +426,99 @@ begin
   RemoveEmptyContainers(nextContainer);
 end;
 
+
+function FindITPO(e: IwbMainRecord): Boolean;
+begin
+  // skip master records
+  if e.IsMaster then
+    Exit(False);
+
+  // skip records that have elements in child group (WRLD, CELL, DIAL)
+  if Assigned(e.ChildGroup) and (e.ChildGroup.ElementCount > 0) then
+    Exit(False);
+
+  // remove record if no conflicts
+  if not IsITPO(e) then
+    Exit(False);
+
+  Result := True;
+  Tracker.Write('    Removing ITPO: ' + e.Name);
+end;
+
+type
+  TITPOThread = class(TThread)
+  private
+    Fe: IwbMainRecord;
+    procedure Execute; override;
+  public
+    constructor Create(const e: IwbMainRecord);
+    property ReturnValue;
+  end;
+
+constructor TITPOThread.Create;
+begin
+  inherited Create(False);
+  Fe := e;
+end;
+
+procedure TITPOThread.Execute;
+begin
+  if FindITPO(Fe) then
+    ReturnValue := 1
+  else
+    ReturnValue := 0;
+end;
+
 procedure RemoveITPOs(aFile: IwbFile);
 var
   i, CountITPO: Integer;
-  e, m: IwbMainRecord;
+  e: IwbMainRecord;
   container: IwbContainer;
   ITPOs: TDynMainRecords;
+  ThreadRefs: array of TITPOThread;
+  ThreadHandles: array of THandle;
 begin
   Tracker.Write(' ');
   Tracker.Write('Removing ITPO records from patch');
   CountITPO := 0;
 
-  // loop through file's records
-  for i := Pred(aFile.RecordCount) downto 0 do begin
-    if Tracker.Cancel then break;
-    e := aFile.Records[i];
-    m := e.MasterOrSelf;
+  if settings.multiThreadedSmash then begin
+    SetLength(ThreadRefs, aFile.RecordCount);
+    SetLength(ThreadHandles, aFile.RecordCount);
 
-    // skip master records
-    if e.IsMaster then
-      continue;
+    // loop through file's records
+    for i := Pred(aFile.RecordCount) downto 0 do begin
+      if Tracker.Cancel then break;
+      e := aFile.Records[i];
 
-    // skip records that have elements in child group (WRLD, CELL, DIAL)
-    if Assigned(e.ChildGroup) and (e.ChildGroup.ElementCount > 0) then
-      continue;
+      ThreadRefs[i] := TITPOThread.Create(e);
+      ThreadHandles[i] := ThreadRefs[i].Handle;
+    end;
 
-    // remove record if no conflicts
-    if IsITPO(e) then begin
-      Tracker.Write('    Removing ITPO: ' + e.Name);
+    // Wait for Threads
+    WaitForMultipleObjects(Length(ThreadRefs), Pointer(ThreadHandles), True, INFINITE);
 
-      // add ITPO to list of records to remove
-      SetLength(ITPOs, CountITPO + 1);
-      ITPOs[CountITPO] := e;
-      Inc(CountITPO);
+    // loop through threads and get results
+    for i := Pred(Length(ThreadRefs)) downto 0 do begin
+      // remove record if no conflicts
+      if ThreadRefs[i].ReturnValue = 1 then begin
+        // add ITPO to list of records to remove
+        SetLength(ITPOs, CountITPO + 1);
+        ITPOs[CountITPO] := e;
+        Inc(CountITPO);
+      end;
+    end;
+  end else begin
+    // loop through file's records
+    for i := Pred(aFile.RecordCount) downto 0 do begin
+      e := aFile.Records[i];
+      
+      if FindITPO(e) then begin
+        // add ITPO to list of records to remove
+        SetLength(ITPOs, CountITPO + 1);
+        ITPOs[CountITPO] := e;
+        Inc(CountITPO);
+      end;
     end;
   end;
 

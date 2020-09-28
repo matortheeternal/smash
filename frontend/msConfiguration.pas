@@ -40,6 +40,7 @@ type
     preserveTempPath: boolean;
     allowTagging: boolean;
     flagESL: boolean;
+    multiThreadedSmash: boolean;
     smashSound: boolean;
     [IniSection('Patching')]
     patchDirectory: string;
