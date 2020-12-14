@@ -36,7 +36,7 @@ uses
   RttiTranslation in '..\lib\mte\RttiTranslation.pas',
   W7Taskbar in '..\lib\mte\W7Taskbar.pas',
   // lib\xedit
-  wbBSA in '..\lib\xedit\wbBSA.pas',
+  wbInit in '..\lib\xedit\wbInit.pas',
   wbDefinitionsFNV in '..\lib\xedit\wbDefinitionsFNV.pas',
   wbDefinitionsFO3 in '..\lib\xedit\wbDefinitionsFO3.pas',
   wbDefinitionsFO4 in '..\lib\xedit\wbDefinitionsFO4.pas',
@@ -97,7 +97,7 @@ begin
     if sParam = '-profile' then
       sProfile := ParamStr(i + 1);
     if sParam = '-utf8' then
-      wbStringEncoding := seUTF8;
+      wbEncoding := TEncoding.UTF8;
   end;
   bProfileProvided := sProfile <> '';
   sPath := Format('%sprofiles\%s\settings.ini', [ProgramPath, sProfile]);

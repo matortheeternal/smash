@@ -12,7 +12,7 @@ uses
   // ms units
   msCore, msConfiguration, msLoader, msSmash,
   // xedit units
-  wbBSA, wbInterface, wbImplementation;
+  wbBSA, wbHardcoded, wbInterface, wbImplementation, wbLoadOrder;
 
 
 type
@@ -64,7 +64,9 @@ procedure TInitThread.Execute;
 var
   i: integer;
   plugin: TPlugin;
+  b: TBytes;
   aFile: IwbFile;
+  aModule: PwbModuleInfo;
 begin
   try
     // PRINT LOAD ORDER TO LOG
@@ -82,7 +84,8 @@ begin
       try
         plugin := TPlugin.Create;
         plugin.filename := slPlugins[i];
-        plugin._File := wbFile(wbDataPath + slPlugins[i], i, '', False, False);
+        //aModule := wbModuleByName(slPlugins[i]);
+        plugin._File := wbFile(slPlugins[i], i);
         plugin._File._AddRef;
         plugin.GetMsData;
         PluginsList.Add(Pointer(plugin));
@@ -96,16 +99,22 @@ begin
 
       // load hardcoded dat
       if i = 0 then try
-        aFile := wbFile(wbProgramPath + wbGameName + wbHardcodedDat, 0);
+        b := TwbHardCodedContainer.GetHardCodedDat;
+        aFile := wbFile(wbGameExeName, 0, '', [fsIsHardcoded], b);
         aFile._AddRef;
       except
         on x: Exception do begin
-          Logger.Write('ERROR', 'Load', 'Exception loading '+wbGameName+wbHardcodedDat);
+          Logger.Write('ERROR', 'Load', 'Exception loading '+wbGameName+' hardcoded dat');
           Logger.Write('ERROR', 'Load', 'Please download and install this dat file!');
           raise x;
         end;
       end;
     end;
+
+    // LOAD RESOURCES
+    Tracker.Write('Loading Resources');
+    wbContainerHandler.AddFolder(wbDataPath);
+    LoadBSAs;
 
     // LOAD PLUGIN INFORMATION
     Tracker.Write('Loading plugin information');

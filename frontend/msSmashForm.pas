@@ -18,7 +18,7 @@ uses
   msCore, msConfiguration, msLoader, msThreads, msOptionsForm,
   msEditForm, msSettingsManager, msTagManager, msSplashForm,
   // tes5edit units
-  wbBSA, wbHelpers, wbInterface, wbImplementation;
+  wbBSA, wbHelpers, wbInterface, wbImplementation, System.ImageList;
 
 type
   TSmashForm = class(TForm)
@@ -337,7 +337,7 @@ begin
   SetTaskbarProgressState(tbpsIndeterminate);
   xEditLogGroup := 'LOAD';
   xEditLogLabel := 'Plugins';
-  wbProgressCallback := ProgressMessage;
+  _wbProgressCallback := ProgressMessage;
   StatusCallback := LoaderStatus;
 
   if not InitBase then begin

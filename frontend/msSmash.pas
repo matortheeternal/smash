@@ -34,14 +34,16 @@ end;
 procedure SetPatchAttributes(var patch: TPatch);
 var
   patchFile: IwbFile;
-  fileHeader: IwbContainer;
+  fileHeader: IwbMainRecord;
 begin
   patchFile := patch.plugin._File;
-  fileHeader := patchFile.Elements[0] as IwbContainer;
+  fileHeader := patchFile.Elements[0] as IwbMainRecord;
   // set author
   fileHeader.ElementEditValues['CNAM'] := 'Mator Smash v' + ProgramStatus.Version;
   // set description
   fileHeader.ElementEditValues['SNAM'] := 'Smashed patch:'#13#10 + patch.plugins.Text;
+  // set ESL flag
+  fileHeader.IsESL := settings.flagESL;
 end;
 
 function GetPatchFile(var patch: TPatch; var lst: TList): IwbFile;
@@ -90,43 +92,63 @@ begin
   Tracker.Write('Patch is using plugin: '+patch.plugin.filename);
 end;
 
-procedure AddRequiredMasters(var patch: TPatch; var lst: TList);
+function CompareLoadOrder(List: TStringList; Index1, Index2: Integer): Integer;
+begin
+  if Index1 = Index2 then begin
+    Result := 0;
+    Exit;
+  end;
+
+  Result := CmpI32(
+    IwbFile(Pointer(List.Objects[Index1])).LoadOrder,
+    IwbFile(Pointer(List.Objects[Index2])).LoadOrder);
+end;
+
+procedure AddRequiredMasters(var aFile: IwbFile; const el: IwbElement);
 var
   slMasters: TStringList;
-  i: Integer;
-  plugin: TPlugin;
+  i, j: Integer;
 begin
   slMasters := TStringList.Create;
+  slMasters.Sorted := True;
+  slMasters.Duplicates := dupIgnore;
   try
-    Tracker.Write('Adding masters...');
-    for i := 0 to Pred(lst.Count) do begin
-      plugin := TPlugin(lst[i]);
-      GetMasters(plugin._File, slMasters);
-      slMasters.AddObject(plugin.filename, patch.plugins.Objects[i]);
-    end;
     try
-      slMasters.CustomSort(LoadOrderCompare);
-      AddMasters(patch.plugin._File, slMasters);
-      if settings.debugMasters then begin
-        Tracker.Write('Masters added:');
-        Tracker.Write(slMasters.Text);
-        slMasters.Clear;
-        GetMasters(patch.plugin._File, slMasters);
-        Tracker.Write('Actual masters:');
-        Tracker.Write(slMasters.Text);
+      // TODO: Investigate other params to this function
+      el.ReportRequiredMasters(slMasters, true, true, true);
+
+      for i := 0 to Pred(aFile.MasterCount[true]) do
+        if slMasters.Find(aFile.Masters[i, true].FileName, j) then
+          slMasters.Delete(j);
+      if slMasters.Find(aFile.FileName, j) then
+        slMasters.Delete(j);
+
+      if slMasters.Count > 0 then begin
+        for i := 0 to Pred(slMasters.Count) do
+          if IwbFile(Pointer(slMasters.Objects[i])).LoadOrder >= aFile.LoadOrder then
+            raise Exception.Create('The required master "' + slMasters[i] + '" can not be added to "' + aFile.FileName + '" as it has a higher load order');
+
+        slMasters.Sorted := False;
+        slMasters.CustomSort(CompareLoadOrder);
+
+        if aFile.MasterCount[true] + slMasters.Count >= 253 then
+          aFile.CleanMasters;
+
+        aFile.AddMasters(slMasters);
+        Logger.Write('PATCH', 'MASTERS', 'Added masters: ' + slMasters.CommaText);
       end;
+
     except
       on x: Exception do begin
         Tracker.Write('Critical exception adding masters!');
         Tracker.Write(x.Message);
         raise x;
       end;
-    end;
+    end
   finally
     slMasters.Free;
     if Tracker.Cancel then
       raise Exception.Create('User cancelled smashing.');
-    Tracker.Write('Done adding masters');
   end;
 end;
 
@@ -306,7 +328,8 @@ begin
         else
           e := WinningOverrideInFiles(rec, patch.plugins);
         Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
-        eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'');
+        AddRequiredMasters(patch.plugin._File, e);
+        eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'', '', false);
         patchRec := eCopy as IwbMainRecord;
         if bForce then continue;
       except
@@ -334,6 +357,7 @@ begin
           mst := WinningOverrideInFiles(rec, plugin.masters);
         Tracker.Write(Format('    Smashing override from: %s, master: %s',
           [f.FileName, mst._File.FileName]));
+        AddRequiredMasters(patch.plugin._File, ovr);
         rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
           recObj, false, bDeletions, bOverride);
       except
@@ -402,39 +426,99 @@ begin
   RemoveEmptyContainers(nextContainer);
 end;
 
+
+function FindITPO(e: IwbMainRecord): Boolean;
+begin
+  // skip master records
+  if e.IsMaster then
+    Exit(False);
+
+  // skip records that have elements in child group (WRLD, CELL, DIAL)
+  if Assigned(e.ChildGroup) and (e.ChildGroup.ElementCount > 0) then
+    Exit(False);
+
+  // remove record if no conflicts
+  if not IsITPO(e) then
+    Exit(False);
+
+  Result := True;
+  Tracker.Write('    Removing ITPO: ' + e.Name);
+end;
+
+type
+  TITPOThread = class(TThread)
+  private
+    Fe: IwbMainRecord;
+    procedure Execute; override;
+  public
+    constructor Create(const e: IwbMainRecord);
+    property ReturnValue;
+  end;
+
+constructor TITPOThread.Create;
+begin
+  inherited Create(False);
+  Fe := e;
+end;
+
+procedure TITPOThread.Execute;
+begin
+  if FindITPO(Fe) then
+    ReturnValue := 1
+  else
+    ReturnValue := 0;
+end;
+
 procedure RemoveITPOs(aFile: IwbFile);
 var
   i, CountITPO: Integer;
-  e, m: IwbMainRecord;
+  e: IwbMainRecord;
   container: IwbContainer;
   ITPOs: TDynMainRecords;
+  ThreadRefs: array of TITPOThread;
+  ThreadHandles: array of THandle;
 begin
   Tracker.Write(' ');
   Tracker.Write('Removing ITPO records from patch');
   CountITPO := 0;
 
-  // loop through file's records
-  for i := Pred(aFile.RecordCount) downto 0 do begin
-    if Tracker.Cancel then break;
-    e := aFile.Records[i];
-    m := e.MasterOrSelf;
+  if settings.multiThreadedSmash then begin
+    SetLength(ThreadRefs, aFile.RecordCount);
+    SetLength(ThreadHandles, aFile.RecordCount);
 
-    // skip master records
-    if e.IsMaster then
-      continue;
+    // loop through file's records
+    for i := Pred(aFile.RecordCount) downto 0 do begin
+      if Tracker.Cancel then break;
+      e := aFile.Records[i];
 
-    // skip records that have elements in child group (WRLD, CELL, DIAL)
-    if Assigned(e.ChildGroup) and (e.ChildGroup.ElementCount > 0) then
-      continue;
+      ThreadRefs[i] := TITPOThread.Create(e);
+      ThreadHandles[i] := ThreadRefs[i].Handle;
+    end;
 
-    // remove record if no conflicts
-    if IsITPO(e) then begin
-      Tracker.Write('    Removing ITPO: ' + e.Name);
+    // Wait for Threads
+    WaitForMultipleObjects(Length(ThreadRefs), Pointer(ThreadHandles), True, INFINITE);
 
-      // add ITPO to list of records to remove
-      SetLength(ITPOs, CountITPO + 1);
-      ITPOs[CountITPO] := e;
-      Inc(CountITPO);
+    // loop through threads and get results
+    for i := Pred(Length(ThreadRefs)) downto 0 do begin
+      // remove record if no conflicts
+      if ThreadRefs[i].ReturnValue = 1 then begin
+        // add ITPO to list of records to remove
+        SetLength(ITPOs, CountITPO + 1);
+        ITPOs[CountITPO] := e;
+        Inc(CountITPO);
+      end;
+    end;
+  end else begin
+    // loop through file's records
+    for i := Pred(aFile.RecordCount) downto 0 do begin
+      e := aFile.Records[i];
+      
+      if FindITPO(e) then begin
+        // add ITPO to list of records to remove
+        SetLength(ITPOs, CountITPO + 1);
+        ITPOs[CountITPO] := e;
+        Inc(CountITPO);
+      end;
     end;
   end;
 
@@ -461,10 +545,13 @@ var
 begin
   patchFile := patch.plugin._File;
 
-  // remove ITPOs
+
   try
+    // remove ITPOs
     if not settings.preserveITPOs then
       RemoveITPOs(patchFile);
+    // Mator didn't like cleaning the masters unnecessarily
+    // patchFIle.CleanMasters;
   except
     on x: Exception do
       Tracker.Write('    Exception removing ITPOs: '+x.Message);
@@ -518,8 +605,8 @@ begin
     SetPatchAttributes(patch);
 
     // add masters to patch file
-    AddRequiredMasters(patch, pluginsToPatch);
-    HandleCanceled(msg);
+    //AddRequiredMasters(patch, pluginsToPatch);
+    //HandleCanceled(msg);
 
     // build list of overrides
     recordsList := TInterfaceList.Create;

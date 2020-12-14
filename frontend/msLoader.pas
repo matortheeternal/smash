@@ -82,10 +82,10 @@ begin
 
   // SET GAME VARS
   SetGame(CurrentProfile.gameMode);
-  wbVWDInTemporary := wbGameMode in [gmSSE, gmTES5, gmFO3, gmFNV];
+  wbVWDInTemporary := wbGameMode in [gmSSE, gmTES5VR, gmTES5, gmFO3, gmFNV];
   wbVWDAsQuestChildren := wbGameMode = gmFO4;
   wbArchiveExtension := IfThen(wbGameMode = gmFO4, '.ba2', '.bsa');
-  wbLoadBSAs := wbGameMode in [gmFO4, gmSSE, gmTES5, gmTES4];
+  wbLoadBSAs := wbGameMode in [gmFO4, gmSSE, gmTES5VR, gmTES5, gmTES4];
   Logger.Write('GENERAL', 'Game', 'Using '+wbGameName);
   Logger.Write('GENERAL', 'Path', 'Using '+wbDataPath);
   Logger.Write('GENERAL', 'GameIni', 'Using '+wbTheGameIniFileName);
@@ -247,12 +247,11 @@ end;
 procedure LoadDefinitions;
 begin
   case wbGameMode of
-    gmTES5: DefineTES5;
+    gmTES5, gmTES5VR, gmSSE: DefineTES5;
     gmFNV: DefineFNV;
     gmTES4: DefineTES4;
     gmFO3: DefineFO3;
     gmFO4: DefineFO4;
-    gmSSE: DefineTES5;
   end;
 end;
 
@@ -292,7 +291,7 @@ begin
         slBSAFileNames.Clear;
         slErrors.Clear;
         plugin := TPlugin(PluginsList[modIndex]);
-        bIsTES5 := wbGameMode in [gmTES5, gmSSE];
+        bIsTES5 := wbGameMode in [gmTES5, gmSSE, gmTES5VR];
 
         HasBSAs(ChangeFileExt(plugin.filename, ''), wbDataPath, bIsTES5,
           bIsTES5, slBSAFileNames, slErrors);
@@ -387,11 +386,14 @@ begin
   FixLoadOrder(sl, wbGameName + '.esm', index);
   if (wbGameMode = gmTES5) then
     FixLoadOrder(sl, 'Update.esm', index)
-  else if (wbGameMode = gmSSE) then begin
+  else if (wbGameMode = gmSSE) or (wbGameMode = gmTES5VR) then begin
     FixLoadOrder(sl, 'Update.esm', index);
     FixLoadOrder(sl, 'Dawnguard.esm', index);
     FixLoadOrder(sl, 'HearthFires.esm', index);
     FixLoadOrder(sl, 'Dragonborn.esm', index);
+    if (wbGameMode = gmTES5VR) then
+      FixLoadOrder(sl, 'SkyrimVR.esm', index);
+
   end
   else if (wbGameMode = gmFO4) then begin
     FixLoadOrder(sl, 'DLCRobot.esm', index);
@@ -401,6 +403,25 @@ begin
     FixLoadOrder(sl, 'DLCworkshop03.esm', index);
     FixLoadOrder(sl, 'DLCNukaWorld.esm', index);
     FixLoadOrder(sl, 'DLCUltraHighResolution.esm', index);
+  end;
+end;
+
+// Put Creation Club plugins in load order
+procedure AddCCPlugins(var slLoadOrder: TStringList);
+var
+  sPath: string;
+  slCC: TStringList;
+  i: integer;
+  index: Integer;
+begin
+  slCC := TStringList.Create;
+  sPath := CurrentProfile.GamePath + wbGameName + '.ccc';
+  if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4) then exit;
+  if FileExists(sPath) then begin
+    slCC.LoadFromFile(sPath);
+    index := 0;
+    for i := 0 to Pred(slCC.Count) do
+      FixLoadOrder(slLoadOrder, slCC[i], index);
   end;
 end;
 
@@ -427,8 +448,8 @@ var
   IsESM1, IsESM2: Boolean;
   FileSK1, FileSK2: Integer;
 begin
-  IsESM1 := IsFileESM(List[Index1]);
-  IsESM2 := IsFileESM(List[Index2]);
+  IsESM1 := List[Index1].EndsWith(csDotESM);
+  IsESM2 := List[Index2].EndsWith(csDotESM);
 
   if IsESM1 = IsESM2 then begin
     FileSK1 := Cardinal(List.Objects[Index1]);
@@ -460,7 +481,7 @@ begin
     // search for missing plugins and masters
     if FindFirst(wbDataPath + '*.*', faAnyFile, F) = 0 then try
       repeat
-        if not (IsFileESM(F.Name) or IsFileESP(F.Name) or IsFileESL(F.Name)) then
+        if not (wbIsPlugin(F.Name)) then
           continue;
         if sl.IndexOf(F.Name) = -1 then begin
           fileSortKey := GetPluginDate(wbDataPath + F.Name);
@@ -481,13 +502,13 @@ begin
     else
       // find position of last master
       for j := Pred(sl.Count) downto 0 do
-        if IsFileESM(sl[j]) then
+        if sl[j].EndsWith(csDotESM) then
           Break;
 
     // add esm masters after the last master, add esp plugins at the end
     Inc(j);
     for i := 0 to Pred(slNew.Count) do begin
-      if IsFileESM(slNew[i]) then begin
+      if (slNew[i].EndsWith(csDotESM)) then begin
         sl.InsertObject(j, slNew[i], slNew.Objects[i]);
         Inc(j);
       end else
@@ -522,17 +543,19 @@ procedure LoadPluginsList(const sLoadPath: String; var sl: TStringList; noDelete
 var
   sPath: String;
 begin
+
   sPath := sLoadPath + 'plugins.txt';
   if FileExists(sPath) then begin
     sl.LoadFromFile(sPath);
-    if (wbGameMode = gmSSE) or (wbGameMode = gmFO4) then
+    if (wbGameMode = gmSSE) or (wbGameMode = gmTES5VR) or (wbGameMode = gmFO4) then
       ProcessPluginsFormat(sl, noDelete);
   end
   else
     AddMissingFiles(sl);
 
-  // remove comments and missing files
+  AddCCPlugins(sl);
   AddBaseMasters(sl);
+  // remove comments and missing files
   RemoveCommentsAndEmpty(sl);
   RemoveMissingFiles(sl);
   if noDelete then AddMissingFiles(sl);
@@ -544,7 +567,7 @@ var
   sPath: String;
 begin
   sPath := sLoadPath + 'loadorder.txt';
-  if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4)
+  if (wbGameMode <> gmSSE) and (wbGameMode <> gmTES5VR) and (wbGameMode <> gmFO4)
   and FileExists(sPath) then begin
     slLoadOrder.LoadFromFile(sPath);
 
