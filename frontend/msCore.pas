@@ -189,7 +189,7 @@ type
 const
   // IMPORTANT CONSTANTS
   ProgramTesters = ' ';
-  ProgramTranslators = ' ';
+  ProgramTranslators = 'Koriss_';
 
   // CHECKBOX STATES
   csUnknown = 0;
