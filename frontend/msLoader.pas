@@ -82,10 +82,10 @@ begin
 
   // SET GAME VARS
   SetGame(CurrentProfile.gameMode);
-  wbVWDInTemporary := wbGameMode in [gmSSE, gmTES5VR, gmTES5, gmFO3, gmFNV];
+  wbVWDInTemporary := wbGameMode in [gmSSE, gmTES5VR, gmTES5, gmEnderal, gmFO3, gmFNV];
   wbVWDAsQuestChildren := wbGameMode = gmFO4;
   wbArchiveExtension := IfThen(wbGameMode = gmFO4, '.ba2', '.bsa');
-  wbLoadBSAs := wbGameMode in [gmFO4, gmSSE, gmTES5VR, gmTES5, gmTES4];
+  wbLoadBSAs := wbGameMode in [gmFO4, gmSSE, gmTES5VR, gmTES5, gmEnderal, gmTES4];
   Logger.Write('GENERAL', 'Game', 'Using '+wbGameName);
   Logger.Write('GENERAL', 'Path', 'Using '+wbDataPath);
   Logger.Write('GENERAL', 'GameIni', 'Using '+wbTheGameIniFileName);
@@ -247,7 +247,7 @@ end;
 procedure LoadDefinitions;
 begin
   case wbGameMode of
-    gmTES5, gmTES5VR, gmSSE: DefineTES5;
+    gmTES5, gmTES5VR, gmSSE, gmEnderal: DefineTES5;
     gmFNV: DefineFNV;
     gmTES4: DefineTES4;
     gmFO3: DefineFO3;
@@ -291,7 +291,7 @@ begin
         slBSAFileNames.Clear;
         slErrors.Clear;
         plugin := TPlugin(PluginsList[modIndex]);
-        bIsTES5 := wbGameMode in [gmTES5, gmSSE, gmTES5VR];
+        bIsTES5 := wbGameMode in [gmTES5, gmEnderal, gmSSE, gmTES5VR];
 
         HasBSAs(ChangeFileExt(plugin.filename, ''), wbDataPath, bIsTES5,
           bIsTES5, slBSAFileNames, slErrors);
@@ -384,7 +384,7 @@ var
 begin
   index := 0;
   FixLoadOrder(sl, wbGameName + '.esm', index);
-  if (wbGameMode = gmTES5) then
+  if (wbGameMode = gmTES5) or (wbGameMode = gmEnderal) then
     FixLoadOrder(sl, 'Update.esm', index)
   else if (wbGameMode = gmSSE) or (wbGameMode = gmTES5VR) then begin
     FixLoadOrder(sl, 'Update.esm', index);

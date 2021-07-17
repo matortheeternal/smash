@@ -109,7 +109,7 @@ const
   bTranslationDump = false;
 
   // GAME MODES
-  GameArray: array[1..7] of TGameMode = (
+  GameArray: array[1..9] of TGameMode = (
     ( longName: 'Skyrim'; gameName: 'Skyrim'; gameMode: gmTES5;
       regName: 'Skyrim'; appName: 'TES5'; exeName: 'TESV.exe'; appIDs: '72850';
       bsaOptMode: 'sk'; ),
@@ -125,12 +125,18 @@ const
     ( longName: 'Fallout 4'; gameName: 'Fallout4'; gameMode: gmFO4;
       regName: 'Fallout4'; appName: 'FO4'; exeName: 'Fallout4.exe';
       appIDs: '377160'; bsaOptMode: ''; ),
-    ( longName: 'Skyrim Special Edition'; gameName: 'Skyrim'; gameMode: gmSSE;
-      regName: 'Skyrim Special Edition'; appName: 'SSE';
-      exeName: 'SkyrimSE.exe'; appIDs: '489830'; bsaOptMode: ''; ),
+    ( longname: 'skyrim special edition'; gamename: 'skyrim'; gamemode: gmsse;
+      regname: 'skyrim special edition'; appname: 'sse';
+      exename: 'skyrimse.exe'; appids: '489830'; bsaoptmode: ''; ),
     ( longName: 'Skyrim VR'; gameName: 'Skyrim'; gameMode: gmTES5VR;
       regName: 'Skyrim VR'; appName: 'TES5VR';
-      exeName: 'SkyrimVR.exe'; appIDs: '611670'; bsaOptMode: ''; )
+      exeName: 'SkyrimVR.exe'; appIDs: '611670'; bsaOptMode: ''; ),
+    ( longName: 'Enderal'; gameName: 'Skyrim'; gameMode: gmEnderal;
+      regName: 'Enderal'; appName: 'Enderal'; exeName: 'TESV.exe'; appIDs: '933480';
+      bsaOptMode: 'sk'; ),
+    ( longname: 'enderal special edition'; gamename: 'skyrim'; gamemode: gmsse;
+      regname: 'enderal special edition'; appname: 'enderalse';
+      exename: 'skyrimse.exe'; appids: '976620'; bsaoptmode: ''; )
   );
 
 implementation
