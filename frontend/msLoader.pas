@@ -106,6 +106,10 @@ begin
   wbEditAllowed := True;
   wbContainerHandler := wbCreateContainerHandler;
   wbContainerHandler._AddRef;
+  wbToolSource := tsPlugins;
+  wbSourceName := 'Plugins';
+  wbToolMode := tmEdit;
+  wbToolName := 'Edit';
 
   // INITIALIZE DEFINITIONS
   Logger.Write('GENERAL', 'Definitions', 'Using '+wbAppName+'Edit Definitions');

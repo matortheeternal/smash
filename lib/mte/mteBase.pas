@@ -563,7 +563,7 @@ begin
   if Supports(def, IwbSubRecordArrayDef, sraDef) then
     Result := Supports(sraDef.Element, IwbHasSortKeyDef)
   else if Supports(def, IwbArrayDef, arDef) then
-    Result := Supports(arDef.Element, IwbHasSortKeyDef);
+    Result := arDef.Sorted;
 end;
 
 { Returns true if @e is a sorted container }

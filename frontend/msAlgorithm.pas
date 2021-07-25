@@ -3,7 +3,7 @@ unit msAlgorithm;
 interface
 
 uses
-  SysUtils, Classes,
+  SysUtils, Classes, Math,
   // superobject
   superobject,
   // mte units
@@ -15,7 +15,7 @@ uses
 
   procedure CopyLinkedElement(srcCont, dstCont: IwbContainerElementRef;
     eLink: string; obj: ISuperObject; dstRec: IwbMainRecord);
-  function rcore(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
+  function rcore(src, mst, dst: IwbElement; dstRec: IwbMainRecord;
     obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
 
 implementation
@@ -237,7 +237,7 @@ end;
 function MergeArray(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
   obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
 var
-  i, s_ndx, m_ndx, d_ndx: integer;
+  i, s_ndx, m_ndx, d_ndx, align_ndx: integer;
   se, de: IwbElement;
   slMst, slDst, slSrc: TStringList;
   srcCont, dstCont, mstCont, seCont: IwbContainerElementRef;
@@ -290,6 +290,7 @@ begin
     // ELEMENT ADDITION:
     // Copy array elements in source that aren't in master
     // or destination
+    align_ndx := 0;
     for i := 0 to Pred(slSrc.Count) do begin
       d_ndx := slDst.IndexOf(slSrc[i]);
       m_ndx := slMst.IndexOf(slSrc[i]);
@@ -303,11 +304,15 @@ begin
         // add element to destination
         if settings.debugArrays then
           Tracker.Write('        > Adding element at '+dst.Path+' with key: '+slSrc[i]);
-        de := dstCont.Assign(dstCont.ElementCount, se, false);
-        if bSorted then
-          slDst.Insert(dstCont.IndexOf(de), slSrc[i])
-        else
+        if bSorted then begin
+          de := dstCont.Assign(dstCont.ElementCount, se, false);
+          slDst.Insert(dstCont.IndexOf(de), slSrc[i]);
+        end
+        else begin
+          dstCont.InsertElement(Min(i + align_ndx, dstCont.ElementCount), se);
+          align_ndx := align_ndx + 1;
           slDst.Add(slSrc[i]);
+        end;
       end
 
       // Special handling for sorted arrays
@@ -330,6 +335,121 @@ begin
           end;
         end;
       end;
+    end;
+  finally
+    // free lists
+    slMst.Free;
+    slSrc.Free;
+    slDst.Free;
+  end;
+end;
+
+procedure BuildFlagList(container: IwbContainerElementRef; var sl: TStringList);
+var
+  i, n: integer;
+  childElement: IwbElement;
+  key, adjustedKey: string;
+begin
+  // loop through children elements
+  for i := 0 to Pred(container.ElementCount) do begin
+    childElement := container.Elements[i];
+
+    key := childElement.Name;
+
+    // find a non-colliding key
+    n := 0;
+    adjustedKey := key;
+    while (sl.IndexOf(adjustedKey) > -1) do begin
+      Inc(n);
+      adjustedKey := key + IntToStr(n);
+    end;
+
+    // add adjusted key to stringlist
+    sl.Add(adjustedKey);
+  end;
+end;
+
+function MergeFlags(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
+  obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
+var
+  i, s_ndx, m_ndx, d_ndx, fi: integer;
+  val: String;
+  se: IwbElement;
+  slMst, slDst, slSrc: TStringList;
+  srcCont, dstCont, mstCont: IwbContainerElementRef;
+begin
+  Result := false;
+
+  // exit if input array elements can't be treated as a containers
+  if not Supports(src, IwbContainerElementRef, srcCont) then
+    exit;
+  if not Supports(mst, IwbContainerElementRef, mstCont) then
+    exit;
+  if not Supports(dst, IwbContainerElementRef, dstCont) then
+    exit;
+
+  // Build lists of element keys in each array for easy comparison
+  slSrc := TStringList.Create;
+  slMst := TStringList.Create;
+  slDst := TStringList.Create;
+  try
+    BuildFlagList(srcCont, slSrc);
+    BuildFlagList(mstCont, slMst);
+    BuildFlagList(dstCont, slDst);
+
+    // ELEMENT DELETION:
+    // Remove elements that are in master and destination, but
+    // missing from source
+    if bDeletions then
+      for i := 0 to Pred(slMst.Count) do begin
+        s_ndx := slSrc.IndexOf(slMst[i]);
+
+        // element from master isn't in source
+        if (s_ndx = -1) then begin
+          Result := true;
+          // if we're in a treat as single, exit without removing anything
+          if bSingle then exit;
+          // if element is present in destination, remove it
+          d_ndx := slDst.IndexOf(slMst[i]);
+          if (d_ndx = -1) then continue;
+          if settings.debugArrays then
+            Tracker.Write('        > Removing element at '+dst.Path+' with key: '+slMst[i]);
+          //dstCont.RemoveElement(d_ndx);
+          fi := (mstCont.Elements[i].Def as IwbFlagDef).FlagIndex;
+          val := dstCont.EditValue;
+          val[fi+1] := '0';
+          dstCont.EditValue := val;
+          slDst.Delete(d_ndx);
+        end;
+      end;
+
+    // ELEMENT ADDITION:
+    // Copy array elements in source that aren't in master
+    // or destination
+    for i := 0 to Pred(slSrc.Count) do begin
+      d_ndx := slDst.IndexOf(slSrc[i]);
+      m_ndx := slMst.IndexOf(slSrc[i]);
+      se := srcCont.Elements[i];
+
+
+      if (d_ndx = -1) and ((m_ndx = -1) or bOverride) then begin
+        Result := true;
+        // if we're in a treat as single, exit without adding anything
+        if bSingle then exit;
+        // add element to destination
+        if settings.debugArrays then
+          Tracker.Write('        > Adding flag at '+dst.Path+' with key: '+slSrc[i]);
+        fi := (se.Def as IwbFlagDef).FlagIndex;
+        val := dstCont.EditValue.PadRight(fi+1, '0');
+        val[fi+1] := '1';
+        //System.Insert('1', val, fi);
+        dstCont.EditValue := val;
+        //dstCont.Add(slSrc[i], true);
+        //dstCont.Add(slSrc[i], true).EditValue := '1';
+        //dstCont.InsertElement((se.Def as IwbFlagDef).FlagIndex, se);
+        //dstCont.AddIfMissing(se, false, false, '', '', '', '', true);
+        slDst.Add(slSrc[i]);
+      end
     end;
   finally
     // free lists
@@ -464,6 +584,7 @@ begin
   if settings.debugTypes then begin
     Tracker.Write('      bCanAdd: '+BoolToStr(bCanAdd, true));
     Tracker.Write('      SmashType: '+stToString(srcType));
+    Tracker.Write('      bIsContainer: '+BoolToStr(bIsContainer, true));
   end;
 
   // merge array
@@ -474,6 +595,16 @@ begin
       Result := MergeArray(se, me, de, dstrec, obj, bSingle, bDeletions, bOverride);
     except on x : Exception do
       Tracker.Write('        MergeArray: Exception at '+se.Path+': '+x.Message);
+    end;
+  end
+  // merge flags
+  else if bIsContainer and (srcType = stInteger) then begin
+    if settings.debugTraversal then
+      Tracker.Write('         Merging flags');
+    try
+      Result := MergeFlags(se, me, de, dstrec, obj, bSingle, bDeletions, bOverride);
+    except on x : Exception do
+      Tracker.Write('        MergeFlags: Exception at '+se.Path+': '+x.Message);
     end;
   end
   // else recurse deeper
@@ -505,17 +636,26 @@ begin
   end;
 end;
 
+function MatchingElement(e: IwbElement; i: integer; cont: IwbContainerElementRef): IwbElement;
+var
+  eo: IwbElement;
+begin
+  Result := cont.Elements[i];
+  if (Result = nil) or (not Result.Name.Equals(e.Name)) then
+    Result := cont.ElementByName[e.Name];
+end;
+
 {
   rcore:
   Recursively copy overridden elements.  Recursively traverses elements,
-  comparing between a source element (from an override record) @src, a 
-  master element @mst, and a destination element @dst.  Tracks the 
-  destination patch record for element copying through @dstRec.  Uses a 
-  json tree @obj to determine user settings for traversal.  Uses @bSingle 
-  to determine when we're in a "single entity" as specified by the user, 
-  and @bDeletions to determine when it's ok to delete removed elements 
+  comparing between a source element (from an override record) @src, a
+  master element @mst, and a destination element @dst.  Tracks the
+  destination patch record for element copying through @dstRec.  Uses a
+  json tree @obj to determine user settings for traversal.  Uses @bSingle
+  to determine when we're in a "single entity" as specified by the user,
+  and @bDeletions to determine when it's ok to delete removed elements
   from the destination patch record.
-  
+
   - Uses HandleElementLife to resolve element creation/deletion.
   - Uses HandleElement to handle arrays, recurse deeper, or copy element
     values
@@ -568,8 +708,8 @@ begin
   for i := 0 to Pred(srcCont.ElementCount) do begin
     // assign source, destination, master elements
     se := srcCont.Elements[i];
-    de := dstCont.ElementByName[se.Name];
-    me := mstCont.ElementByName[se.Name];
+    de := MatchingElement(se, i, dstCont);
+    me := MatchingElement(se, i, mstCont);
 
     // skip if destination element not assigned
     if not Assigned(de) then begin
