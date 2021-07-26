@@ -107,37 +107,49 @@ end;
 procedure AddRequiredMasters(var aFile: IwbFile; const el: IwbElement);
 var
   slMasters: TStringList;
+  grup: IwbGroupRecord;
   i, j: Integer;
 begin
-  slMasters := TStringList.Create;
-  slMasters.Sorted := True;
-  slMasters.Duplicates := dupIgnore;
   try
     try
-      // TODO: Investigate other params to this function
-      el.ReportRequiredMasters(slMasters, true, true, true);
+      // Recurse up parent elements?
+      if Supports(el.Container, IwbGroupRecord, grup) and Assigned(grup.ChildrenOf) then
+        AddRequiredMasters(aFile, grup.ChildrenOf);
 
-      for i := 0 to Pred(aFile.MasterCount[true]) do
-        if slMasters.Find(aFile.Masters[i, true].FileName, j) then
+      slMasters := TStringList.Create;
+      slMasters.Sorted := True;
+      slMasters.Duplicates := dupIgnore;
+      try
+        el.ReportRequiredMasters(slMasters, false, true, true);
+        if settings.debugMasters then
+            Tracker.Write('Element '+el.Name+' from '+el._File.Filename+' requires masters: ' + slMasters.CommaText);
+
+
+        for i := 0 to Pred(aFile.MasterCount[true]) do
+          if slMasters.Find(aFile.Masters[i, true].FileName, j) then
+            slMasters.Delete(j);
+        if slMasters.Find(aFile.FileName, j) then
           slMasters.Delete(j);
-      if slMasters.Find(aFile.FileName, j) then
-        slMasters.Delete(j);
 
-      if slMasters.Count > 0 then begin
-        for i := 0 to Pred(slMasters.Count) do
-          if IwbFile(Pointer(slMasters.Objects[i])).LoadOrder >= aFile.LoadOrder then
-            raise Exception.Create('The required master "' + slMasters[i] + '" can not be added to "' + aFile.FileName + '" as it has a higher load order');
+        if slMasters.Count > 0 then begin
+          for i := 0 to Pred(slMasters.Count) do
+            if IwbFile(Pointer(slMasters.Objects[i])).LoadOrder >= aFile.LoadOrder then
+              raise Exception.Create('The required master "' + slMasters[i] + '" can not be added to "' + aFile.FileName + '" as it has a higher load order');
 
-        slMasters.Sorted := False;
-        slMasters.CustomSort(CompareLoadOrder);
+          slMasters.Sorted := False;
+          slMasters.CustomSort(CompareLoadOrder);
 
-        if aFile.MasterCount[true] + slMasters.Count >= 253 then
-          aFile.CleanMasters;
+          if (aFile.MasterCount[true] + slMasters.Count >= 253) then
+            aFile.CleanMasters;
 
-        aFile.AddMasters(slMasters);
-        Logger.Write('PATCH', 'MASTERS', 'Added masters: ' + slMasters.CommaText);
+          aFile.AddMasters(slMasters);
+          Logger.Write('PATCH', 'MASTERS', 'Added masters: ' + slMasters.CommaText);
+          if settings.debugMasters then
+            Tracker.Write('Adding masters: ' + slMasters.CommaText);
+        end;
+      finally
+        slMasters.Free;
       end;
-
     except
       on x: Exception do begin
         Tracker.Write('Critical exception adding masters!');
@@ -146,7 +158,6 @@ begin
       end;
     end
   finally
-    slMasters.Free;
     if Tracker.Cancel then
       raise Exception.Create('User cancelled smashing.');
   end;
@@ -334,7 +345,7 @@ begin
         if bForce then continue;
       except
         on x: Exception do begin
-          Tracker.Write('      Exception copying record '+ovr.Name+' : '+x.Message);
+          Tracker.Write('      Exception copying record '+e.Name+' from file '+e._File.Filename+': '+x.Message);
           patch.fails.Add('Exception copying record '+ovr.Name+' : '+x.Message);
           continue;
         end;
@@ -556,6 +567,9 @@ begin
     on x: Exception do
       Tracker.Write('    Exception removing ITPOs: '+x.Message);
   end;
+
+  Tracker.Write('Sorting patch masters according to current load order');
+  patchFile.SortMasters;
 end;
 
 procedure SavePatchFiles(var patch: TPatch);
