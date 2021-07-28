@@ -99,7 +99,7 @@ begin
       try
         if settings.debugChanges then
           Tracker.Write('      Created element at '+element.Path);
-        wbCopyElementToRecord(element, dstRec, false, true);
+        dstCont.AddIfMissing(element, false, true, '', '', '', '', true);
 
         // if another element is linked to the element, copy it
         eLink := eObj.S['lf'];
@@ -414,7 +414,6 @@ begin
           if (d_ndx = -1) then continue;
           if settings.debugArrays then
             Tracker.Write('        > Removing element at '+dst.Path+' with key: '+slMst[i]);
-          //dstCont.RemoveElement(d_ndx);
           fi := (mstCont.Elements[i].Def as IwbFlagDef).FlagIndex;
           val := dstCont.EditValue;
           val[fi+1] := '0';
@@ -442,12 +441,7 @@ begin
         fi := (se.Def as IwbFlagDef).FlagIndex;
         val := dstCont.EditValue.PadRight(fi+1, '0');
         val[fi+1] := '1';
-        //System.Insert('1', val, fi);
         dstCont.EditValue := val;
-        //dstCont.Add(slSrc[i], true);
-        //dstCont.Add(slSrc[i], true).EditValue := '1';
-        //dstCont.InsertElement((se.Def as IwbFlagDef).FlagIndex, se);
-        //dstCont.AddIfMissing(se, false, false, '', '', '', '', true);
         slDst.Add(slSrc[i]);
       end
     end;
@@ -637,11 +631,9 @@ begin
 end;
 
 function MatchingElement(e: IwbElement; i: integer; cont: IwbContainerElementRef): IwbElement;
-var
-  eo: IwbElement;
 begin
   Result := cont.Elements[i];
-  if (Result = nil) or (not Result.Name.Equals(e.Name)) then
+  if (not Assigned(Result)) or (not Result.Name.Equals(e.Name)) then
     Result := cont.ElementByName[e.Name];
 end;
 
