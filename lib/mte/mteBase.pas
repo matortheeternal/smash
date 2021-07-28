@@ -474,7 +474,10 @@ end;
 
 function GetSmashType(element: IwbElement): TSmashType;
 begin
-  Result := SmashType(element.Def);
+  if Assigned(element.ResolvedValueDef) then
+    Result := SmashType(element.ResolvedValueDef)
+  else
+    Result := SmashType(element.Def);
 end;
 
 function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;

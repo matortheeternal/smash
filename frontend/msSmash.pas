@@ -364,7 +364,7 @@ begin
         AddParents(patch, e);
         Tracker.Write(Format('  [%d] Copying record %s from %s', [i + 1, e.Name, e._File.Name]));
         AddRequiredMasters(patch.plugin._File, e);
-        eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'', '', false);
+        eCopy := e.CopyInto(patchFile, false, true, '', '', '', '');
         patchRec := eCopy as IwbMainRecord;
         if bForce then continue;
       except

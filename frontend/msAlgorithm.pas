@@ -237,7 +237,7 @@ end;
 function MergeArray(src, mst, dst: IwbElement; dstrec: IwbMainRecord;
   obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
 var
-  i, s_ndx, m_ndx, d_ndx, align_ndx: integer;
+  i, s_ndx, m_ndx, d_ndx, a_ndx, align_ndx: integer;
   se, de: IwbElement;
   slMst, slDst, slSrc: TStringList;
   srcCont, dstCont, mstCont, seCont: IwbContainerElementRef;
@@ -302,16 +302,19 @@ begin
         // if we're in a treat as single, exit without adding anything
         if bSingle then exit;
         // add element to destination
-        if settings.debugArrays then
-          Tracker.Write('        > Adding element at '+dst.Path+' with key: '+slSrc[i]);
         if bSorted then begin
+          if settings.debugArrays then
+            Tracker.Write('        > Adding element at '+dst.Path+' with key: '+slSrc[i]);
           de := dstCont.Assign(dstCont.ElementCount, se, false);
           slDst.Insert(dstCont.IndexOf(de), slSrc[i]);
         end
         else begin
-          dstCont.InsertElement(Min(i + align_ndx, dstCont.ElementCount), se);
+          a_ndx := Min(i + align_ndx, dstCont.ElementCount);
+          if settings.debugArrays then
+            Tracker.Write('        > Adding element at '+dst.Path+' at index '+a_ndx.ToString+' with key: '+slSrc[i]);
+          dstCont.InsertElement(a_ndx, se);
           align_ndx := align_ndx + 1;
-          slDst.Add(slSrc[i]);
+          slDst.Insert(a_ndx, slSrc[i]);
         end;
       end
 
@@ -475,7 +478,8 @@ begin
 
   // try to copy element value to destination element from source element
   try
-    de.EditValue := se.EditValue;
+    //de.EditValue := se.EditValue;
+    de.Container.AddIfMissing(se, false, false, '', '', '', '', true);
   except on x : Exception do
     Tracker.Write('      CopyElementValue: Exception '+x.Message);
   end;
