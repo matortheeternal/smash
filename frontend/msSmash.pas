@@ -107,48 +107,39 @@ end;
 procedure AddRequiredMasters(var aFile: IwbFile; const el: IwbElement);
 var
   slMasters: TStringList;
-  grup: IwbGroupRecord;
   i, j: Integer;
 begin
+  slMasters := TStringList.Create;
+  slMasters.Sorted := True;
+  slMasters.Duplicates := dupIgnore;
   try
     try
-      // Recurse up parent elements?
-      if Supports(el.Container, IwbGroupRecord, grup) and Assigned(grup.ChildrenOf) then
-        AddRequiredMasters(aFile, grup.ChildrenOf);
-
-      slMasters := TStringList.Create;
-      slMasters.Sorted := True;
-      slMasters.Duplicates := dupIgnore;
-      try
-        el.ReportRequiredMasters(slMasters, false, true, true);
-        if settings.debugMasters then
-            Tracker.Write('Element '+el.Name+' from '+el._File.Filename+' requires masters: ' + slMasters.CommaText);
+      el.ReportRequiredMasters(slMasters, false, true, true);
+      if settings.debugMasters then
+          Tracker.Write('Element '+el.Name+' from '+el._File.Filename+' requires masters: ' + slMasters.CommaText);
 
 
-        for i := 0 to Pred(aFile.MasterCount[true]) do
-          if slMasters.Find(aFile.Masters[i, true].FileName, j) then
-            slMasters.Delete(j);
-        if slMasters.Find(aFile.FileName, j) then
+      for i := 0 to Pred(aFile.MasterCount[true]) do
+        if slMasters.Find(aFile.Masters[i, true].FileName, j) then
           slMasters.Delete(j);
+      if slMasters.Find(aFile.FileName, j) then
+        slMasters.Delete(j);
 
-        if slMasters.Count > 0 then begin
-          for i := 0 to Pred(slMasters.Count) do
-            if IwbFile(Pointer(slMasters.Objects[i])).LoadOrder >= aFile.LoadOrder then
-              raise Exception.Create('The required master "' + slMasters[i] + '" can not be added to "' + aFile.FileName + '" as it has a higher load order');
+      if slMasters.Count > 0 then begin
+        for i := 0 to Pred(slMasters.Count) do
+          if IwbFile(Pointer(slMasters.Objects[i])).LoadOrder >= aFile.LoadOrder then
+            raise Exception.Create('The required master "' + slMasters[i] + '" can not be added to "' + aFile.FileName + '" as it has a higher load order');
 
-          slMasters.Sorted := False;
-          slMasters.CustomSort(CompareLoadOrder);
+        slMasters.Sorted := False;
+        slMasters.CustomSort(CompareLoadOrder);
 
-          if (aFile.MasterCount[true] + slMasters.Count >= 253) then
-            aFile.CleanMasters;
+        if (aFile.MasterCount[true] + slMasters.Count >= 253) then
+          aFile.CleanMasters;
 
-          aFile.AddMasters(slMasters);
-          Logger.Write('PATCH', 'MASTERS', 'Added masters: ' + slMasters.CommaText);
-          if settings.debugMasters then
-            Tracker.Write('Adding masters: ' + slMasters.CommaText);
-        end;
-      finally
-        slMasters.Free;
+        aFile.AddMasters(slMasters);
+        Logger.Write('PATCH', 'MASTERS', 'Added masters: ' + slMasters.CommaText);
+        if settings.debugMasters then
+          Tracker.Write('Adding masters: ' + slMasters.CommaText);
       end;
     except
       on x: Exception do begin
@@ -158,8 +149,36 @@ begin
       end;
     end
   finally
+    slMasters.Free;
     if Tracker.Cancel then
       raise Exception.Create('User cancelled smashing.');
+  end;
+end;
+
+procedure ListParents(const rec: IwbMainRecord; var parents: TInterfaceList);
+var
+  grup: IwbGroupRecord;
+begin
+  if Supports(rec.Container, IwbGroupRecord, grup) and Assigned(grup.ChildrenOf) then begin
+    if parents.IndexOf(grup.ChildrenOf) = -1 then begin
+      parents.Insert(0, grup.ChildrenOf);
+      ListParents(grup.ChildrenOf, parents);
+    end
+  end;
+end;
+
+
+procedure AddParents(var patch: TPatch; const rec: IwbElement);
+var
+  grup: IwbGroupRecord;
+begin
+  if Supports(rec.Container, IwbGroupRecord, grup) and Assigned(grup.ChildrenOf) then begin
+    if not Assigned(patch.plugin._File.RecordByFormID[grup.ChildrenOf.FormID, true, true]) then begin
+      AddParents(patch, grup.ChildrenOf);
+      Tracker.Write(Format('Copying parent record %s of %s', [grup.ChildrenOf.Name, rec.Name]));
+      AddRequiredMasters(patch.plugin._File, grup.ChildrenOf);
+      grup.ChildrenOf.CopyInto(patch.plugin._File, false, false, '', '', '', '');
+    end
   end;
 end;
 
@@ -211,6 +230,9 @@ begin
         if ConflictAllForMainRecord(rec) < caConflict then
           continue;
 
+        // add parent record(s) to list first so they get smashed first?
+        ListParents(rec, records);
+
         // add record to overrides list
         if records.IndexOf(rec) = -1 then
           records.Add(rec);
@@ -221,7 +243,7 @@ begin
         end;
       end;
     end;
-    
+
     // update progress bar for file
     Tracker.UpdateProgress(recCount mod 500);
   end;
@@ -338,6 +360,8 @@ begin
           e := ovr
         else
           e := WinningOverrideInFiles(rec, patch.plugins);
+        // be sure we include the parent?
+        AddParents(patch, e);
         Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
         AddRequiredMasters(patch.plugin._File, e);
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'', '', false);
@@ -366,8 +390,8 @@ begin
           mst := e as IwbMainRecord
         else
           mst := WinningOverrideInFiles(rec, plugin.masters);
-        Tracker.Write(Format('    Smashing override from: %s, master: %s',
-          [f.FileName, mst._File.FileName]));
+        Tracker.Write(Format('    Smashing override of %s from: %s, master: %s',
+          [ovr.Name, f.FileName, mst._File.FileName]));
         AddRequiredMasters(patch.plugin._File, ovr);
         rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
           recObj, false, bDeletions, bOverride);
