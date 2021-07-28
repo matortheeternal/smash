@@ -274,7 +274,7 @@ begin
     // word count in its name update the count to be the number of elements
     // in the array
     if (GetSmashType(nextElement) in stArrays)
-    and (Pos('Count', element.Name) > 0) then try
+    and (GetSmashType(element) = stInteger) and (Pos('Count', element.Name) > 0) then try
       element.NativeValue := arrayContainer.ElementCount;
     except
       on x: Exception do
@@ -362,7 +362,7 @@ begin
           e := WinningOverrideInFiles(rec, patch.plugins);
         // be sure we include the parent?
         AddParents(patch, e);
-        Tracker.Write(Format('  [%d] Copying record %s', [i + 1, e.Name]));
+        Tracker.Write(Format('  [%d] Copying record %s from %s', [i + 1, e.Name, e._File.Name]));
         AddRequiredMasters(patch.plugin._File, e);
         eCopy := wbCopyElementToFile(e, patchFile, false, true, '', '' ,'', '', false);
         patchRec := eCopy as IwbMainRecord;
