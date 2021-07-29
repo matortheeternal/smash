@@ -114,7 +114,7 @@ begin
   slMasters.Duplicates := dupIgnore;
   try
     try
-      el.ReportRequiredMasters(slMasters, false, true, true);
+      el.ReportRequiredMasters(slMasters, false, true, false);
       if settings.debugMasters then
           Tracker.Write('Element '+el.Name+' from '+el._File.Filename+' requires masters: ' + slMasters.CommaText);
 
@@ -203,7 +203,7 @@ begin
     aSetting := plugin.smashSetting;
 
     // loop through file records
-    Tracker.Write('Processing '+plugin.filename);
+    Tracker.Write('Processing '+plugin._File.Name);
     recCount := Pred(aFile.RecordCount);
     for j := 0 to recCount do begin
       if Tracker.Cancel then break;
@@ -363,8 +363,8 @@ begin
         // be sure we include the parent?
         AddParents(patch, e);
         Tracker.Write(Format('  [%d] Copying record %s from %s', [i + 1, e.Name, e._File.Name]));
-        AddRequiredMasters(patch.plugin._File, e);
-        eCopy := e.CopyInto(patchFile, false, true, '', '', '', '');
+        AddRequiredMasters(patchFile, e);
+        eCopy := e.CopyInto(patchFile, false, false, '', '', '', '');
         patchRec := eCopy as IwbMainRecord;
         if bForce then continue;
       except

@@ -478,8 +478,14 @@ begin
 
   // try to copy element value to destination element from source element
   try
-    //de.EditValue := se.EditValue;
-    de.Container.AddIfMissing(se, false, false, '', '', '', '', true);
+
+    try
+      // TODO: Why does sinply setting EditValue sometimes do nothing??
+      de.Container.AddIfMissing(se, false, false, '', '', '', '', true);
+    except
+      // If AddIfMissing fails try just setting it...
+      de.EditValue := se.EditValue;
+    end;
   except on x : Exception do
     Tracker.Write('      CopyElementValue: Exception '+x.Message);
   end;
