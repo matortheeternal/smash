@@ -1,5 +1,6 @@
 ﻿{ *******************************************************************************
 
+
   The contents of this file are subject to the Mozilla Public License
   Version 1.1 (the "License"); you may not use this file except in
   compliance with the License. You may obtain a copy of the License at
@@ -54,18 +55,19 @@ uses
   msChoicePanel in 'msChoicePanel.pas',
   msSmash in 'msSmash.pas',
   msAlgorithm in 'msAlgorithm.pas',
-  msProfileForm in 'msProfileForm.pas' {ProfileForm},
+  msProfileForm in 'msProfileForm.pas' {ProfileForm} ,
   msProfilePanel in 'msProfilePanel.pas',
-  msSmashForm in 'msSmashForm.pas' {SmashForm},
+  msSmashForm in 'msSmashForm.pas' {SmashForm} ,
   msThreads in 'msThreads.pas',
-  msOptionsForm in 'msOptionsForm.pas' {OptionsForm},
-  msSplashForm in 'msSplashForm.pas' {SplashForm},
-  msEditForm in 'msEditForm.pas' {EditForm},
-  msSettingsManager in 'msSettingsManager.pas' {SettingsManager},
-  msPluginSelectionForm in 'msPluginSelectionForm.pas' {MiniPluginSelectionForm},
-  msConflictForm in 'msConflictForm.pas' {ConflictForm},
-  msTagManager in 'msTagManager.pas' {TagManager},
-  msTagHelper in 'msTagHelper.pas' {TagHelper},
+  msOptionsForm in 'msOptionsForm.pas' {OptionsForm} ,
+  msSplashForm in 'msSplashForm.pas' {SplashForm} ,
+  msEditForm in 'msEditForm.pas' {EditForm} ,
+  msSettingsManager in 'msSettingsManager.pas' {SettingsManager} ,
+  msPluginSelectionForm
+    in 'msPluginSelectionForm.pas' {MiniPluginSelectionForm} ,
+  msConflictForm in 'msConflictForm.pas' {ConflictForm} ,
+  msTagManager in 'msTagManager.pas' {TagManager} ,
+  msTagHelper in 'msTagHelper.pas' {TagHelper} ,
   Vcl.Themes,
   Vcl.Styles;
 

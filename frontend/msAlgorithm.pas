@@ -340,11 +340,12 @@ begin
         begin
           a_ndx := Min(i + align_ndx, dstCont.ElementCount);
           if settings.debugArrays then
-            Tracker.Write('        > Adding element at ' + dst.Path +
+            Tracker.Write('        > Adding element at ' + dstCont.FullPath +
               ' at index ' + a_ndx.ToString + ' with key: ' + slSrc[i]);
-          dstCont.InsertElement(a_ndx, se);
+          de := dstCont.Assign(a_ndx, se, false);
           align_ndx := align_ndx + 1;
           slDst.Insert(a_ndx, slSrc[i]);
+          // slDst.Add(slSrc[i]);
         end;
       end
 

@@ -113,6 +113,7 @@ begin
   wbSourceName := 'Plugins';
   wbToolMode := tmEdit;
   wbToolName := 'Edit';
+  wbAlignArrayElements := True;
 
   // INITIALIZE DEFINITIONS
   Logger.Write('GENERAL', 'Definitions', 'Using ' + wbAppName +
