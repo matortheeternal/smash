@@ -13,8 +13,8 @@ uses
   // xEdit units
   wbInterface, wbImplementation;
 
-  procedure BuildPatch(var patch: TPatch);
-  procedure RebuildPatch(var patch: TPatch);
+procedure BuildPatch(var patch: TPatch);
+procedure RebuildPatch(var patch: TPatch);
 
 implementation
 
@@ -23,10 +23,11 @@ var
   i: Integer;
   plugin: TPlugin;
 begin
-  for i := 0 to Pred(patch.plugins.Count) do begin
+  for i := 0 to Pred(patch.plugins.Count) do
+  begin
     plugin := PluginByFileName(patch.plugins[i]);
     if not Assigned(plugin) then
-      raise Exception.Create('Couldn''t find plugin '+patch.plugins[i]);
+      raise Exception.Create('Couldn''t find plugin ' + patch.plugins[i]);
     lst.Add(plugin);
   end;
 end;
@@ -39,9 +40,11 @@ begin
   patchFile := patch.plugin._File;
   fileHeader := patchFile.Elements[0] as IwbMainRecord;
   // set author
-  fileHeader.ElementEditValues['CNAM'] := 'Mator Smash v' + ProgramStatus.Version;
+  fileHeader.ElementEditValues['CNAM'] := 'Mator Smash v' +
+    ProgramStatus.Version;
   // set description
-  fileHeader.ElementEditValues['SNAM'] := 'Smashed patch:'#13#10 + patch.plugins.Text;
+  fileHeader.ElementEditValues['SNAM'] := 'Smashed patch:'#13#10 +
+    patch.plugins.Text;
   // set ESL flag
   fileHeader.IsESL := settings.flagESL;
 end;
@@ -55,28 +58,33 @@ var
 begin
   // get plugin if it exists
   // else create it
-  plugin := PluginByFilename(patch.filename);
+  plugin := PluginByFileName(patch.filename);
   patch.plugin := nil;
-  if Assigned(plugin) then begin
+  if Assigned(plugin) then
+  begin
     bUsedExistingFile := true;
     patch.plugin := plugin;
   end
-  else begin
+  else
+  begin
     bUsedExistingFile := false;
     patch.plugin := CreateNewPlugin(patch.filename);
   end;
 
   // don't patch if patchFile not assigned
-  if not Assigned(patch.plugin) then 
+  if not Assigned(patch.plugin) then
     raise Exception.Create('Couldn''t assign patch file');
 
   // don't patch if patchFile is at an invalid load order position relative
   // to the plugins being patched
-  if bUsedExistingFile then begin
-    for i := 0 to Pred(lst.Count) do begin
+  if bUsedExistingFile then
+  begin
+    for i := 0 to Pred(lst.Count) do
+    begin
       plugin := TPlugin(lst[i]);
       if PluginsList.IndexOf(plugin) > PluginsList.IndexOf(patch.plugin) then
-        raise Exception.Create(Format('%s is at a lower load order position than %s',
+        raise Exception.Create
+          (Format('%s is at a lower load order position than %s',
           [plugin.filename, patch.filename]));
     end;
 
@@ -89,18 +97,18 @@ begin
   // set result
   Result := patch.plugin._File;
   Tracker.Write(' ');
-  Tracker.Write('Patch is using plugin: '+patch.plugin.filename);
+  Tracker.Write('Patch is using plugin: ' + patch.plugin.filename);
 end;
 
 function CompareLoadOrder(List: TStringList; Index1, Index2: Integer): Integer;
 begin
-  if Index1 = Index2 then begin
+  if Index1 = Index2 then
+  begin
     Result := 0;
     Exit;
   end;
 
-  Result := CmpI32(
-    IwbFile(Pointer(List.Objects[Index1])).LoadOrder,
+  Result := CmpI32(IwbFile(Pointer(List.Objects[Index1])).LoadOrder,
     IwbFile(Pointer(List.Objects[Index2])).LoadOrder);
 end;
 
@@ -110,39 +118,45 @@ var
   i, j: Integer;
 begin
   slMasters := TStringList.Create;
-  slMasters.Sorted := True;
+  slMasters.Sorted := true;
   slMasters.Duplicates := dupIgnore;
   try
     try
       el.ReportRequiredMasters(slMasters, false, true, false);
       if settings.debugMasters then
-          Tracker.Write('Element '+el.Name+' from '+el._File.Filename+' requires masters: ' + slMasters.CommaText);
-
+        Tracker.Write('Element ' + el.Name + ' from ' + el._File.filename +
+          ' requires masters: ' + slMasters.CommaText);
 
       for i := 0 to Pred(aFile.MasterCount[true]) do
-        if slMasters.Find(aFile.Masters[i, true].FileName, j) then
+        if slMasters.Find(aFile.Masters[i, true].filename, j) then
           slMasters.Delete(j);
-      if slMasters.Find(aFile.FileName, j) then
+      if slMasters.Find(aFile.filename, j) then
         slMasters.Delete(j);
 
-      if slMasters.Count > 0 then begin
+      if slMasters.Count > 0 then
+      begin
         for i := 0 to Pred(slMasters.Count) do
-          if IwbFile(Pointer(slMasters.Objects[i])).LoadOrder >= aFile.LoadOrder then
-            raise Exception.Create('The required master "' + slMasters[i] + '" can not be added to "' + aFile.FileName + '" as it has a higher load order');
+          if IwbFile(Pointer(slMasters.Objects[i])).LoadOrder >= aFile.LoadOrder
+          then
+            raise Exception.Create('The required master "' + slMasters[i] +
+              '" can not be added to "' + aFile.filename +
+              '" as it has a higher load order');
 
-        slMasters.Sorted := False;
+        slMasters.Sorted := false;
         slMasters.CustomSort(CompareLoadOrder);
 
         if (aFile.MasterCount[true] + slMasters.Count >= 253) then
           aFile.CleanMasters;
 
         aFile.AddMasters(slMasters);
-        Logger.Write('PATCH', 'MASTERS', 'Added masters: ' + slMasters.CommaText);
+        Logger.Write('PATCH', 'MASTERS', 'Added masters: ' +
+          slMasters.CommaText);
         if settings.debugMasters then
           Tracker.Write('Adding masters: ' + slMasters.CommaText);
       end;
     except
-      on x: Exception do begin
+      on x: Exception do
+      begin
         Tracker.Write('Critical exception adding masters!');
         Tracker.Write(x.Message);
         raise x;
@@ -159,31 +173,39 @@ procedure ListParents(const rec: IwbMainRecord; var parents: TInterfaceList);
 var
   grup: IwbGroupRecord;
 begin
-  if Supports(rec.Container, IwbGroupRecord, grup) and Assigned(grup.ChildrenOf) then begin
-    if parents.IndexOf(grup.ChildrenOf) = -1 then begin
+  if Supports(rec.Container, IwbGroupRecord, grup) and Assigned(grup.ChildrenOf)
+  then
+  begin
+    if parents.IndexOf(grup.ChildrenOf) = -1 then
+    begin
       parents.Insert(0, grup.ChildrenOf);
       ListParents(grup.ChildrenOf, parents);
     end
   end;
 end;
 
-
 procedure AddParents(var patch: TPatch; const rec: IwbElement);
 var
   grup: IwbGroupRecord;
 begin
-  if Supports(rec.Container, IwbGroupRecord, grup) and Assigned(grup.ChildrenOf) then begin
-    if not Assigned(patch.plugin._File.RecordByFormID[grup.ChildrenOf.FormID, true, true]) then begin
+  if Supports(rec.Container, IwbGroupRecord, grup) and Assigned(grup.ChildrenOf)
+  then
+  begin
+    if not Assigned(patch.plugin._File.RecordByFormID[grup.ChildrenOf.FormID,
+      true, true]) then
+    begin
       AddParents(patch, grup.ChildrenOf);
-      Tracker.Write(Format('Copying parent record %s of %s', [grup.ChildrenOf.Name, rec.Name]));
+      Tracker.Write(Format('Copying parent record %s of %s',
+        [grup.ChildrenOf.Name, rec.Name]));
       AddRequiredMasters(patch.plugin._File, grup.ChildrenOf);
-      grup.ChildrenOf.CopyInto(patch.plugin._File, false, false, '', '', '', '');
+      grup.ChildrenOf.CopyInto(patch.plugin._File, false, false, '',
+        '', '', '');
     end
   end;
 end;
 
 procedure BuildOverridesList(var patch: TPatch; var lst: TList;
-  var records: TInterfaceList);
+  var Records: TInterfaceList);
 var
   i, j, recCount: Integer;
   plugin: TPlugin;
@@ -194,8 +216,10 @@ var
 begin
   Tracker.Write(' ');
   Tracker.Write('Processing files');
-  for i := 0 to Pred(lst.Count) do begin
-    if Tracker.Cancel then break;
+  for i := 0 to Pred(lst.Count) do
+  begin
+    if Tracker.Cancel then
+      break;
     plugin := TPlugin(lst[i]);
 
     // get file and setting for later use
@@ -203,10 +227,12 @@ begin
     aSetting := plugin.smashSetting;
 
     // loop through file records
-    Tracker.Write('Processing '+plugin._File.Name);
+    Tracker.Write('Processing ' + plugin._File.Name);
     recCount := Pred(aFile.RecordCount);
-    for j := 0 to recCount do begin
-      if Tracker.Cancel then break;
+    for j := 0 to recCount do
+    begin
+      if Tracker.Cancel then
+        break;
       rec := aFile.Records[j];
       if j mod 500 = 499 then
         Tracker.UpdateProgress(500);
@@ -224,20 +250,21 @@ begin
         recObj := aSetting.GetRecordDef(rec.Signature);
         if not Assigned(recObj) then
           continue;
-        if (recObj.I['p'] <> 1) then
+        if (recObj.i['p'] <> 1) then
           continue;
         // skip non-conflicting records
         if ConflictAllForMainRecord(rec) < caConflict then
           continue;
 
         // add parent record(s) to list first so they get smashed first?
-        ListParents(rec, records);
+        ListParents(rec, Records);
 
         // add record to overrides list
-        if records.IndexOf(rec) = -1 then
-          records.Add(rec);
+        if Records.IndexOf(rec) = -1 then
+          Records.Add(rec);
       except
-        on x: Exception do begin
+        on x: Exception do
+        begin
           Tracker.Write('  Error processing ' + rec.Name + ', ' + x.Message);
           continue;
         end;
@@ -251,45 +278,48 @@ end;
 
 procedure UpdateCounts(var rec: IwbMainRecord);
 var
-  container, arrayContainer: IwbContainerElementRef;
+  Container, arrayContainer: IwbContainerElementRef;
   i: Integer;
   element, nextElement: IwbElement;
 begin
   // if reocrd is not editable, exit
   if not rec.IsEditable then
-    exit;
+    Exit;
 
   // if record can't be treated as a container, exit
-  if not Supports(rec, IwbContainerElementRef, container) then
-    exit;
+  if not Supports(rec, IwbContainerElementRef, Container) then
+    Exit;
 
   // loop through top-level elements
-  for i := 0 to container.ElementCount - 2 do begin
-    element := container.Elements[i];
-    nextElement := container.Elements[i + 1];
+  for i := 0 to Container.ElementCount - 2 do
+  begin
+    element := Container.Elements[i];
+    nextElement := Container.Elements[i + 1];
     if not Supports(nextElement, IwbContainerElementRef, arrayContainer) then
       continue;
 
     // if next element is an array element and current element has the
     // word count in its name update the count to be the number of elements
     // in the array
-    if (GetSmashType(nextElement) in stArrays)
-    and (GetSmashType(element) = stInteger) and (Pos('Count', element.Name) > 0) then try
-      element.NativeValue := arrayContainer.ElementCount;
-    except
-      on x: Exception do
-        Tracker.Write('    Exception updating count at '+element.Path);
-    end;
+    if (GetSmashType(nextElement) in stArrays) and
+      (GetSmashType(element) = stInteger) and (Pos('Count', element.Name) > 0)
+    then
+      try
+        element.NativeValue := arrayContainer.ElementCount;
+      except
+        on x: Exception do
+          Tracker.Write('    Exception updating count at ' + element.Path);
+      end;
   end;
 end;
 
-function HasPartialFormFlag(rec: IwbMainRecord): Boolean;
+function HasPartialFormFlag(rec: IwbMainRecord): boolean;
 begin
   Result := ((rec.Signature = 'QUST') or (rec.Signature = 'LCTN')) and
     (rec.Flags._Flags and $00004000 <> 0);
 end;
 
-procedure SmashRecords(var patch: TPatch; var records: TInterfaceList);
+procedure SmashRecords(var patch: TPatch; var Records: TInterfaceList);
 var
   i, j: Integer;
   incProgress, currentProgress: Real;
@@ -307,27 +337,31 @@ begin
 
   // loop through records to smash
   currentProgress := Tracker.GetProgress;
-  incProgress := (Tracker.GetMaxProgress - Tracker.GetProgress) / records.Count;
-  for i := 0 to Pred(records.Count) do begin
-    if Tracker.Cancel then break;
-    if not Supports(records[i], IwbMainRecord, rec) then
-      exit;
+  incProgress := (Tracker.GetMaxProgress - Tracker.GetProgress) / Records.Count;
+  for i := 0 to Pred(Records.Count) do
+  begin
+    if Tracker.Cancel then
+      break;
+    if not Supports(Records[i], IwbMainRecord, rec) then
+      Exit;
     Tracker.StatusMessage(Format('Smashing records (%d/%d)',
-      [i + 1, records.Count]));
+      [i + 1, Records.Count]));
     currentProgress := currentProgress + incProgress;
     Tracker.SetProgress(Round(currentProgress));
 
     // loop through record's overrides
     patchRec := nil;
     forceFile := nil;
-    for j := 0 to Pred(rec.OverrideCount) do begin
-      if Tracker.Cancel then break;
+    for j := 0 to Pred(rec.OverrideCount) do
+    begin
+      if Tracker.Cancel then
+        break;
       ovr := rec.Overrides[j];
       f := ovr._File;
       // skip overrides that are in plugins we aren't patching
-      if patch.plugins.IndexOf(f.FileName) = -1 then
+      if patch.plugins.IndexOf(f.filename) = -1 then
         continue;
-      plugin := PluginByFileName(f.FileName);
+      plugin := PluginByFileName(f.filename);
       if not Assigned(plugin) then
         continue;
       // skip ctIdenticalToMaster overrides
@@ -343,11 +377,13 @@ begin
       recObj := aSetting.GetRecordDef(ovr.Signature);
       if not Assigned(recObj) then
         continue;
-      if (recObj.I['p'] <> 1) then
+      if (recObj.i['p'] <> 1) then
         continue;
-      bForce := recObj.I['f'] = 1;
-      if bForce then begin
-        if Assigned(patchRec) then begin
+      bForce := recObj.i['f'] = 1;
+      if bForce then
+      begin
+        if Assigned(patchRec) then
+        begin
           patchRec.Remove;
           patchRec := nil;
         end;
@@ -355,50 +391,59 @@ begin
       end;
 
       // copy record to smashed patch if it hasn't been copied yet
-      if not Assigned(patchRec) then try
-        if bForce then
-          e := ovr
-        else
-          e := WinningOverrideInFiles(rec, patch.plugins);
-        // be sure we include the parent?
-        AddParents(patch, e);
-        Tracker.Write(Format('  [%d] Copying record %s from %s', [i + 1, e.Name, e._File.Name]));
-        AddRequiredMasters(patchFile, e);
-        eCopy := e.CopyInto(patchFile, false, false, '', '', '', '');
-        patchRec := eCopy as IwbMainRecord;
-        if bForce then continue;
-      except
-        on x: Exception do begin
-          Tracker.Write('      Exception copying record '+e.Name+' from file '+e._File.Filename+': '+x.Message);
-          patch.fails.Add('Exception copying record '+ovr.Name+' : '+x.Message);
-          continue;
+      if not Assigned(patchRec) then
+        try
+          if bForce then
+            e := ovr
+          else
+            e := WinningOverrideInFiles(rec, patch.plugins);
+          // be sure we include the parent?
+          AddParents(patch, e);
+          Tracker.Write(Format('  [%d] Copying record %s from %s',
+            [i + 1, e.Name, e._File.Name]));
+          AddRequiredMasters(patchFile, e);
+          eCopy := e.CopyInto(patchFile, false, false, '', '', '', '');
+          patchRec := eCopy as IwbMainRecord;
+          if bForce then
+            continue;
+        except
+          on x: Exception do
+          begin
+            Tracker.Write('      Exception copying record ' + e.Name +
+              ' from file ' + e._File.filename + ': ' + x.Message);
+            patch.fails.Add('Exception copying record ' + ovr.Name + ' : ' +
+              x.Message);
+            continue;
+          end;
         end;
-      end;
 
       // skip if we're forcing and plugin doesn't require forceFile
-      if Assigned(forceFile) and not bForce
-      and (plugin.masters.IndexOf(forceFile.FileName) = -1) then
+      if Assigned(forceFile) and not bForce and
+        (plugin.Masters.IndexOf(forceFile.filename) = -1) then
         continue;
 
       // finally, recursively copy overridden elements
       try
-        bDeletions := recObj.I['d'] = 1;
+        bDeletions := recObj.i['d'] = 1;
         if (wbGameMode = gmFO4) and HasPartialFormFlag(ovr) then
-          bDeletions := False;
-        bOverride := recObj.I['o'] = 1;
+          bDeletions := false;
+        bOverride := recObj.i['o'] = 1;
         if bForce then
           mst := e as IwbMainRecord
         else
-          mst := WinningOverrideInFiles(rec, plugin.masters);
+          mst := WinningOverrideInFiles(rec, plugin.Masters);
         Tracker.Write(Format('    Smashing override of %s from: %s, master: %s',
-          [ovr.Name, f.FileName, mst._File.FileName]));
+          [ovr.Name, f.filename, mst._File.filename]));
         AddRequiredMasters(patch.plugin._File, ovr);
         rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
           recObj, false, bDeletions, bOverride);
       except
-        on x: Exception do begin
-          Tracker.Write('      Exception smashing record: '+ovr.Name+' : '+x.Message);
-          patch.fails.Add('Exception smashing record: '+ovr.Name+' : '+x.Message);
+        on x: Exception do
+        begin
+          Tracker.Write('      Exception smashing record: ' + ovr.Name + ' : ' +
+            x.Message);
+          patch.fails.Add('Exception smashing record: ' + ovr.Name + ' : ' +
+            x.Message);
         end;
       end;
 
@@ -408,9 +453,9 @@ begin
   end;
 end;
 
-function IsChildGroup(group: IwbGroupRecord): Boolean;
+function IsChildGroup(group: IwbGroupRecord): boolean;
 begin
-  Result := group.GroupType in [1,6,7];
+  Result := group.GroupType in [1, 6, 7];
 end;
 
 function NativeContainer(element: IwbElement): IwbContainer;
@@ -427,29 +472,29 @@ end;
 
 procedure RemoveEmptyContainers(aContainer: IwbContainer);
 var
-  container, nextContainer: IwbContainer;
+  Container, nextContainer: IwbContainer;
   rec: IwbMainRecord;
-  bITM, bITPO: Boolean;
+  bITM, bITPO: boolean;
 begin
-  container := aContainer;
+  Container := aContainer;
   // traverse up container until we find an IwbMainRecord
-  while Assigned(container) and 
-  not Supports(container, IwbMainRecord, rec) do begin
+  while Assigned(Container) and not Supports(Container, IwbMainRecord, rec) do
+  begin
     // break if container still has elements in it
-    if container.ElementCount > 0 then
-      exit;
+    if Container.ElementCount > 0 then
+      Exit;
 
     // else remove it and traverse up to next container
-    nextContainer := NativeContainer(container);
-    container.Remove;
-    container := nextContainer;
+    nextContainer := NativeContainer(Container);
+    Container.Remove;
+    Container := nextContainer;
   end;
 
   // exit if record is not ITM or ITPO
   bITM := IsITM(rec);
   bITPO := IsITPO(rec);
-  if not (bITM or bITPO) then
-    exit;
+  if not(bITM or bITPO) then
+    Exit;
 
   // else remove MainRecord and recurse
   if bITM then
@@ -461,22 +506,21 @@ begin
   RemoveEmptyContainers(nextContainer);
 end;
 
-
-function FindITPO(e: IwbMainRecord): Boolean;
+function FindITPO(e: IwbMainRecord): boolean;
 begin
   // skip master records
   if e.IsMaster then
-    Exit(False);
+    Exit(false);
 
   // skip records that have elements in child group (WRLD, CELL, DIAL)
   if Assigned(e.ChildGroup) and (e.ChildGroup.ElementCount > 0) then
-    Exit(False);
+    Exit(false);
 
   // remove record if no conflicts
   if not IsITPO(e) then
-    Exit(False);
+    Exit(false);
 
-  Result := True;
+  Result := true;
   Tracker.Write('    Removing ITPO: ' + e.Name);
 end;
 
@@ -492,7 +536,7 @@ type
 
 constructor TITPOThread.Create;
 begin
-  inherited Create(False);
+  inherited Create(false);
   Fe := e;
 end;
 
@@ -508,7 +552,7 @@ procedure RemoveITPOs(aFile: IwbFile);
 var
   i, CountITPO: Integer;
   e: IwbMainRecord;
-  container: IwbContainer;
+  Container: IwbContainer;
   ITPOs: TDynMainRecords;
   ThreadRefs: array of TITPOThread;
   ThreadHandles: array of THandle;
@@ -517,13 +561,16 @@ begin
   Tracker.Write('Removing ITPO records from patch');
   CountITPO := 0;
 
-  if settings.multiThreadedSmash then begin
+  if settings.multiThreadedSmash then
+  begin
     SetLength(ThreadRefs, aFile.RecordCount);
     SetLength(ThreadHandles, aFile.RecordCount);
 
     // loop through file's records
-    for i := Pred(aFile.RecordCount) downto 0 do begin
-      if Tracker.Cancel then break;
+    for i := Pred(aFile.RecordCount) downto 0 do
+    begin
+      if Tracker.Cancel then
+        break;
       e := aFile.Records[i];
 
       ThreadRefs[i] := TITPOThread.Create(e);
@@ -531,24 +578,31 @@ begin
     end;
 
     // Wait for Threads
-    WaitForMultipleObjects(Length(ThreadRefs), Pointer(ThreadHandles), True, INFINITE);
+    WaitForMultipleObjects(Length(ThreadRefs), Pointer(ThreadHandles), true,
+      INFINITE);
 
     // loop through threads and get results
-    for i := Pred(Length(ThreadRefs)) downto 0 do begin
+    for i := Pred(Length(ThreadRefs)) downto 0 do
+    begin
       // remove record if no conflicts
-      if ThreadRefs[i].ReturnValue = 1 then begin
+      if ThreadRefs[i].ReturnValue = 1 then
+      begin
         // add ITPO to list of records to remove
         SetLength(ITPOs, CountITPO + 1);
         ITPOs[CountITPO] := e;
         Inc(CountITPO);
       end;
     end;
-  end else begin
+  end
+  else
+  begin
     // loop through file's records
-    for i := Pred(aFile.RecordCount) downto 0 do begin
+    for i := Pred(aFile.RecordCount) downto 0 do
+    begin
       e := aFile.Records[i];
-      
-      if FindITPO(e) then begin
+
+      if FindITPO(e) then
+      begin
         // add ITPO to list of records to remove
         SetLength(ITPOs, CountITPO + 1);
         ITPOs[CountITPO] := e;
@@ -558,15 +612,17 @@ begin
   end;
 
   // remove the records
-  for i := Pred(Length(ITPOs)) downto 0 do begin
+  for i := Pred(Length(ITPOs)) downto 0 do
+  begin
     e := ITPOs[i];
-    container := e.Container;
+    Container := e.Container;
     e.Remove;
     try
-      RemoveEmptyContainers(container);
+      RemoveEmptyContainers(Container);
     except
       on x: Exception do
-        Tracker.Write('      Exception removing empty containers: '+x.Message);
+        Tracker.Write('      Exception removing empty containers: ' +
+          x.Message);
     end;
   end;
 
@@ -580,7 +636,6 @@ var
 begin
   patchFile := patch.plugin._File;
 
-
   try
     // remove ITPOs
     if not settings.preserveITPOs then
@@ -589,11 +644,11 @@ begin
     // patchFIle.CleanMasters;
   except
     on x: Exception do
-      Tracker.Write('    Exception removing ITPOs: '+x.Message);
+      Tracker.Write('    Exception removing ITPOs: ' + x.Message);
   end;
 
-  //Tracker.Write('Sorting patch masters according to current load order');
-  //patchFile.SortMasters;
+  // Tracker.Write('Sorting patch masters according to current load order');
+  // patchFile.SortMasters;
 end;
 
 procedure SavePatchFiles(var patch: TPatch);
@@ -614,8 +669,8 @@ begin
 
   // save files, fails, plugins
   patchFilePrefix := patchPath + ChangeFileExt(patch.filename, '');
-  patch.fails.SaveToFile(patchFilePrefix+'_fails.txt');
-  patch.plugins.SaveToFile(patchFilePrefix+'_plugins.txt');
+  patch.fails.SaveToFile(patchFilePrefix + '_fails.txt');
+  patch.plugins.SaveToFile(patchFilePrefix + '_plugins.txt');
 end;
 
 procedure BuildPatch(var patch: TPatch);
@@ -627,7 +682,7 @@ var
   msg: string;
 begin
   // initialize
-  Tracker.Write('Building patch: '+patch.name);
+  Tracker.Write('Building patch: ' + patch.Name);
   time := Now;
   patch.fails.Clear;
   pluginsToPatch := TList.Create;
@@ -637,14 +692,14 @@ begin
     // build list of plugins to patch
     BuildPluginsList(patch, pluginsToPatch);
     HandleCanceled(msg);
-    
+
     // identify or create patch file
     patchFile := GetPatchFile(patch, pluginsToPatch);
     SetPatchAttributes(patch);
 
     // add masters to patch file
-    //AddRequiredMasters(patch, pluginsToPatch);
-    //HandleCanceled(msg);
+    // AddRequiredMasters(patch, pluginsToPatch);
+    // HandleCanceled(msg);
 
     // build list of overrides
     recordsList := TInterfaceList.Create;
@@ -653,7 +708,7 @@ begin
 
     // stop smashing if no records to smash
     if recordsList.Count = 0 then
-      raise Exception.create('No records to patch!');
+      raise Exception.Create('No records to patch!');
 
     // smash records
     SmashRecords(patch, recordsList);
@@ -674,11 +729,12 @@ begin
     time := (Now - time) * 86400;
     patch.dateBuilt := Now;
     patch.status := psUpToDate;
-    Tracker.Write(Format('Done smashing %s (%.3f)', [patch.name, Real(time)]));
+    Tracker.Write(Format('Done smashing %s (%.3f)', [patch.Name, Real(time)]));
   except
-    on x: Exception do begin
+    on x: Exception do
+    begin
       patch.status := psFailed;
-      Tracker.Write(Format('Failed to patch %s, %s', [patch.name, x.Message]));
+      Tracker.Write(Format('Failed to patch %s, %s', [patch.Name, x.Message]));
     end;
   end;
 

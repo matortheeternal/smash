@@ -64,7 +64,8 @@ begin
     exit;
 
   // return false if patch with specified name already exists
-  for i := 0 to Pred(PatchesList.Count) do begin
+  for i := 0 to Pred(PatchesList.Count) do
+  begin
     aPatch := TPatch(PatchesList[i]);
     if (aPatch.name = edName.Text) and (aPatch <> patch) then
       exit;
@@ -100,8 +101,9 @@ begin
   plugin := PluginByFilename(edFilename.Text);
   loadOrder := PluginLoadOrder(edFilename.Text);
   highLoadOrder := MaxInt;
-  if patch.plugins.Count > 0 then begin
-    sFilename := patch.plugins[patch.plugins.Count -1];
+  if patch.plugins.Count > 0 then
+  begin
+    sFilename := patch.plugins[patch.plugins.Count - 1];
     highLoadOrder := PluginLoadOrder(sFilename);
   end;
 
@@ -110,9 +112,10 @@ begin
     exit;
 
   // return false if patch exists
-  for i := 0 to Pred(PatchesList.Count) do begin
+  for i := 0 to Pred(PatchesList.Count) do
+  begin
     aPatch := TPatch(PatchesList[i]);
-    if (aPatch.filename = edFileName.Text) and (aPatch <> patch) then
+    if (aPatch.filename = edFilename.Text) and (aPatch <> patch) then
       exit;
   end;
 
@@ -126,19 +129,19 @@ var
 begin
   // if invalid disable btnOk, show hint, and make font color red
   valid := ESPFilenameValid;
-  btnOk.Enabled := valid and NameValid;
+  btnOK.Enabled := valid and NameValid;
   edFilename.ShowHint := valid;
   if valid then
     edFilename.Font.Color := clWindowText
   else
-    edFilename.Font.Color := $0000ff;
+    edFilename.Font.Color := $0000FF;
 end;
 
 procedure TEditForm.edFilenameEnter(Sender: TObject);
 begin
   // change selection to not include the .esp
-  if (edFilename.SelLength = Length(edFilename.Text))
-  and StrEndsWith(edFilename.Text, '.esp') then
+  if (edFilename.SelLength = Length(edFilename.Text)) and
+    StrEndsWith(edFilename.Text, '.esp') then
     edFilename.SelLength := edFilename.SelLength - 4;
 end;
 
@@ -147,14 +150,14 @@ var
   valid, exists: boolean;
 begin
   valid := NameValid;
-  exists := DirectoryExists(settings.patchDirectory + edName.Text)
-    and (edName.Text <> patch.name);
+  exists := DirectoryExists(settings.patchDirectory + edName.Text) and
+    (edName.Text <> patch.name);
 
   // if invalid show hint and make font color red
-  btnOk.Enabled := valid and ESPFilenameValid;
+  btnOK.Enabled := valid and ESPFilenameValid;
   edName.ShowHint := (not valid) or exists;
   if (not valid) or exists then
-    edName.Font.Color := $0000ff
+    edName.Font.Color := $0000FF
   else
     edName.Font.Color := clWindowText;
 end;
@@ -163,9 +166,10 @@ end;
 procedure TEditForm.edKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
-  if (HiWord(GetKeyState(vk_Return)) <> 0) and btnOk.Enabled then begin
-    btnOkClick(nil);
-    ModalResult := mrOk;
+  if (HiWord(GetKeyState(vk_Return)) <> 0) and btnOK.Enabled then
+  begin
+    btnOKClick(nil);
+    ModalResult := mrOK;
   end;
 end;
 

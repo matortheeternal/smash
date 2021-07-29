@@ -11,10 +11,10 @@ uses
 type
   TChangeLogForm = class(TForm)
     [FormPrefix('mpCha')]
-      ScrollBox: TScrollBox;
-      LabelPrompt: TLabel;
-      ButtonInstall: TButton;
-      ButtonSkip: TButton;
+    ScrollBox: TScrollBox;
+    LabelPrompt: TLabel;
+    ButtonInstall: TButton;
+    ButtonSkip: TButton;
 
     procedure FormCreate(Sender: TObject);
     procedure CreateVersionLabel(line: string; var top: Integer);
@@ -27,7 +27,7 @@ type
   end;
 
   // public entry point
-  function ChangeLogPrompt(AOwner: TComponent): boolean;
+function ChangeLogPrompt(AOwner: TComponent): boolean;
 
 const
   spacing = 5;
@@ -44,12 +44,12 @@ implementation
 
 procedure TChangeLogForm.FormCreate(Sender: TObject);
 begin
-  {// do a translation dump?
-  if bTranslationDump then
+  { // do a translation dump?
+    if bTranslationDump then
     TRttiTranslation.Save('lang\english.lang', self);
 
-  // load translation
-  TRttiTranslation.Load(language, self);}
+    // load translation
+    TRttiTranslation.Load(language, self); }
 
   // display changelog
   DisplayChangelog;
@@ -68,7 +68,7 @@ begin
   lbl := TLabel.Create(ScrollBox);
   lbl.Parent := ScrollBox;
   lbl.Autosize := true;
-  lbl.Top := top;
+  lbl.top := top;
   lbl.Left := 8;
   lbl.Caption := line;
   lbl.Font.Style := [fsBold];
@@ -84,9 +84,9 @@ begin
   // make label
   lbl := TLabel.Create(ScrollBox);
   lbl.Parent := ScrollBox;
-  lbl.AutoSize := true;
+  lbl.Autosize := true;
   lbl.WordWrap := true;
-  lbl.Top := top;
+  lbl.top := top;
   lbl.Left := 20;
   lbl.Width := ScrollBox.ClientWidth - 36;
   lbl.Caption := Trim(line);
@@ -104,14 +104,16 @@ begin
   start := 0;
   if not Assigned(clChangelog) then
     exit;
-  for i := 0 to Pred(clChangelog.Count) do begin
+  for i := 0 to Pred(clChangelog.Count) do
+  begin
     line := clChangelog[i];
     if not IsVersionLine(line) then
       continue;
 
     // identify start of changelog as first version newer than current version
     lineVersion := Copy(line, 9, Length(line));
-    if VersionCompare(clProgramVersion, lineVersion) then begin
+    if VersionCompare(clProgramVersion, lineVersion) then
+    begin
       start := i;
       break;
     end;
@@ -120,7 +122,8 @@ begin
   // loop through the changelog, creating labels in scrollbox
   // as necessary to render text
   top := 8;
-  for i := start to Pred(clChangelog.Count) do begin
+  for i := start to Pred(clChangelog.Count) do
+  begin
     line := clChangelog[i];
     if IsVersionLine(line) then
       CreateVersionLabel(line, top)
@@ -136,7 +139,8 @@ begin
     changelog := TStringList.Create;
 
   // don't attempt to load changelog if it doesn't exist
-  if not FileExists('changelog.txt') then begin
+  if not FileExists('changelog.txt') then
+  begin
     Logger.Write('GENERAL', 'Changelog', 'No changelog found');
     exit;
   end;

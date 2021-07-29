@@ -28,6 +28,10 @@ object EditForm: TEditForm
     TabWidth = 60
     object EditTabSheet: TTabSheet
       Caption = 'Edit'
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object lblName: TLabel
         Left = 12
         Top = 13

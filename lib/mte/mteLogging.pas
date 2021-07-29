@@ -25,7 +25,8 @@ type
     constructor Create(group: string; enabled: boolean); Overload;
     constructor Create(group, &label: string; enabled: boolean); Overload;
   end;
-  TLogMessage = class (TObject)
+
+  TLogMessage = class(TObject)
   public
     time: string;
     appTime: string;
@@ -36,11 +37,11 @@ type
   end;
 
   { Log methods }
-  procedure RebuildLog;
-  procedure SaveLog(var Log: TList);
-  function MessageEnabled(msg: TLogMessage): boolean;
-  procedure ShowProgressForm(parent: TForm; var pf: TProgressForm;
-    sCaption, sLogSubPath: string);
+procedure RebuildLog;
+procedure SaveLog(var Log: TList);
+function MessageEnabled(msg: TLogMessage): boolean;
+procedure ShowProgressForm(parent: TForm; var pf: TProgressForm;
+  sCaption, sLogSubPath: string);
 
 var
   BaseLog, Log, LabelFilters, GroupFilters: TList;
@@ -74,7 +75,7 @@ begin
   self.text := text;
 end;
 
-{******************************************************************************}
+{ ****************************************************************************** }
 { Log methods
   Set of methods for logging
 
@@ -84,7 +85,7 @@ end;
   - SaveLog
   - MessageGroupEnabled
 }
-{******************************************************************************}
+{ ****************************************************************************** }
 
 procedure RebuildLog;
 var
@@ -92,7 +93,8 @@ var
   msg: TLogMessage;
 begin
   Log.Clear;
-  for i := 0 to Pred(BaseLog.Count) do begin
+  for i := 0 to Pred(BaseLog.Count) do
+  begin
     msg := TLogMessage(BaseLog[i]);
     if MessageEnabled(msg) then
       Log.Add(msg);
@@ -107,13 +109,15 @@ var
   fdt: string;
 begin
   sl := TStringList.Create;
-  for i := 0 to Pred(Log.Count) do begin
+  for i := 0 to Pred(Log.Count) do
+  begin
     msg := TLogMessage(Log[i]);
-    sl.Add(Format('[%s] (%s) %s: %s', [msg.time, msg.group, msg.&label, msg.text]));
+    sl.Add(Format('[%s] (%s) %s: %s', [msg.time, msg.group, msg.&label,
+      msg.text]));
   end;
   fdt := FormatDateTime('mmddyy_hhnnss', TDateTime(Now));
-  ForceDirectories(LogPath+'main\');
-  sl.SaveToFile(LogPath+'main\log_'+fdt+'.txt');
+  ForceDirectories(LogPath + 'main\');
+  sl.SaveToFile(LogPath + 'main\log_' + fdt + '.txt');
   sl.Free;
 end;
 
@@ -123,9 +127,11 @@ var
   filter: TFilter;
 begin
   Result := nil;
-  for i := 0 to Pred(GroupFilters.Count) do begin
+  for i := 0 to Pred(GroupFilters.Count) do
+  begin
     filter := TFilter(GroupFilters[i]);
-    if filter.group = msg.group then begin
+    if filter.group = msg.group then
+    begin
       Result := filter;
       exit;
     end;
@@ -138,9 +144,11 @@ var
   filter: TFilter;
 begin
   Result := nil;
-  for i := 0 to Pred(LabelFilters.Count) do begin
+  for i := 0 to Pred(LabelFilters.Count) do
+  begin
     filter := TFilter(LabelFilters[i]);
-    if (filter.&label = msg.&label) and (filter.group = msg.group) then begin
+    if (filter.&label = msg.&label) and (filter.group = msg.group) then
+    begin
       Result := filter;
       exit;
     end;
@@ -167,11 +175,12 @@ begin
   pf.pfLogPath := LogPath + sLogSubPath + '\';
   pf.PopupParent := parent;
   pf.Caption := sCaption;
-  pf.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
+  pf.SetMaxProgress(IntegerListSum(TimeCosts, Pred(TimeCosts.Count)));
   pf.Show;
 end;
 
 initialization
+
 begin
   BaseLog := TList.Create;
   Log := TList.Create;
@@ -180,6 +189,7 @@ begin
 end;
 
 finalization
+
 begin
   FreeList(BaseLog);
   Log.Free;

@@ -32,27 +32,29 @@ type
   private
     { Private declarations }
   public
-    bDetailsVisible: boolean;
+    bDetailsVisible: Boolean;
     pfLogPath: string;
   end;
 
 implementation
 
 var
-  lastHeight: integer;
+  lastHeight: Integer;
 
 {$R *.dfm}
 
 procedure TProgressForm.ToggleDetails(Sender: TObject);
 begin
   bDetailsVisible := not bDetailsVisible;
-  if bDetailsVisible then begin
+  if bDetailsVisible then
+  begin
     self.Height := lastHeight;
     DetailsMemo.Visible := true;
     DetailsButton.Caption := 'Hide details';
     DetailsMemo.Height := self.Height - 135;
   end
-  else begin
+  else
+  begin
     DetailsMemo.Visible := false;
     DetailsButton.Caption := 'Show details';
     lastHeight := self.Height;
@@ -80,8 +82,9 @@ end;
 procedure TProgressForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   CanClose := (fsModal in FormState);
-  //Tracker.Write('CanClose = '+BoolToStr(CanClose, true));
-  if not (CanClose or Tracker.Cancel) then begin
+  // Tracker.Write('CanClose = '+BoolToStr(CanClose, true));
+  if not(CanClose or Tracker.Cancel) then
+  begin
     Tracker.Write('Cancelling...');
     SetTaskbarProgressState(tbpsError);
     Tracker.Cancel := true;
@@ -105,12 +108,14 @@ end;
 
 procedure TProgressForm.FormShow(Sender: TObject);
 begin
-  if (fsModal in FormState) then begin
+  if (fsModal in FormState) then
+  begin
     CancelButton.Caption := 'Close';
     if not bDetailsVisible then
       ToggleDetails(nil);
   end
-  else if not bDetailsVisible then begin
+  else if not bDetailsVisible then
+  begin
     bDetailsVisible := false;
     DetailsMemo.Visible := false;
     DetailsButton.Caption := 'Show details';
@@ -153,9 +158,10 @@ begin
   try
     ForceDirectories(pfLogPath);
     fdt := FormatDateTime('mmddyy_hhnnss', TDateTime(Now));
-    DetailsMemo.Lines.SaveToFile(pfLogPath + 'log_'+fdt+'.txt');
-  except on Exception do
-    // nothing to do
+    DetailsMemo.Lines.SaveToFile(pfLogPath + 'log_' + fdt + '.txt');
+  except
+    on Exception do
+      // nothing to do
   end;
 end;
 

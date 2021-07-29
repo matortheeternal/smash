@@ -29,6 +29,7 @@ type
       overrideDeletions, singleEntity, forceValue: boolean;
       smashType: TSmashType; linkTo, linkFrom: string); overload;
   end;
+
   TSmashSetting = class(TObject)
   public
     name: string;
@@ -43,7 +44,7 @@ type
     constructor Clone(s: TSmashSetting);
     function GetRecordDef(sig: string): ISuperObject;
     procedure LoadDump(dump: ISuperObject);
-    function Dump: ISuperObject;
+    function dump: ISuperObject;
     procedure UpdateHash;
     procedure UpdateRecords;
     procedure Save;
@@ -53,8 +54,9 @@ type
     function GetTags: String;
     function GetCombinedTags: String;
   end;
-  {TRecommendation = class(TObject)
-  public
+
+  { TRecommendation = class(TObject)
+    public
     game: string;
     username: string;
     filename: string;
@@ -69,16 +71,18 @@ type
     procedure SetNotes(notes: string);
     function GetNotes: string;
     procedure Save(const filename: string);
-  end; }
+    end; }
   // SMASH CORE CLASSES
-  TPatchStatusID = ( psUnknown, psNoPlugins, psDirInvalid, psUnloaded,
-    psErrors, psFailed, psUpToDate, psUpToDateForced, psBuildReady,
-    psRebuildReady, psRebuildReadyForced );
-  TPatchStatus  = Record
+  TPatchStatusID = (psUnknown, psNoPlugins, psDirInvalid, psUnloaded, psErrors,
+    psFailed, psUpToDate, psUpToDateForced, psBuildReady, psRebuildReady,
+    psRebuildReadyForced);
+
+  TPatchStatus = Record
     id: TPatchStatusID;
     color: integer;
     desc: string[64];
   end;
+
   TPlugin = class(TBasePlugin)
   public
     setting: string;
@@ -87,11 +91,11 @@ type
     constructor Create; override;
     procedure GetMsData;
     procedure GetDataPath;
-    function GetFormIndex: Integer;
+    function GetFormIndex: integer;
     function IsInPatch: boolean;
     procedure LoadInfoDump(obj: ISuperObject);
     function InfoDump: ISuperObject;
-    function HasTags: Boolean;
+    function HasTags: boolean;
     procedure ApplySettingTags;
     procedure SetSmashSetting(aSetting: TSmashSetting);
     procedure LoadTags(sSettingName: String; var sl: TStringList;
@@ -100,6 +104,7 @@ type
     procedure WriteDescription;
     procedure Save;
   end;
+
   TPatch = class(TObject)
   public
     name: string;
@@ -115,7 +120,7 @@ type
     fails: TStringList;
     constructor Create; virtual;
     destructor Destroy; override;
-    function Dump: ISuperObject;
+    function dump: ISuperObject;
     procedure LoadDump(obj: ISuperObject);
     function GetTimeCost: integer;
     procedure UpdateHashes;
@@ -130,61 +135,64 @@ type
     function FilesExist: boolean;
     function GetStatusColor: integer;
   end;
+
   TSettingHelpers = class
     class function SettingByName(name: String): TSmashSetting;
     class function SettingByHash(hash: String): TSmashSetting;
     class function GetSmashSetting(setting: string): TSmashSetting;
   end;
+
   TPatchHelpers = class
     class function CreateNewPatch(var patches: TList): TPatch;
     class function GetPatchForPlugin(filename: string): string;
     class procedure AssignPatchesToPlugins;
     class function PatchByName(var patches: TList; name: string): TPatch;
-    class function PatchByFilename(var patches: TList; filename: string): TPatch;
+    class function PatchByFilename(var patches: TList;
+      filename: string): TPatch;
   end;
 
   // Loading/Saving Functions
-  procedure RenameSavedPlugins;
-  procedure SavePatches;
-  procedure LoadPatches;
-  procedure SaveSmashSettings;
-  procedure LoadSmashSettings;
-  procedure SavePluginInfo;
-  procedure LoadPluginInfo;
-  procedure LoadSettingTags;
-  // Helper Functions
-  procedure HandleCanceled(msg: string);
+procedure RenameSavedPlugins;
+procedure SavePatches;
+procedure LoadPatches;
+procedure SaveSmashSettings;
+procedure LoadSmashSettings;
+procedure SavePluginInfo;
+procedure LoadPluginInfo;
+procedure LoadSettingTags;
+// Helper Functions
+procedure HandleCanceled(msg: string);
 
-  procedure UpdatePluginData;
-  function CreateNewPlugin(sFilename: string): TPlugin;
-  function PluginLoadOrder(sFilename: string): Integer;
-  function PluginByFilename(sFilename: string): TPlugin;
-  procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
-  procedure AddAllRecords(currentSetting: TSmashSetting; var tv: TTreeView);
-  procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
-  function GetTagString(var slTags: TStringList): String;
-  // Tree Helper Functions
-  procedure BuildTreeFromPlugins(var tv: TTreeView; var sl: TStringList;
-    tree: ISuperObject);
-  procedure SetChildren(node: TTreeNode; state: Integer);
-  procedure UpdateParent(node: TTreeNode);
-  procedure CheckBoxManager(node: TTreeNode);
-  procedure LoadElement(var tv: TTreeView; node: TTreeNode; obj: ISuperObject;
-    bWithinSingle: boolean);
-  procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
-  function GetRecordObject(tree: ISuperObject; sig: string): ISuperObject;
-  function GetChild(obj: ISuperObject; name: string): ISuperObject;
-  procedure MergeChildren(srcObj, dstObj: ISuperObject);
-  function CreateCombinedSetting(var sl: TStringList; name: string;
-    bVirtual: boolean = false): TSmashSetting;
-  function CombineSettingTrees(var lst: TList; var slSettings: TStringList): boolean;
-  // Tag Helper Functions
-  function ClearTags(sDescription: String): String;
-  procedure GetMissingTags(var slPresent, slMissing: TStringList);
-  procedure ExtractTags(var match: TMatch; var sl: TStringList;
-    var sTagGroup: String);
-  procedure ParseTags(description: string; var sl: TStringList);
-
+procedure UpdatePluginData;
+function CreateNewPlugin(sFilename: string): TPlugin;
+function PluginLoadOrder(sFilename: string): integer;
+function PluginByFilename(sFilename: string): TPlugin;
+procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
+procedure AddAllRecords(currentSetting: TSmashSetting; var tv: TTreeView);
+procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
+function GetTagString(var slTags: TStringList): String;
+// Tree Helper Functions
+procedure BuildTreeFromPlugins(var tv: TTreeView; var sl: TStringList;
+  tree: ISuperObject);
+procedure SetChildren(node: TTreeNode; state: integer);
+procedure UpdateParent(node: TTreeNode);
+procedure CheckBoxManager(node: TTreeNode);
+procedure LoadElement(var tv: TTreeView; node: TTreeNode; obj: ISuperObject;
+  bWithinSingle: boolean);
+procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
+function GetRecordObject(tree: ISuperObject; sig: string): ISuperObject;
+function GetChild(obj: ISuperObject; name: string): ISuperObject;
+procedure MergeChildren(srcObj, dstObj: ISuperObject);
+function CreateCombinedSetting(var sl: TStringList; name: string;
+  bVirtual: boolean = false): TSmashSetting;
+function CombineSettingTrees(var lst: TList;
+  var slSettings: TStringList): boolean;
+// Tag Helper Functions
+function ClearTags(sDescription: String): String;
+procedure GetMissingTags(var slPresent, slMissing: TStringList);
+procedure ExtractTags(var match: TMatch; var sl: TStringList;
+  var sTagGroup: String);
+procedure ParseTags(description: string; var sl: TStringList);
 
 const
   // IMPORTANT CONSTANTS
@@ -198,28 +206,29 @@ const
   csPartiallyChecked = 3;
 
   // SMASH TYPE ARRAYS
-  stArrays = [ stUnsortedArray, stUnsortedStructArray,
-    stSortedArray, stSortedStructArray ];
-  stValues = [ stString, stFloat, stInteger, stByteArray ];
+  stArrays = [stUnsortedArray, stUnsortedStructArray, stSortedArray,
+    stSortedStructArray];
+  stValues = [stString, stFloat, stInteger, stByteArray];
 
   // PATCH STATUSES
-  StatusArray: array[0..10] of TPatchStatus = (
-    ( id: psUnknown; color: $808080; desc: 'Unknown'; ),
-    ( id: psNoPlugins; color: $0000FF; desc: 'Need two or more plugins to patch'; ),
-    ( id: psDirInvalid; color: $0000FF; desc: 'Directories invalid'; ),
-    ( id: psUnloaded; color: $0000FF; desc: 'Plugins not loaded'; ),
-    ( id: psErrors; color: $0000FF; desc: 'Errors in plugins'; ),
-    ( id: psFailed; color: $0000FF; desc: 'Patch failed'; ),
-    ( id: psUpToDate; color: $900000; desc: 'Up to date'; ),
-    ( id: psUpToDateForced; color: $900000; desc: 'Up to date [Forced]'; ),
-    ( id: psBuildReady; color: $009000; desc: 'Ready to be built'; ),
-    ( id: psRebuildReady; color: $009000; desc: 'Ready to be rebuilt'; ),
-    ( id: psRebuildReadyForced; color: $009000; desc: 'Ready to be rebuilt [Forced]'; )
-  );
+  StatusArray: array [0 .. 10] of TPatchStatus = ((id: psUnknown;
+    color: $808080; desc: 'Unknown';), (id: psNoPlugins; color: $0000FF;
+    desc: 'Need two or more plugins to patch';
+    ), (id: psDirInvalid; color: $0000FF; desc: 'Directories invalid';
+    ), (id: psUnloaded; color: $0000FF; desc: 'Plugins not loaded';
+    ), (id: psErrors; color: $0000FF; desc: 'Errors in plugins';
+    ), (id: psFailed; color: $0000FF; desc: 'Patch failed';
+    ), (id: psUpToDate; color: $900000; desc: 'Up to date';
+    ), (id: psUpToDateForced; color: $900000; desc: 'Up to date [Forced]';
+    ), (id: psBuildReady; color: $009000; desc: 'Ready to be built';
+    ), (id: psRebuildReady; color: $009000; desc: 'Ready to be rebuilt';
+    ), (id: psRebuildReadyForced; color: $009000;
+    desc: 'Ready to be rebuilt [Forced]';));
   // STATUS TYPES
   ErrorStatuses = [psUnknown, psNoPlugins, psDirInvalid, psUnloaded, psErrors];
   UpToDateStatuses = [psUpToDate, psUpToDateForced];
-  BuildStatuses = [psBuildReady, psRebuildReady, psRebuildReadyForced, psFailed];
+  BuildStatuses = [psBuildReady, psRebuildReady, psRebuildReadyForced,
+    psFailed];
   RebuildStatuses = [psRebuildReady, psRebuildReadyForced, psFailed];
   ForcedStatuses = [psUpToDateForced, psRebuildReadyForced];
   ResolveStatuses = [psNoPlugins, psDirInvalid, psUnloaded, psErrors];
@@ -227,7 +236,7 @@ const
 
 var
   xEditVersion: string;
-  PatchesList, SmashSettings, pluginsToHandle, patchesToBuild: TList;
+  PatchesList, smashSettings, pluginsToHandle, patchesToBuild: TList;
   ActiveMods, SavedPluginPaths: TStringList;
   ActiveModProfile, xEditLogGroup, xEditLogLabel, DictionaryFilename: string;
 
@@ -259,7 +268,7 @@ begin
   GetDataPath;
   GetHash;
 
-   // get numOverrides if not blacklisted
+  // get numOverrides if not blacklisted
   if (numRecords < 10000) then
     numOverrides := CountOverrides(_File);
 
@@ -272,14 +281,15 @@ begin
   dataPath := wbDataPath;
 end;
 
-function TPlugin.GetFormIndex: Integer;
+function TPlugin.GetFormIndex: integer;
 var
   Container, MasterFiles: IwbContainer;
 begin
   Result := 0;
   Container := self._File as IwbContainer;
   Container := Container.Elements[0] as IwbContainer;
-  if Container.ElementExists['Master Files'] then begin
+  if Container.ElementExists['Master Files'] then
+  begin
     MasterFiles := Container.ElementByPath['Master Files'] as IwbContainer;
     Result := MasterFiles.ElementCount;
   end;
@@ -297,9 +307,9 @@ begin
   obj := SO;
 
   // filename, hash, errors
-  obj.S['filename'] := filename;
-  obj.S['hash'] := hash;
-  obj.S['setting'] := setting;
+  obj.s['filename'] := filename;
+  obj.s['hash'] := hash;
+  obj.s['setting'] := setting;
 
   Result := obj;
 end;
@@ -308,30 +318,32 @@ procedure TPlugin.LoadInfoDump(obj: ISuperObject);
 var
   aSetting: TSmashSetting;
 begin
-  aSetting := TSettingHelpers.SettingByName(obj.AsObject.S['setting']);
+  aSetting := TSettingHelpers.SettingByName(obj.AsObject.s['setting']);
   SetSmashSetting(aSetting);
 end;
 
 procedure TPlugin.SetSmashSetting(aSetting: TSmashSetting);
 begin
-  if not Assigned(aSetting) then begin
+  if not Assigned(aSetting) then
+  begin
     setting := 'Skip';
     smashSetting := TSettingHelpers.SettingByName(setting);
   end
-  else begin
+  else
+  begin
     setting := aSetting.name;
     smashSetting := aSetting;
-    Logger.Write('PLUGIN', 'Settings', 'Using '+setting+' for '+filename);
+    Logger.Write('PLUGIN', 'Settings', 'Using ' + setting + ' for ' + filename);
   end;
 end;
 
-function TPlugin.HasTags: Boolean;
+function TPlugin.HasTags: boolean;
 var
   regex: TRegex;
   match: TMatch;
 begin
-  regex := TRegEx.Create('{{([a-zA-Z]{1,10}:){0,1}([^}]*)}}');
-  match := regex.Match(description.Text);
+  regex := TRegex.Create('{{([a-zA-Z]{1,10}:){0,1}([^}]*)}}');
+  match := regex.match(description.Text);
   Result := match.Success;
 end;
 
@@ -355,21 +367,25 @@ var
   slRecords: TStringList;
   aSetting: TSmashSetting;
   settingsToCombine: TList;
-  i: Integer;
+  i: integer;
 begin
   // if only one setting present, use it
-  if sl.Count = 1 then begin
+  if sl.Count = 1 then
+  begin
     aSetting := TSettingHelpers.GetSmashSetting(sl[0]);
     SetSmashSetting(aSetting);
   end
   // else make a combined setting
-  else begin
+  else
+  begin
     settingsToCombine := TList.Create;
 
     // loop through found settings
-    for i := Pred(sl.Count) downto 0 do begin
+    for i := Pred(sl.Count) downto 0 do
+    begin
       aSetting := TSettingHelpers.GetSmashSetting(sl[i]);
-      if not Assigned(aSetting) then begin
+      if not Assigned(aSetting) then
+      begin
         sl.Delete(i);
         continue;
       end;
@@ -379,11 +395,12 @@ begin
     // if settingsToCombine has 0 settings, set to skip setting
     if settingsToCombine.Count = 0 then
       SetSmashSetting(nil)
-    // if settingToCombine has only 1 setting, use that setting
+      // if settingToCombine has only 1 setting, use that setting
     else if settingsToCombine.Count = 1 then
       SetSmashSetting(settingsToCombine[0])
-    // else build a combined setting
-    else begin
+      // else build a combined setting
+    else
+    begin
       Logger.Write('PLUGIN', 'Settings', 'Building combined setting');
       slRecords := TStringList.Create;
       CombineSettingTrees(settingsToCombine, slRecords);
@@ -397,25 +414,28 @@ end;
 
 procedure TPlugin.GetSettingTag;
 var
-  regex: TRegEx;
+  regex: TRegex;
   match: TMatch;
   sTagGroup: String;
   sl: TStringList;
 begin
   // get setting tags from description
-  regex := TRegEx.Create('{{([a-zA-Z]{1,10}:){0,1}([^}]*)}}');
-  match := regex.Match(description.Text);
+  regex := TRegex.Create('{{([a-zA-Z]{1,10}:){0,1}([^}]*)}}');
+  match := regex.match(description.Text);
   sl := TStringList.Create;
 
   // set to skip setting if no tag is found
-  if not match.Success then begin
-    Logger.Write('PLUGIN', 'Tags', 'No tags found for '+filename);
+  if not match.Success then
+  begin
+    Logger.Write('PLUGIN', 'Tags', 'No tags found for ' + filename);
     setting := 'Skip';
     smashSetting := TSettingHelpers.SettingByName(setting);
   end
   // else parse settings from tag
-  else begin
-    Logger.Write('PLUGIN', 'Tags', 'Found tag '+match.Value+' for '+filename);
+  else
+  begin
+    Logger.Write('PLUGIN', 'Tags', 'Found tag ' + match.Value + ' for ' +
+      filename);
     ExtractTags(match, sl, sTagGroup);
     LoadTags(match.Groups.Item[2].Value, sl, sTagGroup);
   end;
@@ -451,7 +471,7 @@ begin
       SavedPluginPaths.Add(dataPath + filename);
   except
     on x: Exception do
-      Tracker.Write('Failed to save: '+x.Message);
+      Tracker.Write('Failed to save: ' + x.Message);
   end;
   TryToFree(FileStream);
 end;
@@ -480,9 +500,8 @@ begin
   inherited;
 end;
 
-
 { Produces a dump of the patch. }
-function TPatch.Dump: ISuperObject;
+function TPatch.dump: ISuperObject;
 var
   obj: ISuperObject;
   i: integer;
@@ -490,28 +509,28 @@ begin
   obj := SO;
 
   // normal attributes
-  obj.S['name'] := name;
-  obj.S['filename'] := filename;
-  obj.S['dateBuilt'] := DateTimeToStr(dateBuilt);
+  obj.s['name'] := name;
+  obj.s['filename'] := filename;
+  obj.s['dateBuilt'] := DateTimeToStr(dateBuilt);
 
   // plugins, pluginHashes, pluginSettings, masters
   obj.O['plugins'] := SA([]);
   for i := 0 to Pred(plugins.Count) do
-    obj.A['plugins'].S[i] := plugins[i];
+    obj.A['plugins'].s[i] := plugins[i];
   obj.O['pluginHashes'] := SA([]);
   for i := 0 to Pred(hashes.Count) do
-    obj.A['pluginHashes'].S[i] := hashes[i];
+    obj.A['pluginHashes'].s[i] := hashes[i];
   obj.O['pluginSettings'] := SA([]);
   for i := 0 to Pred(smashSettings.Count) do
-    obj.A['pluginSettings'].S[i] := smashSettings[i];
+    obj.A['pluginSettings'].s[i] := smashSettings[i];
   obj.O['masters'] := SA([]);
   for i := 0 to Pred(masters.Count) do
-    obj.A['masters'].S[i] := masters[i];
+    obj.A['masters'].s[i] := masters[i];
 
   // files, log, ignored dependencies
   obj.O['fails'] := SA([]);
   for i := 0 to Pred(fails.Count) do
-    obj.A['fails'].S[i] := fails[i];
+    obj.A['fails'].s[i] := fails[i];
 
   Result := obj;
 end;
@@ -519,44 +538,46 @@ end;
 { Loads a dump of a patch. }
 procedure TPatch.LoadDump(obj: ISuperObject);
 var
-  item: ISuperObject;
+  Item: ISuperObject;
 begin
   // load object attributes
-  name := obj.AsObject.S['name'];
-  filename := obj.AsObject.S['filename'];
+  name := obj.AsObject.s['name'];
+  filename := obj.AsObject.s['filename'];
 
   // try loading dateBuilt and parsing to DateTime
   try
-    dateBuilt := StrToDateTime(obj.AsObject.S['dateBuilt']);
-  except on Exception do
-    dateBuilt := 0; // on exception set to never built
+    dateBuilt := StrToDateTime(obj.AsObject.s['dateBuilt']);
+  except
+    on Exception do
+      dateBuilt := 0; // on exception set to never built
   end;
 
   // load array attributes
-  for item in obj['plugins'] do
-    plugins.Add(item.AsString);
-  for item in obj['pluginHashes'] do
-    hashes.Add(item.AsString);
+  for Item in obj['plugins'] do
+    plugins.Add(Item.AsString);
+  for Item in obj['pluginHashes'] do
+    hashes.Add(Item.AsString);
   try
-    for item in obj['pluginSettings'] do
-      smashSettings.Add(item.AsString);
+    for Item in obj['pluginSettings'] do
+      smashSettings.Add(Item.AsString);
   except
     on x: Exception do
       // nothing
   end;
-  for item in obj['masters'] do
-    masters.Add(item.AsString);
-  for item in obj['fails'] do
-    fails.Add(item.AsString);
+  for Item in obj['masters'] do
+    masters.Add(Item.AsString);
+  for Item in obj['fails'] do
+    fails.Add(Item.AsString);
 end;
 
 function TPatch.GetTimeCost: integer;
 var
-  i: Integer;
+  i: integer;
   plugin: TPlugin;
 begin
   Result := 10000;
-  for i := 0 to Pred(plugins.Count) do begin
+  for i := 0 to Pred(plugins.Count) do
+  begin
     plugin := PluginByFilename(plugins[i]);
     if Assigned(plugin) then
       Inc(Result, plugin._File.RecordCount);
@@ -572,28 +593,37 @@ var
 begin
   Result := false;
   // true if number of hashes not equal to number of plugins
-  if (plugins.Count <> hashes.Count)
-  or (plugins.Count <> smashSettings.Count) then begin
+  if (plugins.Count <> hashes.Count) or (plugins.Count <> smashSettings.Count)
+  then
+  begin
     Logger.Write('PATCH', 'Status', name + ' -> Plugin count changed');
     Result := true;
     exit;
   end;
   // true if any plugin hash doesn't match
-  for i := 0 to Pred(plugins.count) do begin
+  for i := 0 to Pred(plugins.Count) do
+  begin
     plugin := PluginByFilename(plugins[i]);
-    if Assigned(plugin) then begin
-      if plugin.hash <> hashes[i] then begin
-        Logger.Write('PATCH', 'Status', name + ' -> '+plugin.filename + ' hash changed.');
+    if Assigned(plugin) then
+    begin
+      if plugin.hash <> hashes[i] then
+      begin
+        Logger.Write('PATCH', 'Status', name + ' -> ' + plugin.filename +
+          ' hash changed.');
         Result := true;
       end;
     end;
   end;
   // true if any plugin setting doesn't match
-  for i := 0 to Pred(plugins.count) do begin
+  for i := 0 to Pred(plugins.Count) do
+  begin
     plugin := PluginByFilename(plugins[i]);
-    if Assigned(plugin) then begin
-      if plugin.setting <> smashSettings[i] then begin
-        Logger.Write('PATCH', 'Status', name + ' -> '+plugin.filename + ' smash setting changed.');
+    if Assigned(plugin) then
+    begin
+      if plugin.setting <> smashSettings[i] then
+      begin
+        Logger.Write('PATCH', 'Status', name + ' -> ' + plugin.filename +
+          ' smash setting changed.');
         Result := true;
       end;
     end;
@@ -615,21 +645,24 @@ end;
 
 procedure TPatch.GetStatus;
 var
-  i: Integer;
+  i: integer;
   plugin: TPlugin;
 begin
   Logger.Write('PATCH', 'Status', name + ' -> Getting status');
   status := psUnknown;
 
   // don't patch if there aren't two or more plugins to patch
-  if (plugins.Count < 2) then begin
-    Logger.Write('PATCH', 'Status', name + ' -> Need two or more plugins to patch');
+  if (plugins.Count < 2) then
+  begin
+    Logger.Write('PATCH', 'Status',
+      name + ' -> Need two or more plugins to patch');
     status := psNoPlugins;
     exit;
   end;
 
   // don't patch if mod destination directory is blank
-  if (settings.patchDirectory = '') then begin
+  if (settings.patchDirectory = '') then
+  begin
     Logger.Write('PATCH', 'Status', name + ' -> Patch directory blank');
     status := psDirInvalid;
     exit;
@@ -639,26 +672,32 @@ begin
   UpdateDataPath;
 
   // loop through plugins
-  for i := 0 to Pred(plugins.Count) do begin
+  for i := 0 to Pred(plugins.Count) do
+  begin
     plugin := PluginByFilename(plugins[i]);
 
     // see if plugin is loaded
-    if not Assigned(plugin) then begin
-      Logger.Write('PATCH', 'Status', name + ' -> Plugin '+plugins[i]+' is missing');
-      if status = psUnknown then status := psUnloaded;
+    if not Assigned(plugin) then
+    begin
+      Logger.Write('PATCH', 'Status', name + ' -> Plugin ' + plugins[i] +
+        ' is missing');
+      if status = psUnknown then
+        status := psUnloaded;
       continue;
     end;
   end;
 
   // check plugins were modified or files were deleted before
   // giving patch the up to date status
-  if (not PluginsModified) and FilesExist and (status = psUnknown) then begin
+  if (not PluginsModified) and FilesExist and (status = psUnknown) then
+  begin
     Logger.Write('PATCH', 'Status', name + ' -> Up to date');
     status := psUpToDate;
   end;
 
   // status green, ready to go
-  if status = psUnknown then begin
+  if status = psUnknown then
+  begin
     Logger.Write('PATCH', 'Status', name + ' -> Ready to be patchd');
     if dateBuilt = 0 then
       status := psBuildReady
@@ -675,11 +714,12 @@ end;
 // Update the hashes list for the plugins in the patch
 procedure TPatch.UpdateHashes;
 var
-  i: Integer;
+  i: integer;
   aPlugin: TPlugin;
 begin
   hashes.Clear;
-  for i := 0 to Pred(plugins.Count) do begin
+  for i := 0 to Pred(plugins.Count) do
+  begin
     aPlugin := PluginByFilename(plugins[i]);
     if Assigned(aPlugin) then
       hashes.Add(aPlugin.hash);
@@ -689,11 +729,12 @@ end;
 // Update the settings list for the plugins in the patch
 procedure TPatch.UpdateSettings;
 var
-  i: Integer;
+  i: integer;
   aPlugin: TPlugin;
 begin
   smashSettings.Clear;
-  for i := 0 to Pred(plugins.Count) do begin
+  for i := 0 to Pred(plugins.Count) do
+  begin
     aPlugin := PluginByFilename(plugins[i]);
     if Assigned(aPlugin) then
       smashSettings.Add(aPlugin.setting);
@@ -719,7 +760,7 @@ end;
 
 procedure TPatch.Remove(plugin: TPlugin);
 var
-  index: Integer;
+  index: integer;
 begin
   // clear plugin's patch property, if it's the name of this patch
   if plugin.patch = name then
@@ -732,7 +773,7 @@ end;
 
 procedure TPatch.Remove(pluginFilename: string);
 var
-  index: Integer;
+  index: integer;
 begin
   index := plugins.IndexOf(pluginFilename);
   // remove plugin from patch, if present
@@ -749,9 +790,11 @@ var
   aSetting: TSmashSetting;
 begin
   Result := nil;
-  for i := 0 to Pred(SmashSettings.Count) do begin
-    aSetting := TSmashSetting(SmashSettings[i]);
-    if aSetting.name = name then begin
+  for i := 0 to Pred(smashSettings.Count) do
+  begin
+    aSetting := TSmashSetting(smashSettings[i]);
+    if aSetting.name = name then
+    begin
       Result := aSetting;
       exit;
     end;
@@ -765,9 +808,11 @@ var
   aSetting: TSmashSetting;
 begin
   Result := nil;
-  for i := 0 to Pred(SmashSettings.Count) do begin
-    aSetting := TSmashSetting(SmashSettings[i]);
-    if aSetting.MatchesHash(hash) then begin
+  for i := 0 to Pred(smashSettings.Count) do
+  begin
+    aSetting := TSmashSetting(smashSettings[i]);
+    if aSetting.MatchesHash(hash) then
+    begin
       Result := aSetting;
       exit;
     end;
@@ -784,7 +829,8 @@ begin
   Result := nil;
 
   // parse setting name and hash
-  if Pos('|', setting) > 0 then begin
+  if Pos('|', setting) > 0 then
+  begin
     sl := TStringList.Create;
     try
       sl.Delimiter := '|';
@@ -792,7 +838,8 @@ begin
       sl.DelimitedText := setting;
 
       // if we have a setting name, use it to get a smash setting
-      if Length(sl[0]) > 0 then begin
+      if Length(sl[0]) > 0 then
+      begin
         smashSetting := SettingByName(sl[0]);
         // and return it if the hash matches
         if Assigned(smashSetting) and smashSetting.MatchesHash(sl[1]) then
@@ -814,13 +861,15 @@ end;
 
 class function TPatchHelpers.GetPatchForPlugin(filename: string): string;
 var
-  i: Integer;
+  i: integer;
   patch: TPatch;
 begin
   Result := ' ';
-  for i := 0 to Pred(PatchesList.Count) do begin
+  for i := 0 to Pred(PatchesList.Count) do
+  begin
     patch := TPatch(PatchesList[i]);
-    if patch.plugins.IndexOf(filename) > -1 then begin
+    if patch.plugins.IndexOf(filename) > -1 then
+    begin
       Result := patch.name;
       break;
     end;
@@ -829,13 +878,15 @@ end;
 
 class procedure TPatchHelpers.AssignPatchesToPlugins;
 var
-  i, j: Integer;
+  i, j: integer;
   patch: TPatch;
   plugin: TPlugin;
 begin
-  for i := 0 to Pred(PatchesList.Count) do begin
+  for i := 0 to Pred(PatchesList.Count) do
+  begin
     patch := TPatch(PatchesList[i]);
-    for j := 0 to Pred(patch.plugins.Count) do begin
+    for j := 0 to Pred(patch.plugins.Count) do
+    begin
       plugin := PluginByFilename(patch.plugins[j]);
       if Assigned(plugin) then
         plugin.patch := patch.name;
@@ -844,32 +895,37 @@ begin
 end;
 
 { Gets a patch matching the given name. }
-class function TPatchHelpers.PatchByName(var patches: TList; name: string): TPatch;
+class function TPatchHelpers.PatchByName(var patches: TList;
+  name: string): TPatch;
 var
   i: integer;
   patch: TPatch;
 begin
   Result := nil;
-  for i := 0 to Pred(patches.Count) do begin
+  for i := 0 to Pred(patches.Count) do
+  begin
     patch := TPatch(patches[i]);
-    if patch.name = name then begin
+    if patch.name = name then
+    begin
       Result := patch;
       exit;
     end;
   end;
 end;
 
-
 { Gets a patch matching the given filename. }
-class function TPatchHelpers.PatchByFilename(var patches: TList; filename: string): TPatch;
+class function TPatchHelpers.PatchByFilename(var patches: TList;
+  filename: string): TPatch;
 var
   i: integer;
   patch: TPatch;
 begin
   Result := nil;
-  for i := 0 to Pred(patches.Count) do begin
+  for i := 0 to Pred(patches.Count) do
+  begin
     patch := TPatch(patches[i]);
-    if patch.filename = filename then begin
+    if patch.filename = filename then
+    begin
       Result := patch;
       exit;
     end;
@@ -879,7 +935,7 @@ end;
 { Create a new patch with non-conflicting name and filename }
 class function TPatchHelpers.CreateNewPatch(var patches: TList): TPatch;
 var
-  i: Integer;
+  i: integer;
   patch: TPatch;
   name: string;
 begin
@@ -888,7 +944,8 @@ begin
   // deal with conflicting patch names
   i := 0;
   name := patch.name;
-  while Assigned(PatchByName(patches, name)) do begin
+  while Assigned(PatchByName(patches, name)) do
+  begin
     Inc(i);
     name := 'NewPatch' + IntToStr(i);
   end;
@@ -897,7 +954,8 @@ begin
   // deal with conflicting patch filenames
   i := 0;
   name := patch.filename;
-  while Assigned(PatchByFilename(patches, name)) do begin
+  while Assigned(PatchByFilename(patches, name)) do
+  begin
     Inc(i);
     name := 'NewPatch' + IntToStr(i) + '.esp';
   end;
@@ -916,9 +974,9 @@ begin
   self.linkFrom := '';
 end;
 
-constructor TElementData.Create(priority: Byte; process, preserveDeletions,
-  overrideDeletions, singleEntity, forceValue: Boolean; smashType: TSmashType;
-  linkTo, linkFrom: string);
+constructor TElementData.Create(priority: byte;
+  process, preserveDeletions, overrideDeletions, singleEntity,
+  forceValue: boolean; smashType: TSmashType; linkTo, linkFrom: string);
 begin
   self.priority := priority;
   self.process := process;
@@ -934,11 +992,12 @@ end;
 { TSmashSetting }
 function GetUniqueSettingName(base: string): string;
 var
-  i: Integer;
+  i: integer;
 begin
   Result := base;
   i := 1;
-  while Assigned(TSettingHelpers.SettingByName(Result)) do begin
+  while Assigned(TSettingHelpers.SettingByName(Result)) do
+  begin
     Inc(i);
     Result := base + IntToStr(i);
   end;
@@ -962,7 +1021,8 @@ begin
   color := 0;
   description := '';
   records := '';
-  if Assigned(tree) then tree._Release;
+  if Assigned(tree) then
+    tree._Release;
   tree := nil;
 end;
 
@@ -986,15 +1046,15 @@ end;
 
 procedure TSmashSetting.LoadDump(dump: ISuperObject);
 begin
-  name := dump.S['name'];
-  color := dump.I['color'];
-  hash := dump.S['hash'];
-  description := dump.S['description'];
-  records := dump.S['records'];
+  name := dump.s['name'];
+  color := dump.i['color'];
+  hash := dump.s['hash'];
+  description := dump.s['description'];
+  records := dump.s['records'];
   tree := dump.O['tree'];
 end;
 
-function TSmashSetting.Dump: ISuperObject;
+function TSmashSetting.dump: ISuperObject;
 var
   obj: ISuperObject;
 begin
@@ -1003,11 +1063,11 @@ begin
   // tree
   obj.O['tree'] := tree;
   // normal attributes
-  obj.S['records'] := records;
-  obj.S['description'] := description;
-  obj.I['color'] := color;
-  obj.S['hash'] := hash;
-  obj.S['name'] := name;
+  obj.s['records'] := records;
+  obj.s['description'] := description;
+  obj.i['color'] := color;
+  obj.s['hash'] := hash;
+  obj.s['name'] := name;
 
   Result := obj;
 end;
@@ -1019,7 +1079,7 @@ end;
 
 procedure TSmashSetting.UpdateRecords;
 var
-  item: ISuperObject;
+  Item: ISuperObject;
   sl: TStringList;
 begin
   // prepare comma delimited stringlist
@@ -1030,9 +1090,10 @@ begin
   try
     // loop through records and add their signatures
     // to the stringlist if they are set to be processed
-    for item in tree['records'] do begin
-      if item.I['p'] = 1 then
-        sl.Add(Copy(item.S['n'], 1, 4));
+    for Item in tree['records'] do
+    begin
+      if Item.i['p'] = 1 then
+        sl.Add(Copy(Item.s['n'], 1, 4));
     end;
 
     // assign records the delimited signatures
@@ -1048,18 +1109,18 @@ var
   path: string;
 begin
   UpdateHash;
-  path := Format('%s\settings\%s\%s.json',
-    [PathList.Values['ProgramPath'], ProgramStatus.GameMode.gameName, name]);
+  path := Format('%s\settings\%s\%s.json', [PathList.Values['ProgramPath'],
+    ProgramStatus.GameMode.gameName, name]);
   ForceDirectories(ExtractFilePath(path));
-  Dump.SaveTo(path);
+  dump.SaveTo(path);
 end;
 
 procedure TSmashSetting.Delete;
 var
   path: string;
 begin
-  path := Format('%s\settings\%s\%s.json',
-    [PathList.Values['ProgramPath'], ProgramStatus.GameMode.gameName, name]);
+  path := Format('%s\settings\%s\%s.json', [PathList.Values['ProgramPath'],
+    ProgramStatus.GameMode.gameName, name]);
   if FileExists(path) then
     DeleteToRecycleBin(path, false);
 end;
@@ -1068,19 +1129,20 @@ procedure TSmashSetting.Rename(newName: string);
 var
   oldPath, newPath: string;
 begin
-  oldPath := Format('%s\settings\%s\%s.json',
-    [PathList.Values['ProgramPath'], ProgramStatus.GameMode.gameName, name]);
-  newPath := Format('%s\settings\%s\%s.json',
-    [PathList.Values['ProgramPath'], ProgramStatus.GameMode.gameName, newName]);
-  if FileExists(oldpath) then
-    RenameFile(oldpath, newpath);
+  oldPath := Format('%s\settings\%s\%s.json', [PathList.Values['ProgramPath'],
+    ProgramStatus.GameMode.gameName, name]);
+  newPath := Format('%s\settings\%s\%s.json', [PathList.Values['ProgramPath'],
+    ProgramStatus.GameMode.gameName, newName]);
+  if FileExists(oldPath) then
+    RenameFile(oldPath, newPath);
   name := newName;
 end;
 
 function TSmashSetting.MatchesHash(hash: string): boolean;
 begin
   // result is true if hash is blank
-  if hash = '' then begin
+  if hash = '' then
+  begin
     Result := true;
     exit;
   end;
@@ -1092,12 +1154,13 @@ end;
 
 function TSmashSetting.GetTags: String;
 var
-  index: Integer;
+  index: integer;
 begin
   if Pos('Combined setting:', description) = 1 then
-      Result := GetCombinedTags
-  // else handle a normal setting
-  else begin
+    Result := GetCombinedTags
+    // else handle a normal setting
+  else
+  begin
     index := Pos('.', name);
     if (index > 0) and (index < 11) then
       Result := Format('{{%s}}', [StringReplace(name, '.', ':', [])])
@@ -1128,7 +1191,7 @@ end;
 
 procedure SavePatches;
 var
-  i: Integer;
+  i: integer;
   patch: TPatch;
   json: ISuperObject;
   filename: string;
@@ -1140,11 +1203,12 @@ begin
   // loop through patches
   Tracker.Write(' ');
   Tracker.Write('Dumping patches to JSON');
-  for i := 0 to Pred(PatchesList.Count) do begin
+  for i := 0 to Pred(PatchesList.Count) do
+  begin
     Tracker.UpdateProgress(1);
     patch := TPatch(PatchesList[i]);
-    Tracker.Write('  Dumping '+patch.name);
-    json.A['patches'].Add(patch.Dump);
+    Tracker.Write('  Dumping ' + patch.name);
+    json.A['patches'].Add(patch.dump);
   end;
 
   // save and finalize
@@ -1175,14 +1239,16 @@ begin
   obj := SO(PChar(sl.Text));
 
   // loop through patches
-  for patchItem in obj['patches'] do begin
+  for patchItem in obj['patches'] do
+  begin
     patch := TPatch.Create;
     try
       patch.LoadDump(patchItem);
       PatchesList.Add(patch);
     except
-      on x: Exception do begin
-        Logger.Write('LOAD', 'Patch', 'Failed to load patch '+patch.name);
+      on x: Exception do
+      begin
+        Logger.Write('LOAD', 'Patch', 'Failed to load patch ' + patch.name);
         Logger.Write('LOAD', 'Patch', x.Message);
       end;
     end;
@@ -1193,16 +1259,18 @@ begin
   sl.Free;
 end;
 
-function IndexOfDump(a: TSuperArray; plugin: TPlugin): Integer;
+function IndexOfDump(A: TSuperArray; plugin: TPlugin): integer;
 var
-  i: Integer;
+  i: integer;
   obj: ISuperObject;
 begin
   Result := -1;
-  for i := 0 to Pred(a.Length) do begin
-    obj := a.O[i];
-    if (obj.S['filename'] = plugin.filename)
-    and (obj.S['hash'] = plugin.hash) then begin
+  for i := 0 to Pred(A.Length) do
+  begin
+    obj := A.O[i];
+    if (obj.s['filename'] = plugin.filename) and (obj.s['hash'] = plugin.hash)
+    then
+    begin
       Result := i;
       exit;
     end;
@@ -1212,14 +1280,15 @@ end;
 procedure SaveSmashSettings;
 var
   aSetting: TSmashSetting;
-  i: Integer;
+  i: integer;
 begin
   Tracker.Write('Saving smash settings');
-  for i := 0 to Pred(SmashSettings.Count) do begin
-    aSetting := TSmashSetting(SmashSettings[i]);
+  for i := 0 to Pred(smashSettings.Count) do
+  begin
+    aSetting := TSmashSetting(smashSettings[i]);
     if aSetting.bVirtual then
       continue;
-    Tracker.Write('  Saving '+aSetting.name);
+    Tracker.Write('  Saving ' + aSetting.name);
     aSetting.Save;
   end;
   Tracker.Write(' ');
@@ -1228,13 +1297,13 @@ end;
 procedure CreateSkipSetting;
 var
   skipSetting: TSmashSetting;
-  index: Integer;
+  index: integer;
 begin
-  index := SmashSettings.Add(TSmashSetting.Create);
-  skipSetting := SmashSettings[index];
+  index := smashSettings.Add(TSmashSetting.Create);
+  skipSetting := smashSettings[index];
   skipSetting.name := 'Skip';
   skipSetting.color := clGray;
-  skipSetting.description := 'Special setting.  Any plugin with this setting '+
+  skipSetting.description := 'Special setting.  Any plugin with this setting ' +
     'will be excluded from patch creation.';
   skipSetting.tree := SO();
   skipSetting.tree.O['records'] := SA([]);
@@ -1248,7 +1317,8 @@ var
   aSetting: TSmashSetting;
   path: String;
 begin
-  path := Format('%ssettings\%s\', [PathList.Values['ProgramPath'], ProgramStatus.GameMode.gameName]);
+  path := Format('%ssettings\%s\', [PathList.Values['ProgramPath'],
+    ProgramStatus.GameMode.gameName]);
   ForceDirectories(path);
 
   // load setting files from settings path
@@ -1257,21 +1327,25 @@ begin
   repeat
     sl := TStringList.Create;
     try
-      sl.LoadFromFile(path + info.Name);
+      sl.LoadFromFile(path + info.name);
       aSetting := TSmashSetting.Create;
       obj := SO(PChar(sl.Text));
-      if Assigned(obj) then begin
+      if Assigned(obj) then
+      begin
         aSetting.LoadDump(obj);
         if aSetting.name <> '' then
-          SmashSettings.Add(aSetting);
+          smashSettings.Add(aSetting);
       end;
       sl.Free;
       obj := nil;
     except
-      on x: Exception do begin
-        if Assigned(sl) then sl.Free;
+      on x: Exception do
+      begin
+        if Assigned(sl) then
+          sl.Free;
         obj := nil;
-        Logger.Write('ERROR', 'Load', 'Failed to load smash setting '+info.Name);
+        Logger.Write('ERROR', 'Load', 'Failed to load smash setting ' +
+          info.name);
       end;
     end;
   until FindNext(info) <> 0;
@@ -1283,7 +1357,7 @@ end;
 
 procedure SavePluginInfo;
 var
-  i, index: Integer;
+  i, index: integer;
   plugin: TPlugin;
   obj: ISuperObject;
   filename: string;
@@ -1291,14 +1365,16 @@ var
 begin
   // don't load file if it doesn't exist
   filename := PathList.Values['ProfilePath'] + 'PluginInfo.json';
-  if FileExists(filename) then begin
+  if FileExists(filename) then
+  begin
     // load file text into SuperObject to parse it
     sl := TStringList.Create;
     sl.LoadFromFile(filename);
     obj := SO(PChar(sl.Text));
     sl.Free;
   end
-  else begin
+  else
+  begin
     // initialize new json object
     obj := SO;
     obj.O['plugins'] := SA([]);
@@ -1306,31 +1382,33 @@ begin
 
   // loop through plugins
   Tracker.Write('Dumping plugin errors to JSON');
-  for i := 0 to Pred(PluginsList.Count) do try
-    plugin := PluginsList[i];
-    Tracker.UpdateProgress(1);
-    if not Assigned(plugin.smashSetting) then
-      continue;
-  	index := IndexOfDump(obj.A['plugins'], plugin);
-    if plugin.smashSetting.bVirtual or (plugin.setting = 'Skip') then begin
-	    if index <> -1 then
-	      obj.A['plugins'].Delete(index);
-	    continue;
+  for i := 0 to Pred(PluginsList.Count) do
+    try
+      plugin := PluginsList[i];
+      Tracker.UpdateProgress(1);
+      if not Assigned(plugin.smashSetting) then
+        continue;
+      index := IndexOfDump(obj.A['plugins'], plugin);
+      if plugin.smashSetting.bVirtual or (plugin.setting = 'Skip') then
+      begin
+        if index <> -1 then
+          obj.A['plugins'].Delete(index);
+        continue;
+      end;
+      Tracker.Write('  Dumping ' + plugin.filename);
+      if index = -1 then
+        obj.A['plugins'].Add(plugin.InfoDump)
+      else
+        obj.A['plugins'].O[index] := plugin.InfoDump;
+    except
+      on x: Exception do
+        Tracker.Write('  Exception ' + x.Message);
     end;
-    Tracker.Write('  Dumping '+plugin.filename);
-    if index = -1 then
-      obj.A['plugins'].Add(plugin.InfoDump)
-    else
-      obj.A['plugins'].O[index] := plugin.InfoDump;
-  except
-    on x: Exception do
-      Tracker.Write('  Exception '+x.Message);
-  end;
 
   // save and finalize
   Tracker.Write(' ');
   filename := PathList.Values['ProfilePath'] + 'PluginInfo.json';
-  Tracker.Write('Saving to '+filename);
+  Tracker.Write('Saving to ' + filename);
   Tracker.UpdateProgress(1);
   obj.SaveTo(filename);
   obj := nil;
@@ -1354,10 +1432,11 @@ begin
 
   // loop through patches
   filename := '';
-  for pluginItem in obj['plugins'] do begin
-    filename := pluginItem.AsObject.S['filename'];
-    hash := pluginItem.AsObject.S['hash'];
-    plugin := PluginByFileName(filename);
+  for pluginItem in obj['plugins'] do
+  begin
+    filename := pluginItem.AsObject.s['filename'];
+    hash := pluginItem.AsObject.s['hash'];
+    plugin := PluginByFilename(filename);
     if not Assigned(plugin) then
       continue;
     if (plugin.hash = hash) and (plugin.filename = filename) then
@@ -1371,11 +1450,12 @@ end;
 
 procedure LoadSettingTags;
 var
-  i: Integer;
+  i: integer;
   plugin: TPlugin;
 begin
   // loop through loaded plugins
-  for i := 0 to Pred(PluginsList.Count) do begin
+  for i := 0 to Pred(PluginsList.Count) do
+  begin
     plugin := TPlugin(PluginsList[i]);
     if plugin.setting <> '' then
       continue;
@@ -1391,34 +1471,37 @@ end;
 
 procedure RenameSavedPlugins;
 var
-  i: Integer;
+  i: integer;
   oldFileName, newFileName, bakFileName: string;
 begin
   // tracker message
   Tracker.Write(' ');
   Tracker.Write('Renaming saved plugins');
 
-  for i := Pred(SavedPluginPaths.Count) downto 0 do try
-    oldFileName := SavedPluginPaths[i];
-    newFileName := oldFileName + '.save';
-    bakFileName := oldFileName + '.bak';
-    Tracker.Write(Format('    Renaming %s to %s', [ExtractFileName(newFileName), ExtractFileName(oldFileName)]));
-    if FileExists(bakFileName) then
-      DeleteFile(bakFileName);
-    RenameFile(oldFileName, bakFileName);
-    RenameFile(newFileName, oldFileName);
-  except
-    on x: Exception do
-      Tracker.Write('      Failed to rename ' + newFileName);
-  end;
+  for i := Pred(SavedPluginPaths.Count) downto 0 do
+    try
+      oldFileName := SavedPluginPaths[i];
+      newFileName := oldFileName + '.save';
+      bakFileName := oldFileName + '.bak';
+      Tracker.Write(Format('    Renaming %s to %s',
+        [ExtractFileName(newFileName), ExtractFileName(oldFileName)]));
+      if FileExists(bakFileName) then
+        DeleteFile(bakFileName);
+      RenameFile(oldFileName, bakFileName);
+      RenameFile(newFileName, oldFileName);
+    except
+      on x: Exception do
+        Tracker.Write('      Failed to rename ' + newFileName);
+    end;
 end;
 
 procedure UpdatePluginData;
 var
-  i: Integer;
+  i: integer;
   plugin: TPlugin;
 begin
-  for i := 0 to Pred(PluginsList.Count) do begin
+  for i := 0 to Pred(PluginsList.Count) do
+  begin
     plugin := TPlugin(PluginsList[i]);
     plugin.UpdateData;
   end;
@@ -1429,14 +1512,15 @@ begin
   Result := TPlugin(TPluginHelpers.CreateNewBasePlugin(PluginsList, sFilename));
 end;
 
-function PluginLoadOrder(sFilename: string): Integer;
+function PluginLoadOrder(sFilename: string): integer;
 begin
   Result := TPluginHelpers.BasePluginLoadOrder(PluginsList, sFilename);
 end;
 
 function PluginByFilename(sFilename: string): TPlugin;
 begin
-  Result := TPlugin(TPluginHelpers.BasePluginByFilename(PluginsList, sFilename));
+  Result := TPlugin(TPluginHelpers.BasePluginByFilename(PluginsList,
+    sFilename));
 end;
 
 function DefDisplayName(var def: TwbRecordDefEntry): String;
@@ -1444,39 +1528,43 @@ var
   sig: String;
 begin
   sig := String(def.rdeSignature);
-  Result := def.rdeDef.Name;
+  Result := def.rdeDef.name;
   if (Result <> sig) then
     Result := sig + ' - ' + Result;
 end;
 
 procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
 var
-  i: Integer;
+  i: integer;
   recordDef: TwbRecordDefEntry;
-  item: TMenuItem;
+  Item: TMenuItem;
 begin
-  for i := Low(wbRecordDefs) to High(wbRecordDefs) do begin
+  for i := Low(wbRecordDefs) to High(wbRecordDefs) do
+  begin
     recordDef := wbRecordDefs[i];
-    item := TMenuItem.Create(AddItem);
-    item.Caption := DefDisplayName(recordDef);
-    item.OnClick := Event;
-    AddItem.Add(item);
+    Item := TMenuItem.Create(AddItem);
+    Item.Caption := DefDisplayName(recordDef);
+    Item.OnClick := Event;
+    AddItem.Add(Item);
   end;
 end;
 
 procedure AddAllRecords(currentSetting: TSmashSetting; var tv: TTreeView);
 var
-  i: Integer;
+  i: integer;
   recordDef: TwbRecordDefEntry;
   groupName: String;
   recObj: ISuperObject;
 begin
-  for i := Low(wbRecordDefs) to High(wbRecordDefs) do begin
+  for i := Low(wbRecordDefs) to High(wbRecordDefs) do
+  begin
     recordDef := wbRecordDefs[i];
     groupName := DefDisplayName(recordDef);
     recObj := GetRecordObj(currentSetting.tree, groupName);
-    if Assigned(recObj) then continue;
-    if not BuildRecordDef(groupName, recObj) then continue;
+    if Assigned(recObj) then
+      continue;
+    if not BuildRecordDef(groupName, recObj) then
+      continue;
     currentSetting.tree.A['records'].Add(recObj);
     LoadElement(tv, tv.Items[0], recObj, false);
   end;
@@ -1484,12 +1572,14 @@ end;
 
 procedure RemoveSettingFromPlugins(aSetting: TSmashSetting);
 var
-  i: Integer;
+  i: integer;
   plugin: TPlugin;
 begin
-  for i := 0 to Pred(PluginsList.Count) do begin
+  for i := 0 to Pred(PluginsList.Count) do
+  begin
     plugin := TPlugin(PluginsList[i]);
-    if plugin.setting = aSetting.name then begin
+    if plugin.setting = aSetting.name then
+    begin
       plugin.setting := 'Skip';
       plugin.smashSetting := TSettingHelpers.SettingByName('Skip');
     end;
@@ -1498,30 +1588,33 @@ end;
 
 function GetTagString(var slTags: TStringList): String;
 var
-  i, index: Integer;
+  i, index: integer;
   tag, sTagGroup, sGroup: String;
 begin
-  for i := 0 to Pred(slTags.Count) do begin
+  for i := 0 to Pred(slTags.Count) do
+  begin
     tag := slTags[i];
     index := Pos('.', tag);
     sTagGroup := Copy(tag, 1, index - 1);
-    if (index > 0) and (index < 11) and (SameText(sGroup, sTagGroup) or (i = 0)) then
+    if (index > 0) and (index < 11) and (SameText(sGroup, sTagGroup) or (i = 0))
+    then
       sGroup := sTagGroup
     else
       sGroup := '';
   end;
 
   // generate the string of tags
-  if sGroup <> '' then begin
-    Result := StringReplace(slTags.CommaText, sGroup + '.', '', [rfReplaceAll, rfIgnoreCase]);
+  if sGroup <> '' then
+  begin
+    Result := StringReplace(slTags.CommaText, sGroup + '.', '',
+      [rfReplaceAll, rfIgnoreCase]);
     Result := Format('{{%s:%s}}', [UpperCase(sGroup), Result])
   end
   else
     Result := Format('{{%s}}', [slTags.CommaText]);
 end;
 
-
-{******************************************************************************}
+{ ****************************************************************************** }
 { Tree Helper Functions
   - BuildTreeFromPlugins
   - SetChildren
@@ -1529,15 +1622,15 @@ end;
   - CheckBoxManager
   - LoadElement
 }
-{******************************************************************************}
+{ ****************************************************************************** }
 
 procedure BuildTreeFromPlugins(var tv: TTreeView; var sl: TStringList;
   tree: ISuperObject);
 var
-  i, j: Integer;
+  i, j: integer;
   plugin: TPlugin;
   rec: IwbMainRecord;
-  RecordDef: PwbMainRecordDef;
+  recordDef: PwbMainRecordDef;
   def: TwbRecordDefEntry;
   sName, sSignature: string;
   slRecordSignatures: TStringList;
@@ -1548,15 +1641,17 @@ begin
   slRecordSignatures.Duplicates := dupIgnore;
   try
     // loop through plugins
-    for i := 0 to Pred(sl.Count) do begin
-      plugin := PluginByFileName(sl[i]);
+    for i := 0 to Pred(sl.Count) do
+    begin
+      plugin := PluginByFilename(sl[i]);
       if not Assigned(plugin) then
         continue;
       if not plugin._File.IsEditable then
         continue;
       // loop through records
-      for j := 0 to Pred(plugin._File.RecordCount) do begin
-        rec := plugin._File.Records[j];
+      for j := 0 to Pred(plugin._File.RecordCount) do
+      begin
+        rec := plugin._File.records[j];
         // skip non-override records
         if rec.IsMaster then
           continue;
@@ -1567,15 +1662,16 @@ begin
           continue;
         slRecordSignatures.Add(sSignature);
         // skip records that aren't defined
-        if not wbFindRecordDef(AnsiString(sSignature), RecordDef) then
+        if not wbFindRecordDef(AnsiString(sSignature), recordDef) then
           continue;
 
         // get record def object if it exists
-        sName := sSignature + ' - ' + RecordDef.Name;
+        sName := sSignature + ' - ' + recordDef.name;
         recObj := GetRecordObj(tree, sName);
 
         // build record def if it doesn't exist
-        if not Assigned(recObj) then begin
+        if not Assigned(recObj) then
+        begin
           def := GetRecordDef(rec.Signature);
           if not BuildRecordDef(sName, def.rdeDef, recObj) then
             continue;
@@ -1595,18 +1691,20 @@ end;
   Sets the StateIndex attribute of all the children of @node
   to @state.  Uses recursion.
 }
-procedure SetChildren(node: TTreeNode; state: Integer);
+procedure SetChildren(node: TTreeNode; state: integer);
 var
   tmp: TTreeNode;
   e: TElementData;
 begin
   // exit if we don't have a node to work with
-  if not Assigned(node) then exit;
+  if not Assigned(node) then
+    exit;
 
   // loop through children setting StateIndex to state
   // if child has children, recurse into that child
   tmp := node.getFirstChild;
-  while Assigned(tmp) do begin
+  while Assigned(tmp) do
+  begin
     tmp.StateIndex := state;
     e := TElementData(tmp.Data);
     e.process := state <> csUnChecked;
@@ -1626,21 +1724,26 @@ end;
 procedure UpdateParent(node: TTreeNode);
 var
   tmp: TTreeNode;
-  state: Integer;
+  state: integer;
   e: TElementData;
 begin
   // exit if we don't have a node to work with
   // or if not is set to be treated as a single entity
-  if not Assigned(node) then exit;
+  if not Assigned(node) then
+    exit;
   e := TElementData(node.Data);
-  if not Assigned(e) then exit;
-  if e.singleEntity then exit;
+  if not Assigned(e) then
+    exit;
+  if e.singleEntity then
+    exit;
 
   // parent state is checked if all siblings are checked
   state := csChecked;
   tmp := node.getFirstChild;
-  while Assigned(tmp) do begin
-    if tmp.StateIndex <> csChecked then begin
+  while Assigned(tmp) do
+  begin
+    if tmp.StateIndex <> csChecked then
+    begin
       state := csPartiallyChecked;
       break;
     end;
@@ -1648,11 +1751,14 @@ begin
   end;
 
   // parent state is unchecked if all siblings are unchecked
-  if state = csPartiallyChecked then begin
+  if state = csPartiallyChecked then
+  begin
     state := csUnChecked;
     tmp := node.getFirstChild;
-    while Assigned(tmp) do begin
-      if tmp.StateIndex <> csUnChecked then begin
+    while Assigned(tmp) do
+    begin
+      if tmp.StateIndex <> csUnChecked then
+      begin
         state := csPartiallyChecked;
         break;
       end;
@@ -1678,12 +1784,14 @@ var
   e: TElementData;
 begin
   // exit if we don't have a node to work with
-  if not Assigned(node) then exit;
+  if not Assigned(node) then
+    exit;
 
   // if unchecked or partially checked, set to checked and
   // set all children to checked, update parents
-  if (node.StateIndex = csUnChecked)
-  or (node.StateIndex = csPartiallyChecked) then begin
+  if (node.StateIndex = csUnChecked) or (node.StateIndex = csPartiallyChecked)
+  then
+  begin
     node.StateIndex := csChecked;
     e := TElementData(node.Data);
     e.process := true;
@@ -1693,7 +1801,8 @@ begin
   end
   // if checked, set to unchecked and set all children to
   // unchecked, update parents
-  else if node.StateIndex = csChecked then begin
+  else if node.StateIndex = csChecked then
+  begin
     node.StateIndex := csUnChecked;
     e := TElementData(node.Data);
     e.process := false;
@@ -1706,11 +1815,11 @@ end;
 procedure LoadElement(var tv: TTreeView; node: TTreeNode; obj: ISuperObject;
   bWithinSingle: boolean);
 var
-  item: ISuperObject;
+  Item: ISuperObject;
   child, nextChild: TTreeNode;
   bProcess, bPreserveDeletions, bOverrideDeletions, bIsSingle,
-  bForceValue: boolean;
-  priority: Integer;
+    bForceValue: boolean;
+  priority: integer;
   oSmashType: TSmashType;
   sName, sLinkTo, sLinkFrom: string;
   e: TElementData;
@@ -1719,25 +1828,27 @@ begin
     exit;
 
   // load data from json
-  sName := obj.S['n'];
-  priority := obj.I['r'];
-  bProcess := obj.I['p'] = 1;
-  bPreserveDeletions := obj.I['d'] = 1;
-  bOverrideDeletions := obj.I['o'] = 1;
-  bIsSingle := obj.I['s'] = 1;
-  bForceValue := obj.I['f'] = 1;
+  sName := obj.s['n'];
+  priority := obj.i['r'];
+  bProcess := obj.i['p'] = 1;
+  bPreserveDeletions := obj.i['d'] = 1;
+  bOverrideDeletions := obj.i['o'] = 1;
+  bIsSingle := obj.i['s'] = 1;
+  bForceValue := obj.i['f'] = 1;
   bWithinSingle := bWithinSingle or bIsSingle;
-  oSmashType := TSmashType(obj.I['t']);
-  sLinkTo := obj.S['lt'];
-  sLinkFrom := obj.S['lf'];
+  oSmashType := TSmashType(obj.i['t']);
+  sLinkTo := obj.s['lt'];
+  sLinkFrom := obj.s['lf'];
 
   // create child
   e := TElementData.Create(priority, bProcess, bPreserveDeletions,
     bOverrideDeletions, bIsSingle, bForceValue, oSmashType, sLinkTo, sLinkFrom);
   // nodes insert in sorted order for record nodes
-  if (node.Level = 0) and node.hasChildren then begin
+  if (node.Level = 0) and node.HasChildren then
+  begin
     child := node.getFirstChild;
-    while (AnsiCompareText(child.Text, sName) < 0) do begin
+    while (AnsiCompareText(child.Text, sName) < 0) do
+    begin
       nextChild := child.getNextSibling;
       if not Assigned(nextChild) then
         break;
@@ -1758,20 +1869,21 @@ begin
     child.StateIndex := csUnChecked;
 
   // recurse into children
-  if Assigned(obj.O['c']) then try
-    for item in obj['c'] do
-      LoadElement(tv, child, item, bWithinSingle);
-    if not bWithinSingle then
-      UpdateParent(child);
-  except
-    on x : Exception do
-      // nothing
-  end;
+  if Assigned(obj.O['c']) then
+    try
+      for Item in obj['c'] do
+        LoadElement(tv, child, Item, bWithinSingle);
+      if not bWithinSingle then
+        UpdateParent(child);
+    except
+      on x: Exception do
+        // nothing
+    end;
 end;
 
 procedure LoadTree(var tv: TTreeView; aSetting: TSmashSetting);
 var
-  obj, item: ISuperObject;
+  obj, Item: ISuperObject;
   rootNode: TTreeNode;
   e: TElementData;
 begin
@@ -1783,18 +1895,20 @@ begin
   if not Assigned(obj['records']) then
     exit;
 
-  for item in obj['records'] do
-    LoadElement(tv, rootNode, item, false);
+  for Item in obj['records'] do
+    LoadElement(tv, rootNode, Item, false);
 end;
 
 function GetRecordObject(tree: ISuperObject; sig: string): ISuperObject;
 var
-  item: ISuperObject;
+  Item: ISuperObject;
 begin
   Result := nil;
-  for item in tree['records'] do begin
-    if Copy(item.S['n'], 1, 4) = sig then begin
-      Result := item;
+  for Item in tree['records'] do
+  begin
+    if Copy(Item.s['n'], 1, 4) = sig then
+    begin
+      Result := Item;
       break;
     end;
   end;
@@ -1805,8 +1919,10 @@ var
   child: ISuperObject;
 begin
   Result := nil;
-  for child in obj['c'] do begin
-    if child.S['n'] = name then begin
+  for child in obj['c'] do
+  begin
+    if child.s['n'] = name then
+    begin
       Result := child;
       exit;
     end;
@@ -1817,33 +1933,36 @@ procedure MergeChildren(srcObj, dstObj: ISuperObject);
 var
   srcChild, dstChild: ISuperObject;
 begin
-  for srcChild in srcObj['c'] do begin
-    dstChild := GetChild(dstObj, srcChild.S['n']);
+  for srcChild in srcObj['c'] do
+  begin
+    dstChild := GetChild(dstObj, srcChild.s['n']);
     if not Assigned(dstChild) then
       dstObj.A['c'].Add(srcChild.Clone)
-    else begin
+    else
+    begin
       // merge force value
-      if srcChild.I['f'] = 1 then
-        dstChild.I['f'] := 1;
+      if srcChild.i['f'] = 1 then
+        dstChild.i['f'] := 1;
       // merge treat as single
-      if srcChild.I['s'] = 1 then
-        dstChild.I['s'] := 1;
+      if srcChild.i['s'] = 1 then
+        dstChild.i['s'] := 1;
       // merge preserve deletions
-      if srcChild.I['d'] = 1 then
-        dstChild.I['d'] := 1;
+      if srcChild.i['d'] = 1 then
+        dstChild.i['d'] := 1;
       // merge override deletions
-      if srcChild.I['o'] = 1 then
-        dstChild.I['o'] := 1;
+      if srcChild.i['o'] = 1 then
+        dstChild.i['o'] := 1;
       // merge process
-      if srcChild.I['p'] = 1 then
-        dstChild.I['p'] := 1;
+      if srcChild.i['p'] = 1 then
+        dstChild.i['p'] := 1;
       // merge links
-      if srcChild.S['lt'] <> '' then
-        dstChild.S['lt'] := srcChild.S['lt'];
-      if srcChild.S['lf'] <> '' then
-        dstChild.S['lf'] := srcChild.S['lf'];
+      if srcChild.s['lt'] <> '' then
+        dstChild.s['lt'] := srcChild.s['lt'];
+      if srcChild.s['lf'] <> '' then
+        dstChild.s['lf'] := srcChild.s['lf'];
       // recurse into children if present
-      if Assigned(srcChild.A['c']) then begin
+      if Assigned(srcChild.A['c']) then
+      begin
         if Assigned(dstChild.A['c']) then
           MergeChildren(srcChild, dstChild)
         else
@@ -1856,7 +1975,7 @@ end;
 function CreateCombinedSetting(var sl: TStringList; name: string;
   bVirtual: boolean = false): TSmashSetting;
 var
-  i, index: Integer;
+  i, index: integer;
   newSetting, aSetting: TSmashSetting;
   recordObj, existingRecordObj: ISuperObject;
 begin
@@ -1864,7 +1983,8 @@ begin
   newSetting.tree := SO;
   newSetting.tree.O['records'] := SA([]);
 
-  for i := 0 to Pred(sl.Count) do begin
+  for i := 0 to Pred(sl.Count) do
+  begin
     aSetting := TSmashSetting(sl.Objects[i]);
     recordObj := GetRecordObject(aSetting.tree, sl[i]);
     existingRecordObj := GetRecordObject(newSetting.tree, sl[i]);
@@ -1872,7 +1992,7 @@ begin
     // merge the record objects
     if Assigned(existingRecordObj) then
       MergeChildren(recordObj, existingRecordObj)
-    // else just add it to the tree
+      // else just add it to the tree
     else
       newSetting.tree.A['records'].Add(recordObj.Clone);
   end;
@@ -1884,34 +2004,40 @@ begin
   newSetting.description := 'Combined setting:'#13#10 + name;
   index := Pos('.', name);
   if (index > 0) and (index < 11) then
-    newSetting.name := Format('%sCombined-%s', [Copy(name, 1, index), newSetting.hash])
+    newSetting.name := Format('%sCombined-%s',
+      [Copy(name, 1, index), newSetting.hash])
   else
-    newSetting.name := 'Combined-'+newSetting.hash;
+    newSetting.name := 'Combined-' + newSetting.hash;
 
   // add new setting to SmashSettings list
   aSetting := TSettingHelpers.SettingByName(newSetting.name);
-  if not Assigned(aSetting) then begin
-    SmashSettings.Add(newSetting);
+  if not Assigned(aSetting) then
+  begin
+    smashSettings.Add(newSetting);
     Result := newSetting;
   end
-  else begin
+  else
+  begin
     newSetting.Free;
     Result := aSetting;
   end;
 end;
 
-function CombineSettingTrees(var lst: TList; var slSettings: TStringList): boolean;
+function CombineSettingTrees(var lst: TList;
+  var slSettings: TStringList): boolean;
 var
   setting: TSmashSetting;
   sl: TStringList;
-  i, j: Integer;
+  i, j: integer;
 begin
   sl := TStringList.Create;
   Result := false;
-  for i := 0 to Pred(lst.Count) do begin
+  for i := 0 to Pred(lst.Count) do
+  begin
     setting := TSmashSetting(lst[i]);
     sl.CommaText := setting.records;
-    for j := 0 to Pred(sl.Count) do begin
+    for j := 0 to Pred(sl.Count) do
+    begin
       if slSettings.IndexOf(sl[j]) > -1 then
         Result := true;
       slSettings.AddObject(sl[j], TObject(setting));
@@ -1922,15 +2048,14 @@ begin
   sl.Free;
 end;
 
-
-{******************************************************************************}
+{ ****************************************************************************** }
 { Tag Helper Functions
   - ClearTags
   - GetMissingTags
   - ExtractTags
   - GetTags
 }
-{******************************************************************************}
+{ ****************************************************************************** }
 
 function ClearTags(sDescription: String): String;
 var
@@ -1939,10 +2064,11 @@ var
 begin
   // find tags
   regex := TRegex.Create('{{([^}]*)}}');
-  match := regex.Match(sDescription);
+  match := regex.match(sDescription);
 
   // delete tags
-  while match.Success do begin
+  while match.Success do
+  begin
     sDescription := StringReplace(sDescription, match.Value, '', []);
     match := match.NextMatch;
   end;
@@ -1953,11 +2079,12 @@ end;
 
 procedure GetMissingTags(var slPresent, slMissing: TStringList);
 var
-  i: Integer;
+  i: integer;
   aSetting: TSmashSetting;
 begin
-  for i := 0 to Pred(SmashSettings.Count) do begin
-    aSetting := TSmashSetting(SmashSettings[i]);
+  for i := 0 to Pred(smashSettings.Count) do
+  begin
+    aSetting := TSmashSetting(smashSettings[i]);
     if slPresent.IndexOf(aSetting.name) = -1 then
       slMissing.Add(aSetting.name);
   end;
@@ -1966,7 +2093,7 @@ end;
 procedure ExtractTags(var match: TMatch; var sl: TStringList;
   var sTagGroup: String);
 var
-  i: Integer;
+  i: integer;
 begin
   sTagGroup := '';
 
@@ -1981,7 +2108,8 @@ begin
 
   // if tags are presented under a group, append the group name
   // and a . to the beginning of each setting name in the tag
-  if match.Groups.Item[1].Value <> '' then begin
+  if match.Groups.Item[1].Value <> '' then
+  begin
     sTagGroup := TitleCase(match.Groups.Item[1].Value);
     SetLength(sTagGroup, Length(sTagGroup) - 1);
     Logger.Write('PLUGIN', 'Tags', 'Parsing as ' + sTagGroup + ' tags');
@@ -1992,30 +2120,32 @@ end;
 
 procedure ParseTags(description: string; var sl: TStringList);
 var
-  regex: TRegEx;
+  regex: TRegex;
   match: TMatch;
   sTagGroup: String;
 begin
   // get setting tags from description
-  regex := TRegEx.Create('{{([a-zA-Z]{1,10}:){0,1}([^}]*)}}');
-  match := regex.Match(description);
+  regex := TRegex.Create('{{([a-zA-Z]{1,10}:){0,1}([^}]*)}}');
+  match := regex.match(description);
 
   // if match found, put the tags into the stringlist
-  if match.success then
+  if match.Success then
     ExtractTags(match, sl, sTagGroup);
 end;
 
 initialization
+
 begin
   PatchesList := TList.Create;
-  SmashSettings := TList.Create;
+  smashSettings := TList.Create;
   SavedPluginPaths := TStringList.Create;
 end;
 
 finalization
+
 begin
   FreeList(PatchesList);
-  FreeList(SmashSettings);
+  FreeList(smashSettings);
   SavedPluginPaths.Free;
 end;
 

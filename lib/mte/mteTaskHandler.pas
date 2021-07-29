@@ -9,17 +9,20 @@ uses
 
 type
   TProcedure = procedure of object;
-  TTask = class (TObject)
+
+  TTask = class(TObject)
   private
-    FExecute : TProcedure;
+    FExecute: TProcedure;
   public
     name: string;
     rate: real;
     lastExecuted: TDateTime;
-    constructor Create(name: string; rate: real; FExecute: TProcedure); Overload;
+    constructor Create(name: string; rate: real; FExecute: TProcedure);
+      Overload;
     property OnExecute: TProcedure read FExecute write FExecute;
     procedure Execute;
   end;
+
   TTaskHandler = class(TObject)
   public
     TaskList: TList;
@@ -48,9 +51,11 @@ begin
   if not Assigned(TaskList) then
     exit;
 
-  for i := Pred(TaskList.Count) downto 0 do begin
+  for i := Pred(TaskList.Count) downto 0 do
+  begin
     task := TTask(TaskList[i]);
-    if task.name = taskName then begin
+    if task.name = taskName then
+    begin
       TaskList.Delete(i);
       break;
     end;
@@ -68,9 +73,11 @@ begin
   bExecutingTasks := true;
 
   // loop through task list, executing tasks that are ready to be executed
-  for i := Pred(TaskList.Count) downto 0 do begin
+  for i := Pred(TaskList.Count) downto 0 do
+  begin
     task := TTask(TaskList[i]);
-    if (Now - task.lastExecuted >= task.rate) then begin
+    if (Now - task.lastExecuted >= task.rate) then
+    begin
       if bLogTasks and (task.rate > 60.0 * seconds) then
         Logger.Write('TASK', 'Execute', task.name);
       task.lastExecuted := Now;
@@ -87,12 +94,11 @@ begin
   TaskList := TList.Create;
 end;
 
-
-{******************************************************************************}
+{ ****************************************************************************** }
 { Task methods
   Object methods for TTask
 }
-{******************************************************************************}
+{ ****************************************************************************** }
 
 constructor TTask.Create(name: string; rate: real; FExecute: TProcedure);
 begin
@@ -106,9 +112,8 @@ end;
 
 procedure TTask.Execute;
 begin
- if Assigned(FExecute) then
-   FExecute;
+  if Assigned(FExecute) then
+    FExecute;
 end;
 
 end.
-

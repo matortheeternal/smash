@@ -6,9 +6,9 @@ uses
   SysUtils, Rtti,
   // superobject json library
   superobject;
-  
+
 type
-  TRttiJson = class (TObject)
+  TRttiJson = class(TObject)
   public
     class function ToJson(obj: TObject): string;
     class function FromJson(json: string; classType: TClass): TObject;
@@ -25,17 +25,19 @@ var
   date: TDateTime;
 begin
   jsonObj := SO;
-  rtype := TRTTIContext.Create.GetType(obj.ClassType);
+  rtype := TRTTIContext.Create.GetType(obj.classType);
 
   // loop through fields
-  for field in rType.GetFields do begin
-    fieldType := field.FieldType.ToString;
+  for field in rtype.GetFields do
+  begin
+    fieldType := field.fieldType.ToString;
     // handle datatypes I use
     if (fieldType = 'string') then
       jsonObj.S[field.Name] := field.GetValue(obj).ToString
     else if (fieldType = 'Integer') then
       jsonObj.I[field.Name] := field.GetValue(obj).AsInteger
-    else if (fieldType = 'TDateTime') then begin
+    else if (fieldType = 'TDateTime') then
+    begin
       date := StrToFloat(field.GetValue(obj).ToString);
       jsonObj.S[field.Name] := DateTimeToStr(date);
     end;
@@ -63,14 +65,16 @@ begin
   Result := classType.Create;
 
   // loop through fields
-  for field in rType.GetFields do begin
-    fieldType := field.FieldType.ToString;
+  for field in rtype.GetFields do
+  begin
+    fieldType := field.fieldType.ToString;
     // handle datatypes I use
     if (fieldType = 'string') then
       field.SetValue(Result, jsonObj.S[field.Name])
     else if (fieldType = 'Integer') then
       field.SetValue(Result, jsonObj.I[field.Name])
-    else if (fieldType = 'TDateTime') then begin
+    else if (fieldType = 'TDateTime') then
+    begin
       date := StrToDateTime(jsonObj.S[field.Name]);
       field.SetValue(Result, TValue.From<TDateTime>(date));
     end;

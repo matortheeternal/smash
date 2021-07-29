@@ -12,6 +12,7 @@ uses
 
 type
   TSenderCallback = procedure(Sender: TObject) of object;
+
   TChoicePanel = class(TPanel)
   public
     Selected: boolean;
@@ -39,22 +40,21 @@ type
 
 implementation
 
-
-{******************************************************************************}
+{ ****************************************************************************** }
 { TChoicePanel
   A GUI component for interacting with a profile.
 }
-{******************************************************************************}
+{ ****************************************************************************** }
 
 constructor TChoicePanel.Create(AOwner: TComponent);
 begin
   // set up panel
   inherited Create(AOwner);
   Parent := AOwner as TWinControl;
-  Width := (AOwner as TWinControl).ClientWidth;
+  width := (AOwner as TWinControl).ClientWidth;
   Height := 36;
   Left := 0;
-  Top := 0;
+  top := 0;
   ParentBackground := false;
   ParentColor := false;
   ParentDoubleBuffered := false;
@@ -65,7 +65,7 @@ begin
   // set local variables
   Selected := false;
   ColorUnselected := Color;
-  ColorSelected := $f0ece4;
+  ColorSelected := $F0ECE4;
   lstChoices := TList.Create;
 
   // create components
@@ -74,7 +74,7 @@ begin
 
   // set up lblSig
   lblSig.Parent := self;
-  lblSig.Top := 10;
+  lblSig.top := 10;
   lblSig.Left := 16;
   lblSig.Caption := 'SIGN';
   lblSig.Cursor := crHandPoint;
@@ -83,9 +83,9 @@ begin
 
   // set up cbGame
   cbChoices.Parent := self;
-  cbChoices.Top := 8;
+  cbChoices.top := 8;
   cbChoices.Left := 75;
-  cbChoices.Width := Width - cbChoices.Left - 6;
+  cbChoices.width := width - cbChoices.Left - 6;
   cbChoices.Style := csDropDownList;
   cbChoices.Items.Text := '';
   cbChoices.Items.Add('Patch');
@@ -110,14 +110,20 @@ end;
 { EVENT HANDLING }
 procedure TChoicePanel.SettingChanged(Sender: TObject);
 begin
-  if Assigned(SelectCallback) then SelectCallback(self);
+  if Assigned(SelectCallback) then
+    SelectCallback(self);
 end;
 
 procedure TChoicePanel.ToggleSelect(Sender: TObject);
 begin
-  if Cursor = crHandPoint then begin
-    if Selected then Deselect else Select;
-    if Assigned(SelectCallback) then SelectCallback(self);
+  if Cursor = crHandPoint then
+  begin
+    if Selected then
+      Deselect
+    else
+      Select;
+    if Assigned(SelectCallback) then
+      SelectCallback(self);
   end;
 end;
 

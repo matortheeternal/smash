@@ -9,26 +9,28 @@ uses
   // mp units
   msConfiguration;
 
-  { Initialization Methods }
-  function InitBase: boolean;
-  function GamePathValid(path: string; id: integer): boolean;
-  procedure SetGame(id: integer);
-  function GetGameID(name: string): integer;
-  function GetLanguageFileSuffix: String;
-  function GetGamePath(mode: TGameMode): string;
-  procedure LoadDefinitions;
-  procedure LoadBSAs;
-  { Load order functions }
-  procedure RemoveCommentsAndEmpty(var sl: TStringList);
-  procedure RemoveMissingFiles(var sl: TStringList);
-  procedure RemoveSmashedPatches(var sl: TStringList);
-  procedure FixLoadOrder(var sl: TStringList; const filename: String; var index: Integer);
-  procedure AddBaseMasters(var sl: TStringList);
-  procedure AddMissingFiles(var sl: TStringList);
-  function PluginListCompare(List: TStringList; Index1, Index2: Integer): Integer;
-  procedure LoadPluginsList(const sLoadPath: String; var sl: TStringList; noDelete: Boolean = False);
-  procedure LoadLoadOrder(const sLoadPath: String; var slLoadOrder: TStringList);
-  procedure PrepareLoadOrder(var slLoadOrder, slPlugins: TStringList);
+{ Initialization Methods }
+function InitBase: boolean;
+function GamePathValid(path: string; id: integer): boolean;
+procedure SetGame(id: integer);
+function GetGameID(name: string): integer;
+function GetLanguageFileSuffix: String;
+function GetGamePath(mode: TGameMode): string;
+procedure LoadDefinitions;
+procedure LoadBSAs;
+{ Load order functions }
+procedure RemoveCommentsAndEmpty(var sl: TStringList);
+procedure RemoveMissingFiles(var sl: TStringList);
+procedure RemoveSmashedPatches(var sl: TStringList);
+procedure FixLoadOrder(var sl: TStringList; const filename: String;
+  var index: integer);
+procedure AddBaseMasters(var sl: TStringList);
+procedure AddMissingFiles(var sl: TStringList);
+function PluginListCompare(List: TStringList; Index1, Index2: integer): integer;
+procedure LoadPluginsList(const sLoadPath: String; var sl: TStringList;
+  noDelete: boolean = False);
+procedure LoadLoadOrder(const sLoadPath: String; var slLoadOrder: TStringList);
+procedure PrepareLoadOrder(var slLoadOrder, slPlugins: TStringList);
 
 var
   slPlugins, slLanguageMap: TStringList;
@@ -48,8 +50,7 @@ uses
   wbDefinitionsFNV, wbDefinitionsFO3, wbDefinitionsTES3, wbDefinitionsTES4,
   wbDefinitionsTES5, wbDefinitionsFO4;
 
-
-{******************************************************************************}
+{ ****************************************************************************** }
 { Initialization Methods
   Methods that are used for initialization.
 
@@ -62,33 +63,35 @@ uses
   - LoadDefinitions
   - InitPapyrus
 }
-{******************************************************************************}
+{ ****************************************************************************** }
 
 function InitBase: boolean;
 var
   slLoadOrder: TStringList;
   psForm: TPluginSelectionForm;
 begin
-  Result := false;
+  Result := False;
 
   // INITIALIZE VARIABLES
   LogPath := PathList.Values['ProgramPath'] + 'logs\';
   PathList.Values['TempPath'] := PathList.Values['ProgramPath'] + 'temp\';
-  PathList.Values['ProfilePath'] := PathList.Values['ProgramPath'] +
-    'profiles\'+ CurrentProfile.name + '\';
+  PathList.Values['ProfilePath'] := PathList.Values['ProgramPath'] + 'profiles\'
+    + CurrentProfile.name + '\';
   ForceDirectories(PathList.Values['TempPath']);
   ForceDirectories(LogPath);
   ForceDirectories(PathList.Values['ProfilePath']);
 
   // SET GAME VARS
   SetGame(CurrentProfile.gameMode);
-  wbVWDInTemporary := wbGameMode in [gmSSE, gmTES5VR, gmTES5, gmEnderal, gmFO3, gmFNV];
+  wbVWDInTemporary := wbGameMode in [gmSSE, gmTES5VR, gmTES5, gmEnderal,
+    gmFO3, gmFNV];
   wbVWDAsQuestChildren := wbGameMode = gmFO4;
   wbArchiveExtension := IfThen(wbGameMode = gmFO4, '.ba2', '.bsa');
-  wbLoadBSAs := wbGameMode in [gmFO4, gmSSE, gmTES5VR, gmTES5, gmEnderal, gmTES4];
-  Logger.Write('GENERAL', 'Game', 'Using '+wbGameName);
-  Logger.Write('GENERAL', 'Path', 'Using '+wbDataPath);
-  Logger.Write('GENERAL', 'GameIni', 'Using '+wbTheGameIniFileName);
+  wbLoadBSAs := wbGameMode in [gmFO4, gmSSE, gmTES5VR, gmTES5,
+    gmEnderal, gmTES4];
+  Logger.Write('GENERAL', 'Game', 'Using ' + wbGameName);
+  Logger.Write('GENERAL', 'Path', 'Using ' + wbDataPath);
+  Logger.Write('GENERAL', 'GameIni', 'Using ' + wbTheGameIniFileName);
 
   // INITIALIZE SETTINGS FOR GAME
   LoadSettings;
@@ -112,7 +115,8 @@ begin
   wbToolName := 'Edit';
 
   // INITIALIZE DEFINITIONS
-  Logger.Write('GENERAL', 'Definitions', 'Using '+wbAppName+'Edit Definitions');
+  Logger.Write('GENERAL', 'Definitions', 'Using ' + wbAppName +
+    'Edit Definitions');
   LoadDefinitions;
 
   // LOAD SMASH SETTINGS
@@ -146,14 +150,14 @@ begin
   FreeList(HeaderList);
 
   // ALL DONE
-  Result := true;
+  Result := True;
 end;
 
 { Check if game paths are valid }
 function GamePathValid(path: string; id: integer): boolean;
 begin
-  Result := FileExists(path + GameArray[id].exeName)
-    and DirectoryExists(path + 'Data');
+  Result := FileExists(path + GameArray[id].exeName) and
+    DirectoryExists(path + 'Data');
 end;
 
 { Sets the game mode in the TES5Edit API }
@@ -162,11 +166,11 @@ var
   sMyDocumentsPath: string;
   sIniPath: string;
 begin
-  ProgramStatus.GameMode := GameArray[id];
-  wbGameName := ProgramStatus.GameMode.gameName;
-  wbGameName2 := ProgramStatus.GameMode.regName;
-  wbGameMode := ProgramStatus.GameMode.gameMode;
-  wbAppName := ProgramStatus.GameMode.appName;
+  ProgramStatus.gameMode := GameArray[id];
+  wbGameName := ProgramStatus.gameMode.gameName;
+  wbGameName2 := ProgramStatus.gameMode.regName;
+  wbGameMode := ProgramStatus.gameMode.gameMode;
+  wbAppName := ProgramStatus.gameMode.appName;
   wbDataPath := CurrentProfile.gamePath + 'Data\';
 
   // set general paths
@@ -175,7 +179,8 @@ begin
 
   // find game ini inside the user's documents folder.
   sMyDocumentsPath := GetCSIDLShellFolder(CSIDL_PERSONAL);
-  if sMyDocumentsPath <> '' then begin
+  if sMyDocumentsPath <> '' then
+  begin
     sIniPath := sMyDocumentsPath + 'My Games\' + wbGameName2 + '\';
     if wbGameMode in [gmFO3, gmFNV] then
       wbTheGameIniFileName := sIniPath + 'Fallout.ini'
@@ -191,7 +196,8 @@ var
 begin
   Result := 0;
   for i := Low(GameArray) to High(GameArray) do
-    if GameArray[i].longName = name then begin
+    if GameArray[i].longName = name then
+    begin
       Result := i;
       exit;
     end;
@@ -208,14 +214,14 @@ end;
 { Gets the path of a game from registry key or app path }
 function GetGamePath(mode: TGameMode): string;
 const
-  sBethRegKey     = '\SOFTWARE\Bethesda Softworks\';
-  sBethRegKey64   = '\SOFTWARE\Wow6432Node\Bethesda Softworks\';
-  sSteamRegKey    = '\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\'+
+  sBethRegKey = '\SOFTWARE\Bethesda Softworks\';
+  sBethRegKey64 = '\SOFTWARE\Wow6432Node\Bethesda Softworks\';
+  sSteamRegKey = '\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\' +
     'Steam App ';
-  sSteamRegKey64  = '\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\'+
+  sSteamRegKey64 = '\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\' +
     'Uninstall\Steam App ';
 var
-  i: Integer;
+  i: integer;
   regName: string;
   keys, appIDs: TStringList;
 begin
@@ -230,7 +236,8 @@ begin
   // add keys to check
   keys.Add(sBethRegKey + regName + '\Installed Path');
   keys.Add(sBethRegKey64 + regName + '\Installed Path');
-  for i := 0 to Pred(appIDs.Count) do begin
+  for i := 0 to Pred(appIDs.Count) do
+  begin
     keys.Add(sSteamRegKey + appIDs[i] + '\InstallLocation');
     keys.Add(sSteamRegKey64 + appIDs[i] + '\InstallLocation');
   end;
@@ -251,11 +258,16 @@ end;
 procedure LoadDefinitions;
 begin
   case wbGameMode of
-    gmTES5, gmTES5VR, gmSSE, gmEnderal: DefineTES5;
-    gmFNV: DefineFNV;
-    gmTES4: DefineTES4;
-    gmFO3: DefineFO3;
-    gmFO4: DefineFO4;
+    gmTES5, gmTES5VR, gmSSE, gmEnderal:
+      DefineTES5;
+    gmFNV:
+      DefineFNV;
+    gmTES4:
+      DefineTES4;
+    gmFO3:
+      DefineFO3;
+    gmFO4:
+      DefineFO4;
   end;
 end;
 
@@ -276,14 +288,15 @@ procedure LoadBSAs;
 var
   slBSAFileNames: TStringList;
   slErrors: TStringList;
-  i: Integer;
-  modIndex: Integer;
+  i: integer;
+  modIndex: integer;
   plugin: TPlugin;
-  bIsTES5: Boolean;
+  bIsTES5: boolean;
 begin
   slBSAFileNames := TStringList.Create;
   try
-    slErrors:= TStringList.Create;
+
+    slErrors := TStringList.Create;
     try
       FindBSAs(wbTheGameIniFileName, wbDataPath, slBSAFileNames, slErrors);
       for i := 0 to slBSAFileNames.Count - 1 do
@@ -291,7 +304,8 @@ begin
       for i := 0 to slErrors.Count - 1 do
         Logger.Write('ERROR', 'Load', slErrors[i] + ' was not found');
 
-      for modIndex := 0 to PluginsList.Count - 1 do begin
+      for modIndex := 0 to PluginsList.Count - 1 do
+      begin
         slBSAFileNames.Clear;
         slErrors.Clear;
         plugin := TPlugin(PluginsList[modIndex]);
@@ -312,8 +326,7 @@ begin
   end;
 end;
 
-
-{******************************************************************************}
+{ ****************************************************************************** }
 { Load order functions
   Set of functions for building a working load order.
 
@@ -322,7 +335,7 @@ end;
   - RemoveMissingFiles
   - AddMissingFiles
   - PluginListCompare
-{******************************************************************************}
+  {****************************************************************************** }
 
 { Remove comments and empty lines from a stringlist }
 procedure RemoveCommentsAndEmpty(var sl: TStringList);
@@ -330,12 +343,13 @@ var
   i, j, k: integer;
   s: string;
 begin
-  for i := Pred(sl.Count) downto 0 do begin
+  for i := Pred(sl.Count) downto 0 do
+  begin
     s := Trim(sl.Strings[i]);
     j := Pos('#', s);
     k := Pos('*', s);
     if j > 0 then
-      System.Delete(s, j, High(Integer));
+      System.Delete(s, j, High(integer));
     if s = '' then
       sl.Delete(i);
     if k = 1 then
@@ -364,13 +378,16 @@ begin
 end;
 
 { Forces a plugin to load at a specific position }
-procedure FixLoadOrder(var sl: TStringList; const filename: String; var index: Integer);
+procedure FixLoadOrder(var sl: TStringList; const filename: String;
+  var index: integer);
 var
-  oldIndex: Integer;
+  oldIndex: integer;
 begin
   oldIndex := sl.IndexOf(filename);
-  if (oldIndex > -1) then begin
-    if oldIndex <> index then begin
+  if (oldIndex > -1) then
+  begin
+    if oldIndex <> index then
+    begin
       sl.Delete(oldIndex);
       sl.Insert(index, filename);
     end;
@@ -384,13 +401,14 @@ end;
 
 procedure AddBaseMasters(var sl: TStringList);
 var
-  index: Integer;
+  index: integer;
 begin
   index := 0;
   FixLoadOrder(sl, wbGameName + '.esm', index);
   if (wbGameMode = gmTES5) or (wbGameMode = gmEnderal) then
     FixLoadOrder(sl, 'Update.esm', index)
-  else if (wbGameMode = gmSSE) or (wbGameMode = gmTES5VR) then begin
+  else if (wbGameMode = gmSSE) or (wbGameMode = gmTES5VR) then
+  begin
     FixLoadOrder(sl, 'Update.esm', index);
     FixLoadOrder(sl, 'Dawnguard.esm', index);
     FixLoadOrder(sl, 'HearthFires.esm', index);
@@ -399,7 +417,8 @@ begin
       FixLoadOrder(sl, 'SkyrimVR.esm', index);
 
   end
-  else if (wbGameMode = gmFO4) then begin
+  else if (wbGameMode = gmFO4) then
+  begin
     FixLoadOrder(sl, 'DLCRobot.esm', index);
     FixLoadOrder(sl, 'DLCworkshop01.esm', index);
     FixLoadOrder(sl, 'DLCCoast.esm', index);
@@ -416,12 +435,14 @@ var
   sPath: string;
   slCC: TStringList;
   i: integer;
-  index: Integer;
+  index: integer;
 begin
   slCC := TStringList.Create;
-  sPath := CurrentProfile.GamePath + wbGameName + '.ccc';
-  if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4) then exit;
-  if FileExists(sPath) then begin
+  sPath := CurrentProfile.gamePath + wbGameName + '.ccc';
+  if (wbGameMode <> gmSSE) and (wbGameMode <> gmFO4) then
+    exit;
+  if FileExists(sPath) then
+  begin
     slCC.LoadFromFile(sPath);
     index := 0;
     for i := 0 to Pred(slCC.Count) do
@@ -439,23 +460,26 @@ begin
   // Try to fit a meaningful modified date of a file into 32 bits integer value
   // For relative load order sorting only
   // Oblivion GOG version has dates from 1969 year and FileAge() doesn't support them
-  if FindFirst(aFileName, faAnyFile, F) = 0 then begin
+  if FindFirst(aFileName, faAnyFile, F) = 0 then
+  begin
     Result := Round((F.TimeStamp - 364 * DateOmitYears) * DatePrecision);
     FindClose(F);
-  end else
+  end
+  else
     Result := 0;
 end;
 
 { Compare function for sorting load order by date modified/esms }
-function PluginListCompare(List: TStringList; Index1, Index2: Integer): Integer;
+function PluginListCompare(List: TStringList; Index1, Index2: integer): integer;
 var
-  IsESM1, IsESM2: Boolean;
-  FileSK1, FileSK2: Integer;
+  IsESM1, IsESM2: boolean;
+  FileSK1, FileSK2: integer;
 begin
   IsESM1 := List[Index1].EndsWith(csDotESM);
   IsESM2 := List[Index2].EndsWith(csDotESM);
 
-  if IsESM1 = IsESM2 then begin
+  if IsESM1 = IsESM2 then
+  begin
     FileSK1 := Cardinal(List.Objects[Index1]);
     FileSK2 := Cardinal(List.Objects[Index2]);
 
@@ -466,7 +490,8 @@ begin
     else
       Result := 0;
 
-  end else if IsESM1 then
+  end
+  else if IsESM1 then
     Result := -1
   else
     Result := 1;
@@ -483,18 +508,20 @@ begin
   slNew := TStringList.Create;
   try
     // search for missing plugins and masters
-    if FindFirst(wbDataPath + '*.*', faAnyFile, F) = 0 then try
-      repeat
-        if not (wbIsPlugin(F.Name)) then
-          continue;
-        if sl.IndexOf(F.Name) = -1 then begin
-          fileSortKey := GetPluginDate(wbDataPath + F.Name);
-          slNew.AddObject(F.Name, TObject(fileSortKey));
-        end;
-      until FindNext(F) <> 0;
-    finally
-      FindClose(F);
-    end;
+    if FindFirst(wbDataPath + '*.*', faAnyFile, F) = 0 then
+      try
+        repeat
+          if not(wbIsPlugin(F.name)) then
+            continue;
+          if sl.IndexOf(F.name) = -1 then
+          begin
+            fileSortKey := GetPluginDate(wbDataPath + F.name);
+            slNew.AddObject(F.name, TObject(fileSortKey));
+          end;
+        until FindNext(F) <> 0;
+      finally
+        FindClose(F);
+      end;
 
     // sort the list
     slNew.CustomSort(PluginListCompare);
@@ -511,11 +538,14 @@ begin
 
     // add esm masters after the last master, add esp plugins at the end
     Inc(j);
-    for i := 0 to Pred(slNew.Count) do begin
-      if (slNew[i].EndsWith(csDotESM)) then begin
+    for i := 0 to Pred(slNew.Count) do
+    begin
+      if (slNew[i].EndsWith(csDotESM)) then
+      begin
         sl.InsertObject(j, slNew[i], slNew.Objects[i]);
         Inc(j);
-      end else
+      end
+      else
         sl.AddObject(slNew[i], slNew.Objects[i]);
     end;
   finally
@@ -523,35 +553,41 @@ begin
   end;
 end;
 
-procedure ProcessAsterisks(var sl: TStringList; index: Integer; noDelete: Boolean);
+procedure ProcessAsterisks(var sl: TStringList; index: integer;
+  noDelete: boolean);
 var
   s: String;
 begin
   s := sl[index];
-  if s[1] <> '*' then begin
-    if not noDelete then sl.Delete(index);
+  if s[1] <> '*' then
+  begin
+    if not noDelete then
+      sl.Delete(index);
   end
   else
     sl[index] := Copy(s, 2, Length(s));
 end;
 
-procedure ProcessPluginsFormat(var sl: TStringList; noDelete: Boolean);
+procedure ProcessPluginsFormat(var sl: TStringList; noDelete: boolean);
 var
-  i: Integer;
+  i: integer;
 begin
   for i := Pred(sl.Count) downto 0 do
     ProcessAsterisks(sl, i, noDelete);
 end;
 
-procedure LoadPluginsList(const sLoadPath: String; var sl: TStringList; noDelete: Boolean = False);
+procedure LoadPluginsList(const sLoadPath: String; var sl: TStringList;
+  noDelete: boolean = False);
 var
   sPath: String;
 begin
 
   sPath := sLoadPath + 'plugins.txt';
-  if FileExists(sPath) then begin
+  if FileExists(sPath) then
+  begin
     sl.LoadFromFile(sPath);
-    if (wbGameMode = gmSSE) or (wbGameMode = gmTES5VR) or (wbGameMode = gmFO4) then
+    if (wbGameMode = gmSSE) or (wbGameMode = gmTES5VR) or (wbGameMode = gmFO4)
+    then
       ProcessPluginsFormat(sl, noDelete);
   end
   else
@@ -562,7 +598,8 @@ begin
   // remove comments and missing files
   RemoveCommentsAndEmpty(sl);
   RemoveMissingFiles(sl);
-  if noDelete then AddMissingFiles(sl);
+  if noDelete then
+    AddMissingFiles(sl);
   RemoveSmashedPatches(sl);
 end;
 
@@ -571,8 +608,9 @@ var
   sPath: String;
 begin
   sPath := sLoadPath + 'loadorder.txt';
-  if (wbGameMode <> gmSSE) and (wbGameMode <> gmTES5VR) and (wbGameMode <> gmFO4)
-  and FileExists(sPath) then begin
+  if (wbGameMode <> gmSSE) and (wbGameMode <> gmTES5VR) and
+    (wbGameMode <> gmFO4) and FileExists(sPath) then
+  begin
     slLoadOrder.LoadFromFile(sPath);
 
     // remove comments and add/remove files
@@ -590,64 +628,59 @@ procedure PrepareLoadOrder(var slLoadOrder, slPlugins: TStringList);
 var
   sLoadPath: String;
 begin
-  sLoadPath := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA) + wbGameName2 +'\';
+  sLoadPath := GetCSIDLShellFolder(CSIDL_LOCAL_APPDATA) + wbGameName2 + '\';
   LoadPluginsList(sLoadPath, slPlugins);
   LoadLoadOrder(sLoadPath, slLoadOrder);
-end;
+
+end;
 
 { Log Initialization }
 procedure InitLog;
 begin
   // INITIALIZE GROUP FILTERS
-  GroupFilters.Add(TFilter.Create('GENERAL', true));
-  GroupFilters.Add(TFilter.Create('LOAD', true));
-  GroupFilters.Add(TFilter.Create('CLIENT', true));
-  GroupFilters.Add(TFilter.Create('MERGE', true));
-  GroupFilters.Add(TFilter.Create('PLUGIN', true));
-  GroupFilters.Add(TFilter.Create('ERROR', true));
+  GroupFilters.Add(TFilter.Create('GENERAL', True));
+  GroupFilters.Add(TFilter.Create('LOAD', True));
+  GroupFilters.Add(TFilter.Create('CLIENT', True));
+  GroupFilters.Add(TFilter.Create('MERGE', True));
+  GroupFilters.Add(TFilter.Create('PLUGIN', True));
+  GroupFilters.Add(TFilter.Create('ERROR', True));
   // INITIALIZE LABEL FILTERS
-  LabelFilters.Add(TFilter.Create('GENERAL', 'Game', true));
-  LabelFilters.Add(TFilter.Create('GENERAL', 'Status', true));
-  LabelFilters.Add(TFilter.Create('GENERAL', 'Path', true));
-  LabelFilters.Add(TFilter.Create('GENERAL', 'Definitions', true));
-  LabelFilters.Add(TFilter.Create('GENERAL', 'Dictionary', true));
-  LabelFilters.Add(TFilter.Create('GENERAL', 'Load Order', true));
-  LabelFilters.Add(TFilter.Create('GENERAL', 'Log', true));
-  LabelFilters.Add(TFilter.Create('LOAD', 'Order', false));
-  LabelFilters.Add(TFilter.Create('LOAD', 'Plugins', false));
-  LabelFilters.Add(TFilter.Create('LOAD', 'Background', true));
-  LabelFilters.Add(TFilter.Create('CLIENT', 'Connect', true));
-  LabelFilters.Add(TFilter.Create('CLIENT', 'Login', true));
-  LabelFilters.Add(TFilter.Create('CLIENT', 'Response', true));
-  LabelFilters.Add(TFilter.Create('CLIENT', 'Update', true));
-  LabelFilters.Add(TFilter.Create('CLIENT', 'Report', true));
-  LabelFilters.Add(TFilter.Create('PATCH', 'Status', false));
-  LabelFilters.Add(TFilter.Create('PATCH', 'Create', true));
-  LabelFilters.Add(TFilter.Create('PATCH', 'Edit', true));
-  LabelFilters.Add(TFilter.Create('PATCH', 'Check', true));
-  LabelFilters.Add(TFilter.Create('PATCH', 'Clean', true));
-  LabelFilters.Add(TFilter.Create('PATCH', 'Delete', true));
-  LabelFilters.Add(TFilter.Create('PATCH', 'Build', true));
-  LabelFilters.Add(TFilter.Create('PATCH', 'Report', true));
-  LabelFilters.Add(TFilter.Create('PLUGIN', 'Report', true));
-  LabelFilters.Add(TFilter.Create('PLUGIN', 'Check', true));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Game', True));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Status', True));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Path', True));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Definitions', True));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Dictionary', True));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Load Order', True));
+  LabelFilters.Add(TFilter.Create('GENERAL', 'Log', True));
+  LabelFilters.Add(TFilter.Create('LOAD', 'Order', False));
+  LabelFilters.Add(TFilter.Create('LOAD', 'Plugins', False));
+  LabelFilters.Add(TFilter.Create('LOAD', 'Background', True));
+  LabelFilters.Add(TFilter.Create('CLIENT', 'Connect', True));
+  LabelFilters.Add(TFilter.Create('CLIENT', 'Login', True));
+  LabelFilters.Add(TFilter.Create('CLIENT', 'Response', True));
+  LabelFilters.Add(TFilter.Create('CLIENT', 'Update', True));
+  LabelFilters.Add(TFilter.Create('CLIENT', 'Report', True));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Status', False));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Create', True));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Edit', True));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Check', True));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Clean', True));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Delete', True));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Build', True));
+  LabelFilters.Add(TFilter.Create('PATCH', 'Report', True));
+  LabelFilters.Add(TFilter.Create('PLUGIN', 'Report', True));
+  LabelFilters.Add(TFilter.Create('PLUGIN', 'Check', True));
 end;
 
 initialization
-  slLanguageMap := TStringList.Create;
-  slLanguageMap.Text :=
-    'English=en'#13 +
-    'French=fr'#13 +
-    'German=de'#13 +
-    'Italian=it'#13 +
-    'Spanish=es'#13 +
-    'Russian=ru'#13 +
-    'Polish=pl'#13 +
-    'Japanese=ja'#13 +
-    'Portugese=pt'#13 +
-    'Chinese=zh';
+
+slLanguageMap := TStringList.Create;
+slLanguageMap.Text := 'English=en'#13 + 'French=fr'#13 + 'German=de'#13 +
+  'Italian=it'#13 + 'Spanish=es'#13 + 'Russian=ru'#13 + 'Polish=pl'#13 +
+  'Japanese=ja'#13 + 'Portugese=pt'#13 + 'Chinese=zh';
 
 finalization
-  slLanguageMap.Free;
+
+slLanguageMap.Free;
 
 end.

@@ -37,12 +37,12 @@ type
     procedure SelectionChanged(Sender: TObject);
     procedure DeleteClicked(Sender: TObject);
     procedure DeleteProfileItemClick(Sender: TObject);
-    function ProfileNameTaken(name: string): boolean;
+    function ProfileNameTaken(name: string): Boolean;
     procedure NewProfileImageClick(Sender: TObject);
     procedure NewProfilePanelClick(Sender: TObject);
     procedure NewProfileLabelClick(Sender: TObject);
-    procedure NewProfilePanelMouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
+    procedure NewProfilePanelMouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer);
   private
     FOldWndProc: TWndMethod;
     FMouseInPanel: Boolean;
@@ -63,15 +63,16 @@ implementation
 
 procedure TProfileForm.DeleteProfileItemClick(Sender: TObject);
 var
-  bApproved: boolean;
+  bApproved: Boolean;
   aProfile: TProfile;
 begin
   // get user verification
   aProfile := MouseOverProfile.GetProfile;
-  bApproved := MessageDlg('Are you sure you want to delete '+
-    aProfile.name + '?', mtConfirmation, mbOKCancel, 0) = mrOk;
+  bApproved := MessageDlg('Are you sure you want to delete ' + aProfile.name +
+    '?', mtConfirmation, mbOKCancel, 0) = mrOk;
 
-  if not (bApproved and Assigned(MouseOverProfile)) then exit;
+  if not(bApproved and Assigned(MouseOverProfile)) then
+    exit;
   ProfilePanels.Delete(ProfilePanels.IndexOf(MouseOverProfile));
   aProfile.Delete;
   MouseOverProfile.Free;
@@ -89,7 +90,8 @@ begin
 
   // adjust tops
   NewProfilePanel.Top := 100 * pCount - vPos;
-  for i := Pred(pCount) downto 0 do begin
+  for i := Pred(pCount) downto 0 do
+  begin
     p := TProfilePanel(ProfilePanels[i]);
     p.SetTop(100 * i - vPos);
   end;
@@ -97,7 +99,8 @@ begin
 
   // adjust widths
   NewProfilePanel.Width := ScrollBox.ClientWidth;
-  for i := Pred(pCount) downto 0 do begin
+  for i := Pred(pCount) downto 0 do
+  begin
     p := TProfilePanel(ProfilePanels[i]);
     p.SetWidth(ScrollBox.ClientWidth);
   end;
@@ -110,7 +113,8 @@ var
   aProfile: TProfile;
 begin
   // save all profiles
-  for i := 0 to Pred(ProfilePanels.Count) do begin
+  for i := 0 to Pred(ProfilePanels.Count) do
+  begin
     p := TProfilePanel(ProfilePanels[i]);
     aProfile := p.GetProfile;
     try
@@ -122,10 +126,13 @@ begin
   end;
 
   // set profile if user clicked OK
-  if ModalResult = mrOK then begin
-    for i := 0 to Pred(ProfilePanels.Count) do begin
+  if ModalResult = mrOk then
+  begin
+    for i := 0 to Pred(ProfilePanels.Count) do
+    begin
       p := TProfilePanel(ProfilePanels[i]);
-      if p.Selected then begin
+      if p.Selected then
+      begin
         CurrentProfile := TProfile.Create('');
         CurrentProfile.Clone(p.GetProfile);
         break;
@@ -151,7 +158,7 @@ end;
 
 procedure TProfileForm.FormDestroy(Sender: TObject);
 begin
-  NewProfilePanel.WindowProc:= FOldWndProc;
+  NewProfilePanel.WindowProc := FOldWndProc;
 end;
 
 procedure TProfileForm.LoadProfiles;
@@ -169,14 +176,15 @@ begin
     exit;
   // add found profiles
   repeat
-    if IsDotFile(info.Name) then
+    if IsDotFile(info.name) then
       continue;
-    settingsPath := path + info.Name + '\settings.ini';
+    settingsPath := path + info.name + '\settings.ini';
     if not FileExists(settingsPath) then
       continue;
     aSettings := TSettings.Create;
     TRttiIni.Load(settingsPath, aSettings);
-    if aSettings.profile <> '' then begin
+    if aSettings.profile <> '' then
+    begin
       p := CreateNewProfile(aSettings.profile);
       p.SetGame(aSettings.gameMode);
       p.SetPath(aSettings.gamePath);
@@ -191,9 +199,11 @@ var
   profile: TProfile;
 begin
   Result := False;
-  for i := 0 to Pred(ProfilePanels.Count) do begin
+  for i := 0 to Pred(ProfilePanels.Count) do
+  begin
     profile := TProfilePanel(ProfilePanels[i]).GetProfile;
-    if profile.gameMode = gameMode then begin
+    if profile.gameMode = gameMode then
+    begin
       Result := True;
       break;
     end;
@@ -206,11 +216,14 @@ var
   path, name: string;
   p: TProfilePanel;
 begin
-  for i := Low(GameArray) to High(GameArray) do begin
-    if ProfileExists(i) then continue;
+  for i := Low(GameArray) to High(GameArray) do
+  begin
+    if ProfileExists(i) then
+      continue;
     path := GetGamePath(GameArray[i]);
     name := GameArray[i].appName;
-    if path <> '' then begin
+    if path <> '' then
+    begin
       p := CreateNewProfile(name);
       p.SetGame(i);
       p.SetPath(path);
@@ -258,16 +271,18 @@ begin
   NewProfileItemClick(nil);
 end;
 
-function TProfileForm.ProfileNameTaken(name: string): boolean;
+function TProfileForm.ProfileNameTaken(name: string): Boolean;
 var
   i: Integer;
   pName: string;
 begin
-  Result := false;
-  for i := 0 to Pred(ProfilePanels.Count) do begin
+  Result := False;
+  for i := 0 to Pred(ProfilePanels.Count) do
+  begin
     pName := TProfilePanel(ProfilePanels[i]).GetProfile.name;
-    if SameText(pName, name) then begin
-      Result := true;
+    if SameText(pName, name) then
+    begin
+      Result := True;
       break;
     end;
   end;
@@ -294,10 +309,11 @@ procedure TProfileForm.SelectionChanged(Sender: TObject);
 var
   i: Integer;
   p: TProfilePanel;
-  bSelected: boolean;
+  bSelected: Boolean;
 begin
   // deselect all panels except the sender
-  for i := 0 to Pred(ProfilePanels.Count) do begin
+  for i := 0 to Pred(ProfilePanels.Count) do
+  begin
     p := TProfilePanel(ProfilePanels[i]);
     if p <> TProfilePanel(Sender) then
       p.Deselect
@@ -306,8 +322,10 @@ begin
   // enable and focus ok button if profile panel is selected
   bSelected := TProfilePanel(Sender).Selected;
   btnOk.Enabled := bSelected;
-  if bSelected then self.FocusControl(btnOk)
-  else self.FocusControl(btnCancel);
+  if bSelected then
+    self.FocusControl(btnOk)
+  else
+    self.FocusControl(btnCancel);
 end;
 
 procedure TProfileForm.DeleteClicked(Sender: TObject);
@@ -316,26 +334,28 @@ begin
   DeleteProfileItemClick(nil);
 end;
 
-procedure TProfileForm.NewProfilePanelMouseMove(Sender: TObject; Shift: TShiftState; X,
-  Y: Integer);
+procedure TProfileForm.NewProfilePanelMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
 var
   mEvnt: TTrackMouseEvent;
 begin
-  if not FMouseInPanel then begin
+  if not FMouseInPanel then
+  begin
     mEvnt.cbSize := SizeOf(mEvnt);
     mEvnt.dwFlags := TME_LEAVE;
     mEvnt.hwndTrack := NewProfilePanel.Handle;
     TrackMouseEvent(mEvnt);
-    NewProfilePanel.Color:= $f0e8d8;
-    FMouseInPanel:= True;
+    NewProfilePanel.Color := $F0E8D8;
+    FMouseInPanel := True;
   end;
 end;
 
 procedure TProfileForm.PanelWndProc(var Message: TMessage);
 begin
-  if Message.Msg = WM_MOUSELEAVE then begin
-    NewProfilePanel.Color:= clBtnFace;
-    FMouseInPanel:= False;
+  if Message.Msg = WM_MOUSELEAVE then
+  begin
+    NewProfilePanel.Color := clBtnFace;
+    FMouseInPanel := False;
   end;
   FOldWndProc(Message);
 end;
