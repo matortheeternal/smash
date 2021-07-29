@@ -308,7 +308,7 @@ begin
         element.NativeValue := arrayContainer.ElementCount;
       except
         on x: Exception do
-          Tracker.Write('    Exception updating count at ' + element.Path);
+          Tracker.Write('    Exception updating count at ' + element.FullPath);
       end;
   end;
 end;

@@ -98,14 +98,14 @@ begin
       if not process then
       begin
         if settings.debugSkips then
-          Tracker.Write('      Skipping element creation at ' + element.Path);
+          Tracker.Write('      Skipping element creation at ' + element.FullPath);
         continue;
       end;
 
       // copy element
       try
         if settings.debugChanges then
-          Tracker.Write('      Created element at ' + element.Path);
+          Tracker.Write('      Created element at ' + element.FullPath);
         dstCont.AddIfMissing(element, false, true, '', '', '', '', true);
 
         // if another element is linked to the element, copy it
@@ -119,7 +119,7 @@ begin
       except
         on x: Exception do
           Tracker.Write('        HandleElementLife: Failed to copy ' +
-            element.Path + ', ' + x.Message);
+            element.FullPath + ', ' + x.Message);
       end;
     end;
   end;
@@ -143,13 +143,13 @@ begin
         if not process then
         begin
           if settings.debugSkips then
-            Tracker.Write('      Skipping element deletion at ' + element.Path);
+            Tracker.Write('      Skipping element deletion at ' + element.FullPath);
           continue;
         end;
 
         // remove element
         if settings.debugChanges then
-          Tracker.Write('      Deleted element at ' + element.Path);
+          Tracker.Write('      Deleted element at ' + element.FullPath);
         dstCont.RemoveElement(element);
 
         // if another element is linked to the element, copy it
@@ -304,7 +304,7 @@ begin
           if (d_ndx = -1) then
             continue;
           if settings.debugArrays then
-            Tracker.Write('        > Removing element at ' + dst.Path +
+            Tracker.Write('        > Removing element at ' + dst.FullPath +
               ' with key: ' + slMst[i]);
           dstCont.RemoveElement(d_ndx);
           slDst.Delete(d_ndx);
@@ -331,7 +331,7 @@ begin
         if bSorted then
         begin
           if settings.debugArrays then
-            Tracker.Write('        > Adding element at ' + dst.Path +
+            Tracker.Write('        > Adding element at ' + dst.FullPath +
               ' with key: ' + slSrc[i]);
           de := dstCont.Assign(dstCont.ElementCount, se, false);
           slDst.Insert(dstCont.IndexOf(de), slSrc[i]);
@@ -356,7 +356,7 @@ begin
       begin
         if settings.debugArrays then
         begin
-          Tracker.Write('        > Traversing element ' + se.Path +
+          Tracker.Write('        > Traversing element ' + se.FullPath +
             ' with key: ' + slSrc[i]);
           Tracker.Write('        > Source Element: ' + GetAllValues(se));
           Tracker.Write('        > Destination Element: ' +
@@ -372,7 +372,7 @@ begin
         except
           on x: Exception do
           begin
-            Tracker.Write('      rcore: Exception at ' + se.Path + ': ' +
+            Tracker.Write('      rcore: Exception at ' + se.FullPath + ': ' +
               x.Message);
           end;
         end;
@@ -461,7 +461,7 @@ begin
           if (d_ndx = -1) then
             continue;
           if settings.debugArrays then
-            Tracker.Write('        > Removing element at ' + dst.Path +
+            Tracker.Write('        > Removing element at ' + dst.FullPath +
               ' with key: ' + slMst[i]);
           fi := (mstCont.Elements[i].Def as IwbFlagDef).FlagIndex;
           val := dstCont.EditValue;
@@ -488,7 +488,7 @@ begin
           exit;
         // add element to destination
         if settings.debugArrays then
-          Tracker.Write('        > Adding flag at ' + dst.Path + ' with key: ' +
+          Tracker.Write('        > Adding flag at ' + dst.FullPath + ' with key: ' +
             slSrc[i]);
         fi := (se.Def as IwbFlagDef).FlagIndex;
         val := dstCont.EditValue.PadRight(fi + 1, '0');
@@ -515,7 +515,7 @@ begin
   begin
     if settings.debugChanges then
     begin
-      Tracker.Write('      Unable to copy element value on ' + se.Path);
+      Tracker.Write('      Unable to copy element value on ' + se.FullPath);
       Tracker.Write('      Element is not editable');
     end;
     exit;
@@ -524,7 +524,7 @@ begin
   if Assigned(me) and settings.debugChanges then
   begin
     if (not settings.debugTraversal) then
-      Tracker.Write('      ' + se.Path);
+      Tracker.Write('      ' + se.FullPath);
     Tracker.Write('      > Found differing values: ' + se.EditValue + ', ' +
       me.EditValue);
   end;
@@ -573,7 +573,7 @@ begin
     if Assigned(le) then
     begin
       if settings.debugLinks then
-        Tracker.Write('      Copying linked element ' + le.Path);
+        Tracker.Write('      Copying linked element ' + le.FullPath);
       if Assigned(de) then
         de.Assign(Low(Integer), le, false)
       else
@@ -623,7 +623,7 @@ begin
       Tracker.Write('      Source and destination types don''t match');
       Tracker.Write('      ' + stToString(srcType) + ' != ' +
         stToString(dstType));
-      Tracker.Write('      Skipping ' + se.Path);
+      Tracker.Write('      Skipping ' + se.FullPath);
     end;
     Result := true;
     exit;
@@ -639,7 +639,7 @@ begin
       if settings.debugSkips then
       begin
         Tracker.Write('      Master element not found!');
-        Tracker.Write('      Skipping ' + se.Path);
+        Tracker.Write('      Skipping ' + se.FullPath);
       end;
       exit;
     end;
@@ -647,7 +647,7 @@ begin
 
   // debug messages
   if settings.debugTraversal then
-    Tracker.Write('      ' + se.Path);
+    Tracker.Write('      ' + se.FullPath);
   if settings.debugTypes then
   begin
     Tracker.Write('      bCanAdd: ' + BoolToStr(bCanAdd, true));
@@ -665,7 +665,7 @@ begin
         bOverride);
     except
       on x: Exception do
-        Tracker.Write('        MergeArray: Exception at ' + se.Path + ': ' +
+        Tracker.Write('        MergeArray: Exception at ' + se.FullPath + ': ' +
           x.Message);
     end;
   end
@@ -679,7 +679,7 @@ begin
         bOverride);
     except
       on x: Exception do
-        Tracker.Write('        MergeFlags: Exception at ' + se.Path + ': ' +
+        Tracker.Write('        MergeFlags: Exception at ' + se.FullPath + ': ' +
           x.Message);
     end;
   end
@@ -692,7 +692,7 @@ begin
       Result := rcore(se, me, de, dstRec, obj, bSingle, bDeletions, bOverride);
     except
       on x: Exception do
-        Tracker.Write('      rcore: Exception at ' + se.Path + ': ' +
+        Tracker.Write('      rcore: Exception at ' + se.FullPath + ': ' +
           x.Message);
     end;
   end
@@ -760,7 +760,7 @@ begin
     if settings.debugSkips then
     begin
       Tracker.Write('      Source element not a container.');
-      Tracker.Write('      Skipping ' + src.Path);
+      Tracker.Write('      Skipping ' + src.FullPath);
     end;
     exit;
   end;
@@ -769,7 +769,7 @@ begin
     if settings.debugSkips then
     begin
       Tracker.Write('      Destination element not a container.');
-      Tracker.Write('      Skipping ' + src.Path);
+      Tracker.Write('      Skipping ' + src.FullPath);
     end;
     exit;
   end;
@@ -778,7 +778,7 @@ begin
     if settings.debugSkips then
     begin
       Tracker.Write('      Master element not a container.');
-      Tracker.Write('      Skipping ' + src.Path);
+      Tracker.Write('      Skipping ' + src.FullPath);
     end;
     exit;
   end;
@@ -790,7 +790,7 @@ begin
   if bSingle and Result then
   begin
     if settings.debugSingle then
-      Tracker.Write('      Single entity change found at ' + src.Path);
+      Tracker.Write('      Single entity change found at ' + src.FullPath);
     exit;
   end;
 
@@ -808,7 +808,7 @@ begin
       if settings.debugSkips then
       begin
         Tracker.Write('      Destination element not found!');
-        Tracker.Write('      Skipping ' + se.Path);
+        Tracker.Write('      Skipping ' + se.FullPath);
       end;
       continue;
     end;
@@ -819,7 +819,7 @@ begin
     if not process then
     begin
       if settings.debugSkips then
-        Tracker.Write('      Skipping ' + se.Path);
+        Tracker.Write('      Skipping ' + se.FullPath);
       continue;
     end;
 
@@ -837,7 +837,7 @@ begin
     if bSingle and Result then
     begin
       if settings.debugSingle then
-        Tracker.Write('      Single entity change found at ' + se.Path);
+        Tracker.Write('      Single entity change found at ' + se.FullPath);
       break;
     end;
 
@@ -846,11 +846,11 @@ begin
     if eSingle and (not bSingle) and Result then
       try
         if settings.debugSingle then
-          Tracker.Write(Format('      Copying single entity %s', [se.Path]));
+          Tracker.Write(Format('      Copying single entity %s', [se.FullPath]));
         de.Assign(Low(Integer), se, false);
       except
         on x: Exception do
-          Tracker.Write('        rcore: Failed to copy ' + se.Path + ', ' +
+          Tracker.Write('        rcore: Failed to copy ' + se.FullPath + ', ' +
             x.Message);
       end;
 
