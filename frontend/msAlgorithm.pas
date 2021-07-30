@@ -461,7 +461,7 @@ begin
           if (d_ndx = -1) then
             continue;
           if settings.debugArrays then
-            Tracker.Write('        > Removing element at ' + dst.FullPath +
+            Tracker.Write('        > Removing flag at ' + dst.FullPath +
               ' with key: ' + slMst[i]);
           fi := (mstCont.Elements[i].Def as IwbFlagDef).FlagIndex;
           val := dstCont.EditValue;

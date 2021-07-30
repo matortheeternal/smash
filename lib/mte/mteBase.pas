@@ -712,7 +712,7 @@ var
   i: Integer;
   ovr: IwbMainRecord;
 begin
-  Result := rec;
+  Result := rec.MasterOrSelf;
   for i := Pred(rec.OverrideCount) downto 0 do
   begin
     ovr := rec.Overrides[i];
