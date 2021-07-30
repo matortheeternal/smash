@@ -1478,27 +1478,48 @@ procedure RenameSavedPlugins;
 var
   i: integer;
   oldFileName, newFileName, bakFileName: string;
+  next: Boolean;
 begin
   // tracker message
   Tracker.Write(' ');
   Tracker.Write('Renaming saved plugins');
 
   for i := Pred(SavedPluginPaths.Count) downto 0 do
-    try
-      oldFileName := SavedPluginPaths[i];
-      newFileName := oldFileName + '.save';
-      bakFileName := oldFileName + '.bak';
-      Tracker.Write(Format('    Renaming %s to %s',
-        [ExtractFileName(newFileName), ExtractFileName(oldFileName)]));
-      if FileExists(bakFileName) then
-        DeleteFile(bakFileName);
-      RenameFile(oldFileName, bakFileName);
-      RenameFile(newFileName, oldFileName);
-    except
-      on x: Exception do
-        Tracker.Write('      Failed to rename ' + newFileName);
-    end;
-end;
+  begin
+    next := false;
+    repeat
+    begin
+      try
+        oldFileName := SavedPluginPaths[i];
+        newFileName := oldFileName + '.save';
+        bakFileName := oldFileName + '.bak';
+        Tracker.Write(Format('    Renaming %s to %s',
+          [ExtractFileName(newFileName), ExtractFileName(oldFileName)]));
+        if FileExists(oldFileName) and FileExists(bakFileName) then
+          DeleteFile(bakFileName);
+        RenameFile(oldFileName, bakFileName);
+        if not RenameFile(newFileName, oldFileName) then
+          raise Exception.Create('Failed to rename file');
+        next := true;
+      except
+        on x: Exception do
+        begin
+          Tracker.Write('      Failed to rename ' + newFileName);
+          case MessageBox(0, PWideChar('Error saving ' + oldFileName + ': ' +
+            x.ToString), 'Save Error', MB_ICONWARNING or MB_ABORTRETRYIGNORE or
+            MB_DEFBUTTON2) of
+            IDABORT:
+              raise x;
+            IDRETRY:
+              next := false;
+            IDIGNORE:
+              next := true;
+          end;
+        end;
+      end;
+    end
+    until (next) end;
+  end;
 
 procedure UpdatePluginData;
 var
