@@ -212,8 +212,7 @@ end;
   Creates a list of element keys for elements in @container in a stringlist @sl.
   Uses SortKey if @bUseSortKeys is true, else uses GetAllValues.
 }
-procedure BuildKeyList(container: IwbContainerElementRef; var sl: TStringList;
-  bUseSortKeys: boolean);
+procedure BuildKeyList(container: IwbContainerElementRef; var sl: TStringList);
 var
   i, n: Integer;
   childElement: IwbElement;
@@ -224,11 +223,7 @@ begin
   begin
     childElement := container.Elements[i];
 
-    // use sort if bUseSortKeys is true, else use GetAllValues
-    if bUseSortKeys then
-      key := childElement.SortKey[false]
-    else
-      key := GetAllValues(childElement);
+    key := childElement.SortKey[false];
 
     // find a non-colliding key
     n := 0;
@@ -280,9 +275,9 @@ begin
   slMst := TStringList.Create;
   slDst := TStringList.Create;
   try
-    BuildKeyList(srcCont, slSrc, bSorted);
-    BuildKeyList(mstCont, slMst, bSorted);
-    BuildKeyList(dstCont, slDst, bSorted);
+    BuildKeyList(srcCont, slSrc);
+    BuildKeyList(mstCont, slMst);
+    BuildKeyList(dstCont, slDst);
 
     // ELEMENT DELETION:
     // Remove elements that are in master and destination, but
