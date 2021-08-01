@@ -256,7 +256,7 @@ end;
 function MergeArray(src, mst, dst: IwbElement; dstRec: IwbMainRecord;
   obj: ISuperObject; bSingle, bDeletions, bOverride: boolean): boolean;
 var
-  i, s_ndx, m_ndx, d_ndx, a_ndx, align_ndx: Integer;
+  i, s_ndx, m_ndx, d_ndx, a_ndx: Integer;
   se, de: IwbElement;
   slMst, slDst, slSrc: TStringList;
   srcCont, dstCont, mstCont, seCont: IwbContainerElementRef;
@@ -314,7 +314,6 @@ begin
     // ELEMENT ADDITION:
     // Copy array elements in source that aren't in master
     // or destination
-    align_ndx := 0;
     for i := 0 to Pred(slSrc.Count) do
     begin
       d_ndx := slDst.IndexOf(slSrc[i]);
@@ -338,14 +337,16 @@ begin
         end
         else
         begin
-          a_ndx := Min(i + align_ndx, dstCont.ElementCount);
+          a_ndx := Min(i, dstCont.ElementCount);
           if settings.debugArrays then
             Tracker.Write('        > Adding element at ' + dstCont.FullPath +
               ' at index ' + a_ndx.ToString + ' with key: ' + slSrc[i]);
-          de := dstCont.Assign(a_ndx, se, false);
-          align_ndx := align_ndx + 1;
+          de := dstCont.Assign(dstCont.ElementCount, se, false);
+          dstCont.ResetMemoryOrder;
+          // Just inserting at a_ndx didn't work right...
+          while de.MemoryOrder > a_ndx do
+            de.MoveUp;
           slDst.Insert(a_ndx, slSrc[i]);
-          // slDst.Add(slSrc[i]);
         end;
       end
 
@@ -378,6 +379,7 @@ begin
         end;
       end;
     end;
+    //dstCont.ResetMemoryOrder;
   finally
     // free lists
     slMst.Free;
