@@ -178,27 +178,27 @@ begin
   begin
     if parents.IndexOf(grup.ChildrenOf) = -1 then
     begin
-      parents.Insert(0, grup.ChildrenOf);
+      parents.Add(grup.ChildrenOf);
       ListParents(grup.ChildrenOf, parents);
     end
   end;
 end;
 
-procedure AddParents(var patch: TPatch; const rec: IwbElement);
+procedure AddParents(var patchFile: IwbFile; const rec: IwbElement);
 var
   grup: IwbGroupRecord;
 begin
   if Supports(rec.Container, IwbGroupRecord, grup) and Assigned(grup.ChildrenOf)
   then
   begin
-    if not Assigned(patch.plugin._File.RecordByFormID[grup.ChildrenOf.FormID,
+    if not Assigned(patchFile.RecordByFormID[grup.ChildrenOf.FormID,
       true, true]) then
     begin
-      AddParents(patch, grup.ChildrenOf);
+      AddParents(patchFile, grup.ChildrenOf);
       Tracker.Write(Format('Copying parent record %s of %s',
         [grup.ChildrenOf.Name, rec.Name]));
-      AddRequiredMasters(patch.plugin._File, grup.ChildrenOf);
-      grup.ChildrenOf.CopyInto(patch.plugin._File, false, false, '',
+      AddRequiredMasters(patchFile, grup.ChildrenOf);
+      grup.ChildrenOf.CopyInto(patchFile, false, false, '',
         '', '', '');
     end
   end;
@@ -398,7 +398,7 @@ begin
           else
             e := WinningOverrideInFiles(rec, patch.plugins);
           // be sure we include the parent?
-          AddParents(patch, e);
+          AddParents(patchFile, e);
           Tracker.Write(Format('  [%d] Copying record %s from %s',
             [i + 1, e.Name, e._File.Name]));
           AddRequiredMasters(patchFile, e);
