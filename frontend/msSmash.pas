@@ -3,7 +3,7 @@ unit msSmash;
 interface
 
 uses
-  Windows, SysUtils, Classes, ShellAPI, Controls, Dialogs,
+  Windows, SysUtils, Classes, ShellAPI, Controls, Dialogs, Generics.Collections,
   // superobject
   superobject,
   // mte units
@@ -321,9 +321,10 @@ end;
 
 procedure SmashRecords(var patch: TPatch; var Records: TInterfaceList);
 var
-  i, j: Integer;
+  i, j, k: Integer;
   incProgress, currentProgress: Real;
   rec, mst, ovr, patchRec: IwbMainRecord;
+  msts: TList<IwbMainRecord>;
   f, patchFile, forceFile: IwbFile;
   plugin: TPlugin;
   aSetting: TSmashSetting;
@@ -428,15 +429,23 @@ begin
         if (wbGameMode = gmFO4) and HasPartialFormFlag(ovr) then
           bDeletions := false;
         bOverride := recObj.i['o'] = 1;
-        if bForce then
-          mst := e as IwbMainRecord
-        else
-          mst := WinningOverrideInFiles(rec, plugin.Masters);
-        Tracker.Write(Format('    Smashing override of %s from: %s, master: %s, masters: %s',
-          [ovr.Name, f.filename, mst._File.filename, String.join(',', plugin.masters.ToStringArray)]));
-        AddRequiredMasters(patch.plugin._File, ovr);
-        rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
-          recObj, false, bDeletions, bOverride);
+        msts := TList<IwbMainRecord>.Create;
+        try
+          if bForce then
+            msts.Add(e as IwbMainRecord)
+          else
+            OverridesInFiles(rec, plugin.Masters, msts);
+          for k := 0 to Pred(msts.Count) do begin
+            mst := msts.Items[k];
+            Tracker.Write(Format('    Smashing override of %s from: %s, master: %s, masters: %s',
+              [ovr.Name, f.filename, mst._File.filename, String.join(',', plugin.masters.ToStringArray)]));
+            AddRequiredMasters(patch.plugin._File, ovr);
+            rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
+              recObj, false, bDeletions, bOverride);
+        end;
+        finally
+          msts.Free;
+        end
       except
         on x: Exception do
         begin

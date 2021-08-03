@@ -3,7 +3,7 @@ unit mteBase;
 interface
 
 uses
-  Classes, Menus,
+  Classes, Menus, Generics.Collections,
   // third party libraries
   superobject,
   // mte units
@@ -71,6 +71,7 @@ function HasStructChildren(e: IwbElement): boolean;
 function HasStructChildrenDef(def: IwbNamedDef): boolean;
 function WinningOverrideInFiles(rec: IwbMainRecord; var sl: TStringList)
   : IwbMainRecord;
+procedure OverridesInFiles(rec: IwbMainRecord; var sl: TStringList; var rl: TList<IwbMainRecord>);
 function IsOverride(aRecord: IwbMainRecord): boolean;
 function ExtractFormID(filename: string): string;
 function RemoveFileIndex(formID: string): string;
@@ -706,8 +707,7 @@ begin
     Result := GetSmashType(Container.Elements[0]) = stStruct;
 end;
 
-{ Returns the most-winning override of @rec from the
-  files listed in @sl }
+{ Returns the most-winning override of @rec from the files listed in @sl }
 function WinningOverrideInFiles(rec: IwbMainRecord; var sl: TStringList)
   : IwbMainRecord;
 var
@@ -723,6 +723,21 @@ begin
       Result := ovr;
       exit;
     end;
+  end;
+end;
+
+{ Returns the overrides of @rec from the files listed in @sl }
+procedure OverridesInFiles(rec: IwbMainRecord; var sl: TStringList; var rl: TList<IwbMainRecord>);
+var
+  i: Integer;
+  ovr: IwbMainRecord;
+begin
+  rl.Add(rec.MasterOrSelf);
+  for i := 0 to Pred(rec.OverrideCount) do
+  begin
+    ovr := rec.Overrides[i];
+    if sl.IndexOf(ovr._File.filename) > -1 then
+      rl.Add(ovr);
   end;
 end;
 
