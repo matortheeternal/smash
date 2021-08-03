@@ -652,9 +652,11 @@ var
   i: Integer;
   c: IwbContainerElementRef;
 begin
-  Result := e.EditValue;
-  if not Supports(e, IwbContainerElementRef, c) then
+  if (GetSmashType(e) = stInteger) or not Supports(e, IwbContainerElementRef, c) then begin
+    Result := e.SortKey[false];
     exit;
+  end;
+  Result := e.EditValue;
 
   // loop through children elements
   for i := 0 to Pred(c.ElementCount) do
