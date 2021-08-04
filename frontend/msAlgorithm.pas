@@ -267,7 +267,7 @@ begin
   // exit if input array elements can't be treated as a containers
   if not Supports(src, IwbContainerElementRef, srcCont) then
     exit;
-  if not Supports(mst, IwbContainerElementRef, mstCont) then
+  if Assigned(mst) and not Supports(mst, IwbContainerElementRef, mstCont) then
     exit;
   if not Supports(dst, IwbContainerElementRef, dstCont) then
     exit;
@@ -281,7 +281,8 @@ begin
   slDst := TStringList.Create;
   try
     BuildKeyList(srcCont, slSrc, bSorted);
-    BuildKeyList(mstCont, slMst, bSorted);
+    if Assigned(mst) then
+      BuildKeyList(mstCont, slMst, bSorted);
     BuildKeyList(dstCont, slDst, bSorted);
 
     // ELEMENT DELETION:
@@ -634,9 +635,7 @@ begin
   // exit if master element not assigned and not array
   if not Assigned(me) then
   begin
-    if bCanAdd and (srcType in stArrays) then
-      me := de
-    else
+    if not (bCanAdd and (srcType in stArrays)) then
     begin
       if settings.debugSkips then
       begin
