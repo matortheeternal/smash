@@ -307,7 +307,7 @@ begin
           if settings.debugArrays then
             Tracker.Write('        > Removing element at ' + dst.FullPath +
               ' with key: ' + slMst[i]);
-          dstCont.RemoveElement(d_ndx);
+          dstCont.RemoveElement(d_ndx, true);
           slDst.Delete(d_ndx);
         end;
       end;
@@ -380,7 +380,6 @@ begin
         end;
       end;
     end;
-    //dstCont.ResetMemoryOrder;
   finally
     // free lists
     slMst.Free;
