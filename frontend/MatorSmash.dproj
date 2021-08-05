@@ -3,7 +3,7 @@
         <ProjectGuid>{12317C9C-736E-45A4-8CB7-E43FF92DD93C}</ProjectGuid>
         <MainSource>MatorSmash.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <AppType>Application</AppType>
         <FrameworkType>VCL</FrameworkType>
         <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
