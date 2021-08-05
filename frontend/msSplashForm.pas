@@ -17,6 +17,7 @@ type
     lblAuthor: TLabel;
     lblProgress: TLabel;
     lblVersion: TLabel;
+    lblAuthor2: TLabel;
     procedure ProgressMessage(const s: string);
     procedure FormCreate(Sender: TObject);
   private

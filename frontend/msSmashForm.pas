@@ -740,6 +740,7 @@ begin
   // add details items
   AddDetailsItem(GetLanguageString('msMain_Application'), 'Mator Smash');
   AddDetailsItem(GetLanguageString('msMain_Author'), 'matortheeternal');
+  AddDetailsItem('v2 ' + GetLanguageString('msMain_Author'), 'chuckseven1');
   AddDetailsItem(GetLanguageString('msMain_Version'), ProgramStatus.Version);
   AddDetailsItem(GetLanguageString('msMain_DateBuilt'),
     DateTimeToStr(GetLastModified(ParamStr(0))));
