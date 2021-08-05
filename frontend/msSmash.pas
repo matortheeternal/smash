@@ -124,7 +124,7 @@ begin
     try
       el.ReportRequiredMasters(slMasters, false, true, false);
       if settings.debugMasters then
-        Tracker.Write('Element ' + el.Name + ' from ' + el._File.filename +
+        Tracker.Write('    Element ' + el.Name + ' from ' + el._File.filename +
           ' requires masters: ' + slMasters.CommaText);
 
       for i := 0 to Pred(aFile.MasterCount[true]) do
@@ -152,7 +152,7 @@ begin
         Logger.Write('PATCH', 'MASTERS', 'Added masters: ' +
           slMasters.CommaText);
         if settings.debugMasters then
-          Tracker.Write('Adding masters: ' + slMasters.CommaText);
+          Tracker.Write('    Adding masters: ' + slMasters.CommaText);
       end;
     except
       on x: Exception do
