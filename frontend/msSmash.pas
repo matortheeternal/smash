@@ -434,7 +434,7 @@ begin
           if bForce then
             msts.Add(e as IwbMainRecord)
           else
-            OverridesInFiles(rec, plugin.Masters, msts);
+            OverridesInMasters(ovr, msts);
           for k := 0 to Pred(msts.Count) do begin
             mst := msts.Items[k];
             Tracker.Write(Format('    Smashing override of %s from: %s, master: %s, masters: %s',

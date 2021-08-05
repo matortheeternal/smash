@@ -71,7 +71,7 @@ function HasStructChildren(e: IwbElement): boolean;
 function HasStructChildrenDef(def: IwbNamedDef): boolean;
 function WinningOverrideInFiles(rec: IwbMainRecord; var sl: TStringList)
   : IwbMainRecord;
-procedure OverridesInFiles(rec: IwbMainRecord; var sl: TStringList; var rl: TList<IwbMainRecord>);
+procedure OverridesInMasters(rec: IwbMainRecord; var rl: TList<IwbMainRecord>);
 function IsOverride(aRecord: IwbMainRecord): boolean;
 function ExtractFormID(filename: string): string;
 function RemoveFileIndex(formID: string): string;
@@ -726,17 +726,21 @@ begin
   end;
 end;
 
-{ Returns the overrides of @rec from the files listed in @sl }
-procedure OverridesInFiles(rec: IwbMainRecord; var sl: TStringList; var rl: TList<IwbMainRecord>);
+{ Returns the overrides of @rec from the masters of its file }
+procedure OverridesInMasters(rec: IwbMainRecord; var rl: TList<IwbMainRecord>);
 var
   i: Integer;
+  f: IwbFile;
+  id: TwbFormID;
   ovr: IwbMainRecord;
 begin
-  rl.Add(rec.MasterOrSelf);
-  for i := 0 to Pred(rec.OverrideCount) do
+  f := rec._File;
+  id := rec.FormID;
+  // TODO: Why does rec.Master sometimes return the wrong record??
+  for i := 0 to Pred(f.MasterCount[false]) do
   begin
-    ovr := rec.Overrides[i];
-    if sl.IndexOf(ovr._File.filename) > -1 then
+    ovr := f.Masters[i, false].RecordByFormID[id, true, false];
+    if Assigned(ovr) then
       rl.Add(ovr);
   end;
 end;
