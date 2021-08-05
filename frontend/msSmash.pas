@@ -195,7 +195,7 @@ begin
       true, true]) then
     begin
       AddParents(patchFile, grup.ChildrenOf);
-      Tracker.Write(Format('Copying parent record %s of %s',
+      Tracker.Write(Format('    Copying parent record %s of %s',
         [grup.ChildrenOf.Name, rec.Name]));
       AddRequiredMasters(patchFile, grup.ChildrenOf);
       grup.ChildrenOf.CopyInto(patchFile, false, false, '',
