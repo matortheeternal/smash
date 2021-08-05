@@ -730,7 +730,7 @@ end;
 procedure OverridesInMasters(rec: IwbMainRecord; var rl: TList<IwbMainRecord>);
 var
   i: Integer;
-  f: IwbFile;
+  f, mst: IwbFile;
   id: TwbFormID;
   ovr: IwbMainRecord;
 begin
@@ -739,8 +739,10 @@ begin
   // TODO: Why does rec.Master sometimes return the wrong record??
   for i := 0 to Pred(f.MasterCount[false]) do
   begin
-    ovr := f.Masters[i, false].RecordByFormID[id, true, false];
-    if Assigned(ovr) then
+    mst := f.Masters[i, false];
+    ovr := mst.RecordByFormID[id, true, false];
+    // TODO: Better way to get only if override is in Masters[i]??
+    if Assigned(ovr) and ovr._File.Equals(mst) then
       rl.Add(ovr);
   end;
 end;
