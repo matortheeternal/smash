@@ -544,7 +544,7 @@ begin
 
     // show progress form
     pForm := TProgressForm.Create(self);
-    pForm.pfLogPath := LogPath + 'save\';
+    //pForm.pfLogPath := LogPath + 'save\';
     pForm.PopupParent := self;
     pForm.Caption := GetLanguageString('msProg_Closing');
     pForm.SetMaxProgress(PluginsList.Count + PatchesList.Count + 2);
@@ -561,7 +561,7 @@ procedure TSmashForm.SaveDone;
 begin
   // clean up pForm, close form
   pForm.SetProgress(pForm.ProgressBar.Max);
-  pForm.SaveLog;
+  //pForm.SaveLog;
   pForm.Free;
 
   // restart program if update applied
@@ -582,7 +582,7 @@ end;
 procedure TSmashForm.ProgressDone;
 begin
   xEditLogGroup := 'GENERAL';
-  pForm.SaveLog;
+  //pForm.SaveLog;
   pForm.Visible := false;
   FlashWindow(Application.Handle, true);
   pForm.ShowModal;
@@ -762,7 +762,7 @@ begin
   AddDetailsItem(' ', ' ');
   AddDetailsItem(GetLanguageString('msMain_Website'), '-');
   AddDetailsItem(GetLanguageString('msMain_ApiCredits'),
-    'superobject, TurboPower Abbrevia, xEdit');
+    'superobject, TurboPower Abbrevia, LoggerPro, xEdit');
   AddDetailsItem(GetLanguageString('msMain_xEditVersion'), xEditVersion);
   AddDetailsItem(GetLanguageString('msMain_xEditCredits'),
     'zilav, hlp, Sharlikran, ElminsterAU');
@@ -2230,7 +2230,7 @@ begin
   self.Enabled := false;
   xEditLogGroup := 'PATCH';
   pForm := TProgressForm.Create(self);
-  pForm.pfLogPath := LogPath + 'patch\';
+  //pForm.pfLogPath := LogPath + 'patch\';
   pForm.PopupParent := self;
   pForm.Caption := GetLanguageString('msProg_Smashing');
   pForm.SetMaxProgress(IntegerListSum(timeCosts, Pred(timeCosts.Count)));
@@ -2381,7 +2381,7 @@ begin
   self.Enabled := false;
   xEditLogGroup := 'PATCH';
   pForm := TProgressForm.Create(self);
-  pForm.pfLogPath := LogPath + 'patch\';
+  //pForm.pfLogPath := LogPath + 'patch\';
   pForm.bDetailsVisible := false;
   pForm.PopupParent := self;
   pForm.Caption := GetLanguageString('msProg_Smashing');

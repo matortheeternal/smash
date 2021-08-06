@@ -1,3 +1,6 @@
 [submodule "lib/xedit"]
 	path = lib/xedit
 	url = git@github.com:TES5Edit/TES5Edit.git
+[submodule "lib/loggerpro"]
+	path = lib/loggerpro
+	url = git@github.com:danieleteti/loggerpro.git

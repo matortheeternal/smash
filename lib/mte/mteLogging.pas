@@ -172,7 +172,7 @@ procedure ShowProgressForm(parent: TForm; var pf: TProgressForm;
   sCaption, sLogSubPath: string);
 begin
   pf := TProgressForm.Create(parent);
-  pf.pfLogPath := LogPath + sLogSubPath + '\';
+  //pf.pfLogPath := LogPath + sLogSubPath + '\';
   pf.PopupParent := parent;
   pf.Caption := sCaption;
   pf.SetMaxProgress(IntegerListSum(TimeCosts, Pred(TimeCosts.Count)));

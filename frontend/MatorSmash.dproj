@@ -3,7 +3,7 @@
         <ProjectGuid>{12317C9C-736E-45A4-8CB7-E43FF92DD93C}</ProjectGuid>
         <MainSource>MatorSmash.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Debug</Config>
         <AppType>Application</AppType>
         <FrameworkType>VCL</FrameworkType>
         <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
@@ -72,7 +72,7 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
         <DCC_UsePackage>vcl;rtl;vclx;vclactnband;xmlrtl;VclSmp;vclimg;svnui;svn;bdertl;TeeUI;TeeDB;Tee;vcldb;dbrtl;vcldbx;vcltouch;dsnap;dsnapcon;vclib;ibxpress;adortl;IndyCore;IndySystem;IndyProtocols;inet;intrawebdb_110_150;Intraweb_110_150;vclie;websnap;webdsnap;inetdb;inetdbbde;inetdbxpress;soaprtl;vclribbon;dbexpress;DbxCommonDriver;DataSnapIndy10ServerTransport;DataSnapProviderClient;DataSnapClient;dbxcds;DbxClientDriver;DataSnapServer;AzureCloud;DBXInterBaseDriver;DBXMySQLDriver;DBXFirebirdDriver;DBXSybaseASEDriver;DBXSybaseASADriver;DBXOracleDriver;DBXMSSQLDriver;DBXInformixDriver;DBXDb2Driver;$(DCC_UsePackage)</DCC_UsePackage>
-        <DCC_UnitSearchPath>..\lib\Imaging\ZLib;..\lib\abbrevia\source;..\lib\Imaging;..\lib\xedit;..\lib\mte;..\lib\superobject;..\lib\xedit\lz4;..\lib\xedit\zlib;..\lib\xedit\FileContainer;..\lib\xedit\tools\BSArchive;..\lib\xedit\tools\BSArchive\TForge;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\lib\Imaging\ZLib;..\lib\abbrevia\source;..\lib\Imaging;..\lib\xedit;..\lib\mte;..\lib\superobject;..\lib\xedit\lz4;..\lib\xedit\zlib;..\lib\xedit\FileContainer;..\lib\xedit\tools\BSArchive;..\lib\xedit\tools\BSArchive\TForge;..\lib\LoggerPro;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_SYMBOL_DEPRECATED>false</DCC_SYMBOL_DEPRECATED>
         <DCC_WIDECHAR_REDUCED>false</DCC_WIDECHAR_REDUCED>
         <DCC_SYMBOL_PLATFORM>false</DCC_SYMBOL_PLATFORM>

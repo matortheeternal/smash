@@ -6,7 +6,9 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls,
   // mte components
-  W7Taskbar, mteTracker;
+  W7Taskbar, mteTracker,
+  // third party
+  LoggerPro;
 
 type
   TProgressForm = class(TForm)
@@ -18,7 +20,6 @@ type
     procedure UpdateProgress(const i: Integer);
     procedure StatusMessage(const s: string);
     procedure Write(const s: string);
-    procedure SaveLog;
     procedure SetProgress(const i: Integer);
     procedure SetMaxProgress(const i: Integer);
     function GetProgress: Integer;
@@ -31,12 +32,20 @@ type
     procedure FormShow(Sender: TObject);
   private
     { Private declarations }
+    FLog: ILogWriter;
   public
     bDetailsVisible: Boolean;
-    pfLogPath: string;
   end;
 
 implementation
+
+uses
+  {$IFDEF DEBUG}
+  // Only useful for us in debug builds?
+  LoggerPro.OutputDebugStringAppender,
+  {$ENDIF}
+  LoggerPro.VCLMemoAppender,
+  LoggerPro.FileAppender;
 
 var
   lastHeight: Integer;
@@ -104,6 +113,14 @@ begin
   Tracker.OnStatusEvent := StatusMessage;
   Tracker.OnGetEvent := GetProgress;
   Tracker.OnGetMaxEvent := GetMaxProgress;
+  FLog := BuildLogWriter([
+    {$IFDEF DEBUG}
+    // Only useful for us in debug builds?
+    TLoggerProOutputDebugStringAppender.Create(),
+    {$ENDIF}
+    TLoggerProFileAppender.Create(),
+    TVCLMemoLogAppender.Create(DetailsMemo)
+  ]);
 end;
 
 procedure TProgressForm.FormShow(Sender: TObject);
@@ -151,20 +168,6 @@ begin
   SetTaskbarProgressValue(ProgressBar.Position, ProgressBar.Max);
 end;
 
-procedure TProgressForm.SaveLog;
-var
-  fdt: string;
-begin
-  try
-    ForceDirectories(pfLogPath);
-    fdt := FormatDateTime('mmddyy_hhnnss', TDateTime(Now));
-    DetailsMemo.Lines.SaveToFile(pfLogPath + 'log_' + fdt + '.txt');
-  except
-    on Exception do
-      // nothing to do
-  end;
-end;
-
 procedure TProgressForm.StatusMessage(const s: string);
 begin
   ProgressLabel.Caption := s;
@@ -173,9 +176,8 @@ end;
 procedure TProgressForm.Write(const s: string);
 begin
   if Pos(' ', s) <> 1 then
-    ProgressLabel.Caption := s;
-  DetailsMemo.SelLength := 0;
-  DetailsMemo.Lines.Add(s);
+    StatusMessage(s);
+  FLog.Info(s, Tracker.Tag);
 end;
 
 end.

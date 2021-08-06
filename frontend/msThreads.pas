@@ -221,6 +221,7 @@ var
   i: integer;
   patch: TPatch;
 begin
+  Tracker.Tag := 'patch';
   FreeOnTerminate := true;
   // build patches
   for i := 0 to Pred(patchesToBuild.Count) do
@@ -281,6 +282,7 @@ begin
   begin
     // Save plugin errors
     try
+      Tracker.Tag := 'save';
       SavePluginInfo;
     except
       on x: Exception do
