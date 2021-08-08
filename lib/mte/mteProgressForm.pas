@@ -3,7 +3,7 @@ unit mteProgressForm;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Windows, Math, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls,
   // mte components
   W7Taskbar, mteTracker,
@@ -118,7 +118,7 @@ begin
     // Only useful for us in debug builds?
     TLoggerProOutputDebugStringAppender.Create(),
     {$ENDIF}
-    TLoggerProFileAppender.Create(),
+    TLoggerProFileAppender.Create(4, Floor(High(Integer) / 1024)),
     TVCLMemoLogAppender.Create(DetailsMemo)
   ]);
 end;

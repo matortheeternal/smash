@@ -476,8 +476,8 @@ begin
               OverridesInMasters(ovr, msts);
             for k := 0 to Pred(msts.Count) do begin
               mst := msts.Items[k];
-              Tracker.Write(Format('    Smashing override of %s from: %s, master: %s, masters: %s',
-                [ovr.Name, f.filename, mst._File.filename, String.join(',', plugin.masters.ToStringArray)]));
+              Tracker.Write(Format('    Smashing override of %s from: %s, master: %s',
+                [ovr.Name, f.filename, mst._File.filename]));
               AddRequiredMasters(patch.plugin._File, ovr);
               rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
                 recObj, false, bDeletions, bOverride);
