@@ -1619,10 +1619,15 @@ begin
     if fDef.FlagCount = 0 then
       exit;
     obj.O['c'] := SA([]);
-    for i := 0 to Pred(fDef.FlagCount) do
-      BuildChildDef(fDef.FlagDef[i] as IwbNamedDef, obj);
+    for i := 0 to Pred(fDef.FlagCount) do begin
+      if fDef.Flags[i] = '' then
+        obj.a['c'][i] := BuildDef(fDef.FlagDef[i], 'Unknown ' + IntToStr(i))
+      else
+        obj.a['c'][i] := BuildDef(fDef.FlagDef[i], fDef.Flags[i]);
+      //BuildChildDef(fDef.FlagDef[i] as IwbNamedDef, obj);
+    end;
   end
-  // try IwbRecordDef
+  // try IwbRecordDef                         1
   else if Supports(def, IwbRecordDef, recDef) then
   begin
     if recDef.MemberCount = 0 then
@@ -1702,6 +1707,7 @@ begin
     recObj.s['n'] := sName;
     recObj.i['t'] := Ord(stRecord);
     recObj.O['c'] := SA([]);
+    BuildChildDef(mrDef.RecordHeaderStruct as IwbNamedDef, recObj);
     for i := 0 to Pred(mrDef.MemberCount) do
       BuildChildDef(mrDef.Members[i] as IwbNamedDef, recObj);
   except
