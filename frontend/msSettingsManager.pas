@@ -779,8 +779,8 @@ procedure TSettingsManager.Autoset(parentNode: TTreeNode);
 const
   disabledElements: array [0 .. 2] of string = ('Record Header', 'Unused',
     'Unknown');
-  disabledRecords: array [0 .. 5] of string = ('DOBJ', 'LCTN', 'IDLE', 'NAVM',
-    'NAVI', 'RACE');
+  disabledRecords: array [0 .. 4] of string = ('DOBJ', 'LCTN', 'IDLE', 'NAVM',
+    'NAVI');
 var
   i: Integer;
   Node, nextNode: TTreeNode;
