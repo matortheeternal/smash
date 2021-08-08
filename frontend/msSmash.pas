@@ -387,14 +387,16 @@ begin
 
       // If only one override to smash just copy it in
       if ovrs.Count = 1 then begin
+        ovr := IwbMainRecord(Pointer(ovrs.Objects[0]));
+        if ovr.IsWinningOverride then
+          continue;
         try
-          e := IwbMainRecord(Pointer(ovrs.Objects[0]));
           // be sure we include the parent?
-          AddParents(patchFile, e);
+          AddParents(patchFile, ovr);
           Tracker.Write(Format('  [%d] Copying record %s from %s',
-            [i + 1, e.Name, e._File.Name]));
-          AddRequiredMasters(patchFile, e);
-          e.CopyInto(patchFile, false, false, '', '', '', '');
+            [i + 1, ovr.Name, ovr._File.Name]));
+          AddRequiredMasters(patchFile, ovr);
+          ovr.CopyInto(patchFile, false, false, '', '', '', '');
         except
           on x: Exception do
           begin
