@@ -698,8 +698,8 @@ begin
       Tracker.Write('    Exception removing ITPOs: ' + x.Message);
   end;
 
-  // Tracker.Write('Sorting patch masters according to current load order');
-  // patchFile.SortMasters;
+  Tracker.Write('Sorting patch masters according to current load order');
+  patchFile.SortMasters;
 end;
 
 procedure SavePatchFiles(var patch: TPatch);
