@@ -321,10 +321,11 @@ end;
 
 procedure SmashRecords(var patch: TPatch; var Records: TInterfaceList);
 var
-  i, j, k: Integer;
+  i, j, k, ndx: Integer;
   incProgress, currentProgress: Real;
   rec, mst, ovr, patchRec: IwbMainRecord;
   msts: TList<IwbMainRecord>;
+  ovrs: TStringList;
   f, patchFile, forceFile: IwbFile;
   plugin: TPlugin;
   aSetting: TSmashSetting;
@@ -350,63 +351,50 @@ begin
     currentProgress := currentProgress + incProgress;
     Tracker.SetProgress(Round(currentProgress));
 
-    // loop through record's overrides
-    patchRec := nil;
-    forceFile := nil;
-    for j := 0 to Pred(rec.OverrideCount) do
-    begin
-      if Tracker.Cancel then
-        break;
-      ovr := rec.Overrides[j];
-      f := ovr._File;
-      // skip overrides that are in plugins we aren't patching
-      if patch.plugins.IndexOf(f.filename) = -1 then
-        continue;
-      plugin := PluginByFileName(f.filename);
-      if not Assigned(plugin) then
-        continue;
-      // skip ctIdenticalToMaster overrides
-      if (ConflictThisForMainRecord(ovr) = ctIdenticalToMaster) then
-        continue;
-
-      // skip plugins that have the skip setting
-      if plugin.setting = 'Skip' then
-        continue;
-
-      // skip overrides according to smash setting
-      aSetting := plugin.smashSetting;
-      recObj := aSetting.GetRecordDef(ovr.Signature);
-      if not Assigned(recObj) then
-        continue;
-      if (recObj.i['p'] <> 1) then
-        continue;
-      bForce := recObj.i['f'] = 1;
-      if bForce then
+    // loop through record's overrides to find which ones to smash
+    ovrs := TStringList.Create;
+    try
+      for j := 0 to Pred(rec.OverrideCount) do
       begin
-        if Assigned(patchRec) then
-        begin
-          patchRec.Remove;
-          patchRec := nil;
-        end;
-        forceFile := f;
+        ovr := rec.Overrides[j];
+        f := ovr._File;
+        // skip overrides that are in plugins we aren't patching
+        if patch.plugins.IndexOf(f.filename) = -1 then
+          continue;
+        plugin := PluginByFileName(f.filename);
+        if not Assigned(plugin) then
+          continue;
+
+        // skip plugins that have the skip setting
+        if plugin.setting = 'Skip' then
+          continue;
+
+        // skip overrides according to smash setting
+        aSetting := plugin.smashSetting;
+        recObj := aSetting.GetRecordDef(ovr.Signature);
+        if not Assigned(recObj) then
+          continue;
+        if (recObj.i['p'] <> 1) then
+          continue;
+
+        // this is an override to smash
+        ovrs.AddObject(f.Name, Pointer(ovr));
+        // don't bother to smash this override's masters?
+        for k := 0 to Pred(f.MasterCount[false]) do
+          if ovrs.Find(f.Masters[k,false].Name, ndx) then
+            ovrs.Delete(ndx);
       end;
 
-      // copy record to smashed patch if it hasn't been copied yet
-      if not Assigned(patchRec) then
+      // If only one override to smash just copy it in
+      if ovrs.Count = 1 then begin
         try
-          if bForce then
-            e := ovr
-          else
-            e := WinningOverrideInFiles(rec, patch.plugins);
+          e := IwbMainRecord(Pointer(ovrs.Objects[0]));
           // be sure we include the parent?
           AddParents(patchFile, e);
           Tracker.Write(Format('  [%d] Copying record %s from %s',
             [i + 1, e.Name, e._File.Name]));
           AddRequiredMasters(patchFile, e);
-          eCopy := e.CopyInto(patchFile, false, false, '', '', '', '');
-          patchRec := eCopy as IwbMainRecord;
-          if bForce then
-            continue;
+          e.CopyInto(patchFile, false, false, '', '', '', '');
         except
           on x: Exception do
           begin
@@ -414,50 +402,102 @@ begin
               ' from file ' + e._File.filename + ': ' + x.Message);
             patch.fails.Add('Exception copying record ' + ovr.Name + ' : ' +
               x.Message);
-            continue;
+          end;
+        end;
+        continue;
+      end;
+
+      // loop through overrides to smash
+      patchRec := nil;
+      forceFile := nil;
+      for j := 0 to Pred(ovrs.Count) do
+      begin
+        if Tracker.Cancel then
+          break;
+        ovr := IwbMainRecord(Pointer(ovrs.Objects[j]));
+        f := ovr._File;
+
+        bForce := recObj.i['f'] = 1;
+        if bForce then
+        begin
+          if Assigned(patchRec) then
+          begin
+            patchRec.Remove;
+            patchRec := nil;
+          end;
+          forceFile := f;
+        end;
+
+        // copy record to smashed patch if it hasn't been copied yet
+        if not Assigned(patchRec) then
+          try
+            if bForce then
+              e := ovr
+            else
+              e := WinningOverrideInFiles(rec, patch.plugins);
+            // be sure we include the parent?
+            AddParents(patchFile, e);
+            Tracker.Write(Format('  [%d] Copying record %s from %s',
+              [i + 1, e.Name, e._File.Name]));
+            AddRequiredMasters(patchFile, e);
+            eCopy := e.CopyInto(patchFile, false, false, '', '', '', '');
+            patchRec := eCopy as IwbMainRecord;
+            if bForce then
+              continue;
+          except
+            on x: Exception do
+            begin
+              Tracker.Write('      Exception copying record ' + e.Name +
+                ' from file ' + e._File.filename + ': ' + x.Message);
+              patch.fails.Add('Exception copying record ' + ovr.Name + ' : ' +
+                x.Message);
+              continue;
+            end;
+          end;
+
+        // skip if we're forcing and plugin doesn't require forceFile
+        if Assigned(forceFile) and not bForce and
+          (plugin.Masters.IndexOf(forceFile.filename) = -1) then
+          continue;
+
+        // finally, recursively copy overridden elements
+        try
+          bDeletions := recObj.i['d'] = 1;
+          if (wbGameMode = gmFO4) and HasPartialFormFlag(ovr) then
+            bDeletions := false;
+          bOverride := recObj.i['o'] = 1;
+          msts := TList<IwbMainRecord>.Create;
+          try
+            if bForce then
+              msts.Add(e as IwbMainRecord)
+            else
+              OverridesInMasters(ovr, msts);
+            for k := 0 to Pred(msts.Count) do begin
+              mst := msts.Items[k];
+              Tracker.Write(Format('    Smashing override of %s from: %s, master: %s, masters: %s',
+                [ovr.Name, f.filename, mst._File.filename, String.join(',', plugin.masters.ToStringArray)]));
+              AddRequiredMasters(patch.plugin._File, ovr);
+              rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
+                recObj, false, bDeletions, bOverride);
+          end;
+          finally
+            msts.Free;
+          end
+        except
+          on x: Exception do
+          begin
+            Tracker.Write('      Exception smashing record: ' + ovr.Name + ' : ' +
+              x.Message);
+            patch.fails.Add('Exception smashing record: ' + ovr.Name + ' : ' +
+              x.Message);
           end;
         end;
 
-      // skip if we're forcing and plugin doesn't require forceFile
-      if Assigned(forceFile) and not bForce and
-        (plugin.Masters.IndexOf(forceFile.filename) = -1) then
-        continue;
-
-      // finally, recursively copy overridden elements
-      try
-        bDeletions := recObj.i['d'] = 1;
-        if (wbGameMode = gmFO4) and HasPartialFormFlag(ovr) then
-          bDeletions := false;
-        bOverride := recObj.i['o'] = 1;
-        msts := TList<IwbMainRecord>.Create;
-        try
-          if bForce then
-            msts.Add(e as IwbMainRecord)
-          else
-            OverridesInMasters(ovr, msts);
-          for k := 0 to Pred(msts.Count) do begin
-            mst := msts.Items[k];
-            Tracker.Write(Format('    Smashing override of %s from: %s, master: %s, masters: %s',
-              [ovr.Name, f.filename, mst._File.filename, String.join(',', plugin.masters.ToStringArray)]));
-            AddRequiredMasters(patch.plugin._File, ovr);
-            rcore(IwbElement(ovr), IwbElement(mst), IwbElement(patchRec), patchRec,
-              recObj, false, bDeletions, bOverride);
-        end;
-        finally
-          msts.Free;
-        end
-      except
-        on x: Exception do
-        begin
-          Tracker.Write('      Exception smashing record: ' + ovr.Name + ' : ' +
-            x.Message);
-          patch.fails.Add('Exception smashing record: ' + ovr.Name + ' : ' +
-            x.Message);
-        end;
+        // update any count elements on the record
+        UpdateCounts(patchRec);
       end;
-
-      // update any count elements on the record
-      UpdateCounts(patchRec);
+    finally
+      ovrs.Free;
     end;
   end;
 end;
