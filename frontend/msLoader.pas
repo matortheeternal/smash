@@ -98,6 +98,7 @@ begin
   LoadLanguage;
 
   // INITIALIZE XEDIT
+  wbBuildRefs := settings.buildRefs;
   wbDisplayLoadOrderFormID := True;
   wbSortSubRecords := True;
   wbDisplayShorterNames := True;
