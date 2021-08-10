@@ -1200,7 +1200,7 @@ begin
   ShOp.wFunc := FO_DELETE;
   ShOp.pFrom := PChar(path + #0);
   ShOp.pTo := nil;
-  ShOp.fFlags := FOF_NOCONFIRMATION or FOF_ALLOWUNDO or FOF_NO_UI;
+  ShOp.fFlags := FOF_NOCONFIRMATION or FOF_NO_UI;
   SHFileOperation(ShOp);
 end;
 
