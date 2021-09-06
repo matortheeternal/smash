@@ -467,10 +467,12 @@ begin
   try
     FileStream := TFileStream.Create(path, fmCreate);
     // Force xedit to save everything in file?
+    {
     _File.MarkModifiedRecursive([etFile, etMainRecord, etGroupRecord,
       etSubRecord, etSubRecordStruct, etSubRecordArray, etSubRecordUnion,
       etArray, etStruct, etValue, etFlag, etStringListTerminator, etUnion,
       etStructChapter]);
+    }
     _File.WriteToStream(FileStream, TwbResetModified.rmNo);
     if SavedPluginPaths.IndexOf(path) = -1 then
       SavedPluginPaths.Add(dataPath + filename);
