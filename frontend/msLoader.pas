@@ -366,7 +366,10 @@ var
 begin
   for i := Pred(sl.Count) downto 0 do
     if not FileExists(wbDataPath + sl.Strings[i]) then
-      sl.Delete(i);
+      if FileExists(wbDataPath + sl.Strings[i] + csDotGhost) then
+        sl.Strings[i] := sl.Strings[i] + csDotGhost
+      else
+        sl.Delete(i);
 end;
 
 { Remove smashed patch plugins from stringlist }
