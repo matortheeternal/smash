@@ -993,6 +993,9 @@ begin
   for i := 0 to Pred(mRec.OverrideCount) do
   begin
     ovr := mRec.Overrides[i];
+    if ovr._File.FileName.EndsWith(csDotGhost) then
+      // Skip ghosted overrides
+      continue;
     if ovr.Equals(rec) then
       Break;
     prevOvr := ovr;
