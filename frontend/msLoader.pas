@@ -567,7 +567,8 @@ begin
   if s[1] <> '*' then
   begin
     if not noDelete then
-      sl.Delete(index);
+      if not (settings.smashGhosts and s.EndsWith(csDotGhost)) then
+        sl.Delete(index);
   end
   else
     sl[index] := Copy(s, 2, Length(s));

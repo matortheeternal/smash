@@ -41,6 +41,7 @@ type
     preserveTempPath: boolean;
     allowTagging: boolean;
     flagESL: boolean;
+    smashGhosts: boolean;
     multiThreadedSmash: boolean;
     smashSound: boolean;
     [IniSection('Patching')]
