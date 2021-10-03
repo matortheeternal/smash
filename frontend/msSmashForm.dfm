@@ -163,10 +163,6 @@ object SmashForm: TSmashForm
       object PatchesTabSheet: TTabSheet
         Caption = 'Patches'
         ImageIndex = 1
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object PatchesListView: TListView
           Left = 3
           Top = 3
@@ -216,10 +212,6 @@ object SmashForm: TSmashForm
       object LogTabSheet: TTabSheet
         Caption = 'Log'
         ImageIndex = 2
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object LogListView: TListView
           Left = 3
           Top = 3
