@@ -10,7 +10,7 @@ uses
   // mte units
   mteHelpers, mteBase,
   // ms units
-  msCore, msChoicePanel;
+  msCore, msChoicePanel, System.ImageList;
 
 type
   TConflictForm = class(TForm)
@@ -21,8 +21,8 @@ type
     FlagIcons: TImageList;
     StateImages: TImageList;
     procedure DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
-    procedure tvRecordsCustomDrawItem(Sender: TCustomTreeView;
-      Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
+    procedure tvRecordsCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode;
+      State: TCustomDrawState; var DefaultDraw: Boolean);
     procedure PopulateTree(sig: string; aSetting: TSmashSetting);
     procedure ChoiceSelected(Sender: TObject);
     procedure CreateChoicePanel(sig: string; var lst: TList);
@@ -30,8 +30,8 @@ type
     procedure FormCreate(Sender: TObject);
     procedure btnOKClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure tvRecordsMouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
+    procedure tvRecordsMouseMove(Sender: TObject; Shift: TShiftState;
+      x, y: Integer);
   private
     { Private declarations }
     lastHint: string;
@@ -52,7 +52,8 @@ implementation
 
 {$R *.dfm}
 
-procedure TConflictForm.DrawFlag(Canvas: TCanvas; var x, y: Integer; id: Integer);
+procedure TConflictForm.DrawFlag(Canvas: TCanvas; var x, y: Integer;
+  id: Integer);
 var
   icon: TIcon;
 begin
@@ -72,8 +73,9 @@ var
   R: TRect;
   x, y: Integer;
 begin
-  if Assigned(node.Data) then begin
-    e := TElementData(node.Data);
+  if Assigned(Node.Data) then
+  begin
+    e := TElementData(Node.Data);
     R := Node.DisplayRect(true);
     x := R.Right + 6;
     y := R.Top;
@@ -88,35 +90,37 @@ begin
 end;
 
 procedure TConflictForm.tvRecordsMouseMove(Sender: TObject; Shift: TShiftState;
-  X, Y: Integer);
+  x, y: Integer);
 var
-  node: TTreeNode;
+  Node: TTreeNode;
   e: TElementData;
   sHint: string;
 begin
   // hide hint and exit if shift is down
-  if (ssShift in Shift) then begin
+  if (ssShift in Shift) then
+  begin
     Application.HideHint;
     exit;
   end;
 
   // draw hint if on a node with the link parameter
-  node := tvRecords.GetNodeAt(X, Y);
-  if not Assigned(node) then
+  Node := tvRecords.GetNodeAt(x, y);
+  if not Assigned(Node) then
     exit;
-  e := TElementData(node.Data);
+  e := TElementData(Node.Data);
   if not Assigned(e) then
     exit;
 
   // get hint
-  sHint := node.Text + #13#10'Type: '+stToString(e.smashType);
+  sHint := Node.Text + #13#10'Type: ' + stToString(e.smashType);
   if e.linkTo <> '' then
-    sHint := sHint + #13#10'Linked to: '+e.linkTo;
+    sHint := sHint + #13#10'Linked to: ' + e.linkTo;
   if e.linkFrom <> '' then
-    sHint := sHint + #13#10'Linked from: '+e.linkFrom;
+    sHint := sHint + #13#10'Linked from: ' + e.linkFrom;
 
   // display hint if it isn't the last hint we displayed
-  if sHint <> lastHint then begin
+  if sHint <> lastHint then
+  begin
     tvRecords.Hint := sHint;
     Application.ActivateHint(Mouse.CursorPos);
     lastHint := sHint;
@@ -130,7 +134,8 @@ var
 begin
   rootNode := tvRecords.Items[0];
   for item in aSetting.tree['records'] do
-    if Copy(item.S['n'], 1, 4) = sig then begin
+    if Copy(item.S['n'], 1, 4) = sig then
+    begin
       LoadElement(tvRecords, rootNode, item, false);
       break;
     end;
@@ -144,10 +149,12 @@ var
 begin
   // get user selection from choice panels, add it to slConflicts
   // to be handled later
-  for i := 0 to Pred(ChoicePanels.Count) do begin
+  for i := 0 to Pred(ChoicePanels.Count) do
+  begin
     aChoicePanel := TChoicePanel(ChoicePanels[i]);
     aSetting := aChoicePanel.GetSetting;
-    if Assigned(aSetting) then begin
+    if Assigned(aSetting) then
+    begin
       DeleteMatchingItems(aChoicePanel.GetLabel, slConflicts);
       slConflicts.AddObject(aChoicePanel.GetLabel, TObject(aSetting));
     end;
@@ -168,7 +175,8 @@ begin
   tvRecords.Items.Add(nil, 'Records');
 
   // populate tree view with selected record nodes
-  for i := 0 to Pred(ChoicePanels.Count) do begin
+  for i := 0 to Pred(ChoicePanels.Count) do
+  begin
     aChoicePanel := TChoicePanel(ChoicePanels[i]);
     if not aChoicePanel.Selected then
       continue;
@@ -215,7 +223,8 @@ begin
   // (retrieved from slConflicts)
   sl := TStringList.Create;
   try
-    for i := 0 to Pred(slConflicts.Count) do begin
+    for i := 0 to Pred(slConflicts.Count) do
+    begin
       aSetting := TSmashSetting(slConflicts.Objects[i]);
       index := sl.IndexOf(slConflicts[i]);
       if index = -1 then
@@ -225,7 +234,8 @@ begin
     end;
 
     // create choice panels
-    for i := 0 to Pred(sl.Count) do begin
+    for i := 0 to Pred(sl.Count) do
+    begin
       lst := TList(sl.Objects[i]);
       if lst.Count > 1 then
         CreateChoicePanel(sl[i], lst);

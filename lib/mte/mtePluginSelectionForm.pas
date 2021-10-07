@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, CommCtrl, Menus, ComCtrls, ImgList;
+  Dialogs, StdCtrls, CommCtrl, Menus, ComCtrls, ImgList, System.ImageList;
 
 type
   TPluginListItem = class(TObject)
@@ -14,8 +14,10 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
   end;
+
   TStringFunction = function(s: string): string of object;
   TStringListProcedure = procedure(fn: string; var sl: TStringList) of object;
+
   TPluginSelectionForm = class(TForm)
     lvPlugins: TListView;
     btnCancel: TButton;
@@ -44,13 +46,13 @@ type
     procedure lvPluginsChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
     procedure lvPluginsKeyPress(Sender: TObject; var Key: Char);
-    procedure DrawCheckbox(aCanvas: TCanvas; var x, y: Integer; state: Integer);
+    procedure DrawCheckbox(aCanvas: TCanvas; var X, Y: Integer; state: Integer);
     procedure DrawSubItems(ListView: TListView; var R: TRect; Item: TListItem);
     procedure DrawItem(ListView: TListView; var R: TRect; Item: TListItem);
     procedure lvPluginsDrawItem(Sender: TCustomListView; Item: TListItem;
-      Rect: TRect; State: TOwnerDrawState);
-    procedure lvPluginsMouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
+      Rect: TRect; state: TOwnerDrawState);
+    procedure lvPluginsMouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer);
     function GetMasterStatus(filename: string): Integer;
     procedure lvPluginsData(Sender: TObject; Item: TListItem);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -119,7 +121,8 @@ begin
   // clear checked plugins list
   slCheckedPlugins.Clear;
   // add checked plugins to slCheckedPlugins
-  for i := 0 to Pred(lvPlugins.Items.Count) do begin
+  for i := 0 to Pred(lvPlugins.Items.Count) do
+  begin
     ListItem := lvPlugins.Items[i];
     if ListItem.StateIndex = cChecked then
       slCheckedPlugins.Add(ListItem.Caption);
@@ -133,7 +136,7 @@ var
   i: Integer;
 begin
   // add plugin filename
-  aListItem.fields.Add(sPlugin);
+  aListItem.Fields.Add(sPlugin);
 
   // get comma separated plugin info in a TStringList
   sl := TStringList.Create;
@@ -158,7 +161,8 @@ begin
   slDisabled.Clear;
   sl := TStringList.Create;
   try
-    for i := 0 to Pred(lvPlugins.Items.Count) do begin
+    for i := 0 to Pred(lvPlugins.Items.Count) do
+    begin
       ListItem := TPluginListItem(ListItems[i]);
       filename := ListItem.Fields[0];
       // if unchecked, skip
@@ -166,7 +170,8 @@ begin
         continue;
       // if checked, make sure its masters are checked
       GetPluginMasters(filename, sl);
-      for j := 0 to Pred(sl.Count) do begin
+      for j := 0 to Pred(sl.Count) do
+      begin
         index := slAllPlugins.IndexOf(sl[j]);
         // if master is not found, continue
         if (index = -1) then
@@ -190,8 +195,10 @@ end;
 procedure ToggleState(ListItem: TPluginListItem);
 begin
   case ListItem.StateIndex of
-    cChecked: ListItem.StateIndex := cUnChecked;
-    cUnChecked: ListItem.StateIndex := cChecked;
+    cChecked:
+      ListItem.StateIndex := cUnChecked;
+    cUnChecked:
+      ListItem.StateIndex := cChecked;
   end;
 end;
 
@@ -204,10 +211,12 @@ begin
   // update slMasters and slDependencies
   slMasters.Clear;
   slDependencies.Clear;
-  for i := 0 to Pred(lvPlugins.Items.Count) do begin
+  for i := 0 to Pred(lvPlugins.Items.Count) do
+  begin
     filename := TPluginListItem(ListItems[i]).Fields[0];
     with lvPlugins.Items[i] do
-      if Selected then begin
+      if Selected then
+      begin
         GetPluginMasters(filename, slMasters);
         GetPluginDependencies(filename, slDependencies);
       end;
@@ -223,14 +232,16 @@ var
 begin
   // if file has masters that are missing from slAllPlugins,
   // return mstMissing
-  if slMissing.IndexOf(filename) > -1 then begin
+  if slMissing.IndexOf(filename) > -1 then
+  begin
     Result := mstMissing;
     exit;
   end;
 
   // if file has masters that are disabled,
   // return mstDisabled
-  if slDisabled.IndexOf(filename) > -1 then begin
+  if slDisabled.IndexOf(filename) > -1 then
+  begin
     Result := mstDisabled;
     exit;
   end;
@@ -248,36 +259,42 @@ var
   i: Integer;
 begin
   // get item data
-  aListItem := ListItems[Item.Index];
+  aListItem := ListItems[Item.index];
   Item.Caption := aListItem.Fields[0];
   Item.StateIndex := aListItem.StateIndex;
   // get subitems
-  for i := 1 to Pred(aListItem.fields.Count) do
-    Item.SubItems.Add(aListItem.fields[i]);
+  for i := 1 to Pred(aListItem.Fields.Count) do
+    Item.SubItems.Add(aListItem.Fields[i]);
 
   // set font color based on master status of item
   lvPlugins.Canvas.Font.Style := [fsBold];
   MasterStatus := GetMasterStatus(Item.Caption);
   case MasterStatus of
-    mstNone: begin
-      lvPlugins.Canvas.Font.Style := [];
-      lvPlugins.Canvas.Font.Color := clBlack;
-    end;
-    mstMaster: lvPlugins.Canvas.Font.Color := clGreen;
-    mstDependency: lvPlugins.Canvas.Font.Color := clMaroon;
-    mstBoth: lvPlugins.Canvas.Font.Color := clPurple;
-    mstMissing: begin
-      lvPlugins.Canvas.Font.Style := [fsItalic];
-      lvPlugins.Canvas.Font.Color := clGray;
-    end;
-    mstDisabled: begin
-      lvPlugins.Canvas.Font.Style := [fsItalic];
-      lvPlugins.Canvas.Font.Color := clRed;
-    end;
+    mstNone:
+      begin
+        lvPlugins.Canvas.Font.Style := [];
+        lvPlugins.Canvas.Font.Color := clBlack;
+      end;
+    mstMaster:
+      lvPlugins.Canvas.Font.Color := clGreen;
+    mstDependency:
+      lvPlugins.Canvas.Font.Color := clMaroon;
+    mstBoth:
+      lvPlugins.Canvas.Font.Color := clPurple;
+    mstMissing:
+      begin
+        lvPlugins.Canvas.Font.Style := [fsItalic];
+        lvPlugins.Canvas.Font.Color := clGray;
+      end;
+    mstDisabled:
+      begin
+        lvPlugins.Canvas.Font.Style := [fsItalic];
+        lvPlugins.Canvas.Font.Color := clRed;
+      end;
   end;
 end;
 
-procedure TPluginSelectionForm.DrawCheckbox(aCanvas: TCanvas; var x, y: Integer;
+procedure TPluginSelectionForm.DrawCheckbox(aCanvas: TCanvas; var X, Y: Integer;
   state: Integer);
 var
   icon: TIcon;
@@ -286,8 +303,8 @@ begin
     exit;
   icon := TIcon.Create;
   StateImages.GetIcon(state, icon);
-  aCanvas.Draw(x, y, icon);
-  Inc(x, 17);
+  aCanvas.Draw(X, Y, icon);
+  Inc(X, 17);
   icon.Free;
 end;
 
@@ -296,7 +313,8 @@ procedure TPluginSelectionForm.DrawSubItems(ListView: TListView; var R: TRect;
 var
   i: Integer;
 begin
-  for i := 0 to Pred(Item.SubItems.Count) do begin
+  for i := 0 to Pred(Item.SubItems.Count) do
+  begin
     // redefine rect to draw in the space for the column
     // use trailing padding to keep items lined up on columns
     R.Left := R.Right;
@@ -330,13 +348,14 @@ begin
 end;
 
 procedure TPluginSelectionForm.lvPluginsDrawItem(Sender: TCustomListView;
-  Item: TListItem; Rect: TRect; State: TOwnerDrawState);
+  Item: TListItem; Rect: TRect; state: TOwnerDrawState);
 var
   ListView: TListView;
 begin
   // draw background color
   ListView := TListView(Sender);
-  if Item.Selected then begin
+  if Item.Selected then
+  begin
     ListView.Canvas.Brush.Color := $FFEEDD;
     ListView.Canvas.FillRect(Rect);
   end;
@@ -362,21 +381,26 @@ begin
   // If we are within the buffer delay append the key to a
   // temporary buffer and search for next item matching the
   // buffer in the list view items.
-  if fBufferDiff < fBufferDelay then begin
+  if fBufferDiff < fBufferDelay then
+  begin
     fLastBufferTime := Now;
     sTempBuffer := sBuffer + Key;
     iFoundIndex := ListView_NextMatch(lvPlugins, sTempBuffer, 0);
     // If we found a match, handle it
-    if iFoundIndex > -1 then begin
+    if iFoundIndex > -1 then
+    begin
       ListView_HandleMatch(lvPlugins, iFoundIndex, sBuffer, sTempBuffer);
       Key := #0;
     end;
   end
-  else begin
+  else
+  begin
     // Allow user to use space to toggle checkbox state
     // for all selected items
-    if Key = ' ' then begin
-      for i := 0 to Pred(lvPlugins.Items.Count) do begin
+    if Key = ' ' then
+    begin
+      for i := 0 to Pred(lvPlugins.Items.Count) do
+      begin
         ListItem := lvPlugins.Items[i];
         if ListItem.Selected then
           if slMissing.IndexOf(slAllPlugins[i]) = -1 then
@@ -395,16 +419,17 @@ begin
     lvPlugins.ClearSelection;
     iFoundIndex := ListView_NextMatch(lvPlugins, sTempBuffer, 0);
     // If we found a match, handle it
-    if iFoundIndex > -1 then begin
+    if iFoundIndex > -1 then
+    begin
       ListView_HandleMatch(lvPlugins, iFoundIndex, sBuffer, sTempBuffer);
       Key := #0;
     end;
   end;
 end;
 
-function OnStateIcon(X, Y: Integer): Boolean;
+function OnStateIcon(X, Y: Integer): boolean;
 begin
-  Result := (x >= 2) and (x <= 14);
+  Result := (X >= 2) and (X <= 14);
 end;
 
 procedure TPluginSelectionForm.lvPluginsMouseDown(Sender: TObject;
@@ -414,9 +439,10 @@ var
 begin
   // toggle checkbox state
   ListItem := lvPlugins.GetItemAt(X, Y);
-  if OnStateIcon(X, Y) then begin
-    if slMissing.IndexOf(slAllPlugins[ListItem.Index]) = -1 then
-      ToggleState(TPluginListItem(ListItems[ListItem.Index]));
+  if OnStateIcon(X, Y) then
+  begin
+    if slMissing.IndexOf(slAllPlugins[ListItem.index]) = -1 then
+      ToggleState(TPluginListItem(ListItems[ListItem.index]));
 
     // repaint to show updated checkbox state
     UpdateDisabled;
@@ -428,7 +454,7 @@ procedure TPluginSelectionForm.lvPluginsMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 var
   pt: TPoint;
-  li : TListItem;
+  li: TListItem;
   hint, str: string;
   slTempMasters, slTempReq: TStringList;
   i: Integer;
@@ -442,7 +468,8 @@ begin
   slTempMasters := TStringList.Create;
   try
     GetPluginMasters(li.Caption, slTempMasters);
-    if slMissing.IndexOf(li.Caption) > -1 then begin
+    if slMissing.IndexOf(li.Caption) > -1 then
+    begin
       str := '';
       for i := 0 to Pred(slTempMasters.Count) do
         if slAllPlugins.IndexOf(slTempMasters[i]) = -1 then
@@ -469,10 +496,11 @@ begin
   hint := Trim(hint);
 
   // activate hint if it differs from previously displayed hint
-  if (hint <> sLastHint) then begin
+  if (hint <> sLastHint) then
+  begin
     sLastHint := hint;
-    lvPlugins.ShowHint := True;
-    lvPlugins.Hint := hint;
+    lvPlugins.ShowHint := true;
+    lvPlugins.hint := hint;
     Application.ActivateHint(Mouse.CursorPos);
   end;
 end;
@@ -507,7 +535,8 @@ begin
   try
     sl.CommaText := sColumns;
     iColumnSize := (lvPlugins.ClientWidth - 300) div (sl.Count - 1);
-    for i := 0 to Pred(sl.Count) do begin
+    for i := 0 to Pred(sl.Count) do
+    begin
       aColumn := lvPlugins.Columns.Add;
       aColumn.Caption := sl[i];
       aColumn.Width := IfThenInt(i = 0, 300, iColumnSize);
@@ -519,7 +548,8 @@ begin
   end;
 
   // add plugin items to list
-  for i := 0 to Pred(slAllPlugins.Count) do begin
+  for i := 0 to Pred(slAllPlugins.Count) do
+  begin
     sPlugin := slAllPlugins[i];
     aListItem := TPluginListItem.Create;
     // check ListItem if it's in the CheckedPlugins list
@@ -534,12 +564,14 @@ begin
   // are missing
   sl := TStringList.Create;
   try
-    for i := 0 to Pred(slAllPlugins.Count) do begin
+    for i := 0 to Pred(slAllPlugins.Count) do
+    begin
       sPlugin := slAllPlugins[i];
       aListItem := TPluginListItem(ListItems[i]);
       GetPluginMasters(sPlugin, sl);
       for j := 0 to Pred(sl.Count) do
-        if slAllPlugins.IndexOf(sl[j]) = -1 then begin
+        if slAllPlugins.IndexOf(sl[j]) = -1 then
+        begin
           slMissing.Add(sPlugin);
           aListItem.StateIndex := cUnChecked;
           break;
@@ -561,7 +593,7 @@ end;
 
 procedure TPluginSelectionForm.PluginsPopupMenuPopup(Sender: TObject);
 var
-  bHasMasters, bHasDependencies: Boolean;
+  bHasMasters, bHasDependencies: boolean;
 begin
   bHasMasters := slMasters.Count > 0;
   bHasDependencies := slDependencies.Count > 0;
@@ -612,7 +644,8 @@ var
   i, index: Integer;
 begin
   // loop through masters of selected plugins
-  for i := 0 to Pred(slMasters.Count) do begin
+  for i := 0 to Pred(slMasters.Count) do
+  begin
     index := slAllPlugins.IndexOf(slMasters[i]);
     // if the masters isn't loaded, skip it
     if index = -1 then
@@ -631,7 +664,8 @@ var
   i, index: Integer;
 begin
   // loop through masters of selected plugins
-  for i := 0 to Pred(slMasters.Count) do begin
+  for i := 0 to Pred(slMasters.Count) do
+  begin
     index := slAllPlugins.IndexOf(slMasters[i]);
     // if the masters isn't loaded, skip it
     if index = -1 then
@@ -650,7 +684,8 @@ var
   i, index: Integer;
 begin
   // loop through dependencies of selected plugins
-  for i := 0 to Pred(slDependencies.Count) do begin
+  for i := 0 to Pred(slDependencies.Count) do
+  begin
     index := slAllPlugins.IndexOf(slDependencies[i]);
     // check it
     TPluginListItem(ListItems[index]).StateIndex := cChecked;
@@ -666,7 +701,8 @@ var
   i, index: Integer;
 begin
   // loop through dependencies of selected plugins
-  for i := 0 to Pred(slDependencies.Count) do begin
+  for i := 0 to Pred(slDependencies.Count) do
+  begin
     index := slAllPlugins.IndexOf(slDependencies[i]);
     // uncheck it
     TPluginListItem(ListItems[index]).StateIndex := cUnChecked;

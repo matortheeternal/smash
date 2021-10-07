@@ -3,18 +3,19 @@ unit mteBase;
 interface
 
 uses
-  Classes, Menus,
+  Classes, Menus, Generics.Collections,
   // third party libraries
   superobject,
   // mte units
   mteTracker,
   // xEdit units
-  wbHelpers, wbInterface, wbImplementation;
+  wbHelpers, wbLoadOrder, wbInterface, wbImplementation;
 
 type
-  TSmashType = ( stUnknown, stRecord, stString, stInteger, stFlag, stFloat,
+  TSmashType = (stUnknown, stRecord, stString, stInteger, stFlag, stFloat,
     stStruct, stUnsortedArray, stUnsortedStructArray, stSortedArray,
-    stSortedStructArray, stByteArray, stUnion );
+    stSortedStructArray, stByteArray, stUnion);
+
   TBasePlugin = class(TObject)
   public
     _File: IwbFile;
@@ -37,74 +38,86 @@ type
     procedure GetHash;
     function GetFormIndex: Integer;
   end;
+
   TPluginHelpers = class
-    class function CreateNewBasePlugin(var list: TList; filename: string): TBasePlugin;
-    class function BasePluginByFilename(var list: TList; filename: string): TBasePlugin;
-    class function BasePluginLoadOrder(var list: TList; filename: string): integer;
+    class function CreateNewBasePlugin(var list: TList; filename: string)
+      : TBasePlugin;
+    class function BasePluginByFilename(var list: TList; filename: string)
+      : TBasePlugin;
+    class function BasePluginLoadOrder(var list: TList;
+      filename: string): Integer;
   end;
+
   THeaderHelpers = class
     class procedure LoadPluginHeaders(var sl: TStringList);
     class procedure GetPluginMasters(filename: string; var sl: TStringList);
-    class procedure GetPluginDependencies(filename: string; var sl: TStringList);
+    class procedure GetPluginDependencies(filename: string;
+      var sl: TStringList);
   end;
 
   { General Helper Functions }
-  function etToString(et: TwbElementType): string;
-  function dtToString(dt: TwbDefType): string;
-  function ctToString(ct: TConflictThis): string;
-  function stToString(st: TSmashType): string;
-  function SmashType(def: IwbNamedDef): TSmashtype;
-  function GetSmashType(element: IwbElement): TSmashType;
-  function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;
-  function IndexedPath(e: IwbElement): string;
-  function GetAllValues(e: IwbElement): string;
-  function IsSortedDef(def: IwbNamedDef): boolean;
-  function IsSorted(e: IwbElement): boolean;
-  function HasStructChildren(e: IwbElement): boolean;
-  function HasStructChildrenDef(def: IwbNamedDef): boolean;
-  function WinningOverrideInFiles(rec: IwbMainRecord;
-    var sl: TStringList): IwbMainRecord;
-  function IsOverride(aRecord: IwbMainRecord): boolean;
-  function ExtractFormID(filename: string): string;
-  function RemoveFileIndex(formID: string): string;
-  function LocalFormID(aRecord: IwbMainRecord): integer;
-  function LoadOrderPrefix(aRecord: IwbMainRecord): integer;
-  function CountOverrides(aFile: IwbFile): integer;
-  function OverrideCountInFiles(rec: IwbMainRecord; var files: TStringList): Integer;
-  procedure AddRequiredBy(var lst: TList; filename: string;
-    var masters: TStringList);
-  procedure GetMasters(aFile: IwbFile; var sl: TStringList);
-  procedure AddMasters(aFile: IwbFile; var sl: TStringList);
-  function RemoveSelfOrContainer(const aElement: IwbElement): boolean;
-  procedure UndeleteAndDisable(const aRecord: IwbMainRecord);
-  function LoadOrderCompare(List: TStringList; Index1, Index2: Integer): Integer;
+function etToString(et: TwbElementType): string;
+function dtToString(dt: TwbDefType): string;
+function ctToString(ct: TConflictThis): string;
+function stToString(st: TSmashType): string;
+function SmashType(def: IwbNamedDef): TSmashType;
+function GetSmashType(element: IwbElement): TSmashType;
+function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;
+function IndexedPath(e: IwbElement): string;
+function GetAllValues(e: IwbElement): string;
+function IsSortedDef(def: IwbNamedDef): boolean;
+function IsSorted(e: IwbElement): boolean;
+function HasStructChildren(e: IwbElement): boolean;
+function HasStructChildrenDef(def: IwbNamedDef): boolean;
+function WinningOverrideInFiles(rec: IwbMainRecord; var sl: TStringList)
+  : IwbMainRecord;
+procedure OverridesInMasters(rec: IwbMainRecord; var rl: TList<IwbMainRecord>);
+function IsOverride(aRecord: IwbMainRecord): boolean;
+function ExtractFormID(filename: string): string;
+function RemoveFileIndex(formID: string): string;
+function LocalFormID(aRecord: IwbMainRecord): Integer;
+function LoadOrderPrefix(aRecord: IwbMainRecord): Integer;
+function CountOverrides(aFile: IwbFile): Integer;
+function OverrideCountInFiles(rec: IwbMainRecord;
+  var files: TStringList): Integer;
+procedure AddRequiredBy(var lst: TList; filename: string;
+  var masters: TStringList);
+procedure GetMasters(aFile: IwbFile; var sl: TStringList);
+procedure AddMasters(aFile: IwbFile; var sl: TStringList);
+function RemoveSelfOrContainer(const aElement: IwbElement): boolean;
+procedure UndeleteAndDisable(const aRecord: IwbMainRecord);
+function LoadOrderCompare(list: TStringList; Index1, Index2: Integer): Integer;
 
-  { Record Prototyping Functions }
-  function GetElementObj(var obj: ISuperObject; name: string): ISuperObject;
-  function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord): ISuperObject;
-  function GetRecordObj(var tree: ISuperObject; name: string): ISuperObject;
-  function GetRecordDef(sig: TwbSignature): TwbRecordDefEntry;
-  function BuildDef(def: IwbNamedDef; name: string): ISuperObject;
-  function BuildRecordDef(sName: string; mrDef: IwbRecordDef; out recObj: ISuperObject): boolean; overload;
-  function BuildRecordDef(sName: string; out recObj: ISuperObject): boolean; overload;
-  function GetEditableFileContainer: IwbContainerElementRef;
+{ Record Prototyping Functions }
+function GetElementObj(var obj: ISuperObject; name: string): ISuperObject;
+function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord)
+  : ISuperObject;
+function GetRecordObj(var tree: ISuperObject; name: string): ISuperObject;
+function GetRecordDef(sig: TwbSignature): TwbRecordDefEntry;
+function BuildDef(def: IwbNamedDef; name: string): ISuperObject;
+function BuildRecordDef(sName: string; mrDef: IwbRecordDef;
+  out recObj: ISuperObject): boolean; overload;
+function BuildRecordDef(sName: string; out recObj: ISuperObject)
+  : boolean; overload;
+function GetEditableFileContainer: IwbContainerElementRef;
 
-  { Plugin Error Functions }
-  function FixErrors(const aElement: IwbElement; lastRecord: IwbMainRecord;
-    var errors: TStringList): IwbMainRecord;
-  function CheckForErrors(const aElement: IwbElement; lastRecord: IwbMainRecord;
-    var errors: TStringList): IwbMainRecord;
+{ Plugin Error Functions }
+function FixErrors(const aElement: IwbElement; lastRecord: IwbMainRecord;
+  var errors: TStringList): IwbMainRecord;
+function CheckForErrors(const aElement: IwbElement; lastRecord: IwbMainRecord;
+  var errors: TStringList): IwbMainRecord;
 
-  { Asset Handling Functions }
-  procedure ExtractBSA(ContainerName, folder, destination: string); overload;
-  procedure ExtractBSA(ContainerName, destination: string; var ignore: TStringList); overload;
-  function BSAExists(filename: string): boolean;
-  function INIExists(filename: string): boolean;
-  function TranslationExists(filename: string): boolean;
-  function FaceDataExists(filename: string): boolean;
-  function VoiceDataExists(filename: string): boolean;
-  function FragmentsExist(f: IwbFile): boolean;
-  function ReferencesSelf(f: IwbFile): boolean;
+{ Asset Handling Functions }
+procedure ExtractBSA(ContainerName, folder, destination: string); overload;
+procedure ExtractBSA(ContainerName, destination: string;
+  var ignore: TStringList); overload;
+function BSAExists(filename: string): boolean;
+function INIExists(filename: string): boolean;
+function TranslationExists(filename: string): boolean;
+function FaceDataExists(filename: string): boolean;
+function VoiceDataExists(filename: string): boolean;
+function FragmentsExist(f: IwbFile): boolean;
+function ReferencesSelf(f: IwbFile): boolean;
 
 var
   PluginsList: TList;
@@ -141,13 +154,14 @@ begin
   hasData := true;
 
   // get data
-  filename := _File.FileName;
+  filename := _File.filename;
   Container := _File as IwbContainer;
   Container := Container.Elements[0] as IwbContainer;
   author := Container.GetElementEditValue('CNAM - Author');
   // we have to subtract 1 because this count includes the
   // file header for some reason
-  numRecords := Container.GetElementNativeValue('HEDR - Header\Number of Records') - 1;
+  numRecords := Container.GetElementNativeValue
+    ('HEDR - Header\Number of Records') - 1;
 
   // get masters, required by
   GetMasters(_File, masters);
@@ -179,37 +193,33 @@ begin
   Result := 0;
   Container := self._File as IwbContainer;
   Container := Container.Elements[0] as IwbContainer;
-  if Container.ElementExists['Master Files'] then begin
+  if Container.ElementExists['Master Files'] then
+  begin
     MasterFiles := Container.ElementByPath['Master Files'] as IwbContainer;
     Result := MasterFiles.ElementCount;
   end;
 end;
 
-
-{*****************************************************************************}
+{ ***************************************************************************** }
 { PLUGIN HELPERS
   Helper methods for dealing with TBasePlugins.
 }
-{*****************************************************************************}
+{ ***************************************************************************** }
 
 { Create a new plugin }
-class function TPluginHelpers.CreateNewBasePlugin(var list: TList; filename: string): TBasePlugin;
+class function TPluginHelpers.CreateNewBasePlugin(var list: TList;
+  filename: string): TBasePlugin;
 var
   aFile: IwbFile;
-  LoadOrder: integer;
+  LoadOrder: Integer;
   plugin: TBasePlugin;
 begin
   Result := nil;
   LoadOrder := PluginsList.Count + 1;
-  // fail if maximum load order reached
-  if LoadOrder > 254 then begin
-    Tracker.Write('Maximum load order reached!  Can''t create file '+filename);
-    exit;
-  end;
 
   // create new plugin file
   SysUtils.FormatSettings.DecimalSeparator := '.';
-  aFile := wbNewFile(wbDataPath + filename, LoadOrder);
+  aFile := wbNewFile(wbDataPath + filename, LoadOrder, false);
   aFile._AddRef;
 
   // create new plugin object
@@ -220,15 +230,18 @@ begin
 end;
 
 { Gets the load order of the plugin matching the given name }
-class function TPluginHelpers.BasePluginLoadOrder(var list: TList; filename: string): integer;
+class function TPluginHelpers.BasePluginLoadOrder(var list: TList;
+  filename: string): Integer;
 var
-  i: integer;
+  i: Integer;
   plugin: TBasePlugin;
 begin
   Result := -1;
-  for i := 0 to Pred(list.Count) do begin
+  for i := 0 to Pred(list.Count) do
+  begin
     plugin := TBasePlugin(list[i]);
-    if plugin.filename = filename then begin
+    if plugin.filename = filename then
+    begin
       Result := i;
       exit;
     end;
@@ -236,15 +249,18 @@ begin
 end;
 
 { Gets a plugin matching the given name. }
-class function TPluginHelpers.BasePluginByFilename(var list: TList; filename: string): TBasePlugin;
+class function TPluginHelpers.BasePluginByFilename(var list: TList;
+  filename: string): TBasePlugin;
 var
-  i: integer;
+  i: Integer;
   plugin: TBasePlugin;
 begin
   Result := nil;
-  for i := 0 to Pred(list.count) do begin
+  for i := 0 to Pred(list.Count) do
+  begin
     plugin := TBasePlugin(list[i]);
-    if plugin.filename = filename then begin
+    if plugin.filename = filename then
+    begin
       Result := plugin;
       exit;
     end;
@@ -261,19 +277,22 @@ begin
   HeaderList := TList.Create;
 
   // load plugin headers for each plugin in @sl
-  for i := 0 to Pred(sl.Count) do try
-    aFile := wbFile(wbDataPath + sl[i], -1, '', False, True);
-    plugin := TBasePlugin.Create;
-    plugin._File := aFile;
-    HeaderList.Add(plugin);
-  except
-    on x: Exception do begin
-      Tracker.Write('Failed to load '+sl[i]);
+  for i := 0 to Pred(sl.Count) do
+    try
+      aFile := wbFile(sl[i], -1, '', [fsOnlyHeader]);
+      plugin := TBasePlugin.Create;
+      plugin._File := aFile;
+      HeaderList.Add(plugin);
+    except
+      on x: Exception do
+      begin
+        Tracker.Write('Failed to load ' + sl[i]);
+      end;
     end;
-  end;
 
   // get data for each plugin in the header list
-  for i := 0 to Pred(HeaderList.Count) do begin
+  for i := 0 to Pred(HeaderList.Count) do
+  begin
     plugin := TBasePlugin(HeaderList[i]);
     plugin.GetData(HeaderList);
   end;
@@ -283,14 +302,17 @@ class procedure THeaderHelpers.GetPluginMasters(filename: string;
   var sl: TStringList);
 var
   plugin: TBasePlugin;
-  i: integer;
+  i: Integer;
 begin
   // get plugin
   plugin := TPluginHelpers.BasePluginByFilename(HeaderList, filename);
-  if not Assigned(plugin) then exit;
+  if not Assigned(plugin) then
+    exit;
   // add its masters to @sl
-  for i := 0 to Pred(plugin.masters.Count) do begin
-    if sl.IndexOf(plugin.masters[i]) > -1 then continue;
+  for i := 0 to Pred(plugin.masters.Count) do
+  begin
+    if sl.IndexOf(plugin.masters[i]) > -1 then
+      continue;
     sl.Add(plugin.masters[i]);
     GetPluginMasters(plugin.masters[i], sl);
   end;
@@ -300,21 +322,23 @@ class procedure THeaderHelpers.GetPluginDependencies(filename: string;
   var sl: TStringList);
 var
   plugin: TBasePlugin;
-  i: integer;
+  i: Integer;
 begin
   // get plugin
   plugin := TPluginHelpers.BasePluginByFilename(HeaderList, filename);
-  if not Assigned(plugin) then exit;
+  if not Assigned(plugin) then
+    exit;
   // add its required by to @sl
-  for i := 0 to Pred(plugin.requiredBy.Count) do begin
-    if sl.IndexOf(plugin.requiredBy[i]) > -1 then continue;
+  for i := 0 to Pred(plugin.requiredBy.Count) do
+  begin
+    if sl.IndexOf(plugin.requiredBy[i]) > -1 then
+      continue;
     sl.Add(plugin.requiredBy[i]);
     GetPluginDependencies(plugin.requiredBy[i], sl);
   end;
 end;
 
-
-{******************************************************************************}
+{ ****************************************************************************** }
 { General Helper Functions
   Set of functions that read bethesda plugin files for various attributes.
 
@@ -332,7 +356,7 @@ end;
   - WinningOverrideInFiles
   - IsOverride
   - LocalFormID
-   -LoadOrderPrefix
+  -LoadOrderPrefix
   - CountOverrides
   - GetMasters
   - AddMasters
@@ -347,25 +371,38 @@ end;
   - PluginsModified
   - CreatSEQFile
 }
-{*****************************************************************************}
+{ ***************************************************************************** }
 
 { Converts a TwbElementType to a string }
 function etToString(et: TwbElementType): string;
 begin
   case Ord(et) of
-    Ord(etFile): Result := 'etFile';
-    Ord(etMainRecord): Result := 'etMainRecord';
-    Ord(etGroupRecord): Result := 'etGroupRecord';
-    Ord(etSubRecord): Result := 'etSubRecord';
-    Ord(etSubRecordStruct): Result := 'etSubRecordStruct';
-    Ord(etSubRecordArray): Result := 'etSubRecordArray';
-    Ord(etSubRecordUnion): Result := 'etSubRecordUnion';
-    Ord(etArray): Result := 'etArray';
-    Ord(etStruct): Result := 'etStruct';
-    Ord(etValue): Result := 'etValue';
-    Ord(etFlag): Result := 'etFlag';
-    Ord(etStringListTerminator): Result := 'etStringListTerminator';
-    Ord(etUnion): Result := 'etUnion';
+    Ord(etFile):
+      Result := 'etFile';
+    Ord(etMainRecord):
+      Result := 'etMainRecord';
+    Ord(etGroupRecord):
+      Result := 'etGroupRecord';
+    Ord(etSubRecord):
+      Result := 'etSubRecord';
+    Ord(etSubRecordStruct):
+      Result := 'etSubRecordStruct';
+    Ord(etSubRecordArray):
+      Result := 'etSubRecordArray';
+    Ord(etSubRecordUnion):
+      Result := 'etSubRecordUnion';
+    Ord(etArray):
+      Result := 'etArray';
+    Ord(etStruct):
+      Result := 'etStruct';
+    Ord(etValue):
+      Result := 'etValue';
+    Ord(etFlag):
+      Result := 'etFlag';
+    Ord(etStringListTerminator):
+      Result := 'etStringListTerminator';
+    Ord(etUnion):
+      Result := 'etUnion';
   end;
 end;
 
@@ -373,118 +410,184 @@ end;
 function dtToString(dt: TwbDefType): string;
 begin
   case Ord(dt) of
-    Ord(dtRecord): Result := 'dtRecord';
-    Ord(dtSubRecord): Result := 'dtSubRecord';
-    Ord(dtSubRecordArray): Result := 'dtSubRecordArray';
-    Ord(dtSubRecordStruct): Result := 'dtSubRecordStruct';
-    Ord(dtSubRecordUnion): Result := 'dtSubRecordUnion';
-    Ord(dtString): Result := 'dtString';
-    Ord(dtLString): Result := 'dtLString';
-    Ord(dtLenString): Result := 'dtLenString';
-    Ord(dtByteArray): Result := 'dtByteArray';
-    Ord(dtInteger): Result := 'dtInteger';
-    Ord(dtIntegerFormater): Result := 'dtIntegerFormatter';
-    Ord(dtFloat): Result := 'dtFloat';
-    Ord(dtArray): Result := 'dtArray';
-    Ord(dtStruct): Result := 'dtStruct';
-    Ord(dtUnion): Result := 'dtUnion';
-    Ord(dtEmpty): Result := 'dtEmpty';
+    Ord(dtRecord):
+      Result := 'dtRecord';
+    Ord(dtSubRecord):
+      Result := 'dtSubRecord';
+    Ord(dtSubRecordArray):
+      Result := 'dtSubRecordArray';
+    Ord(dtSubRecordStruct):
+      Result := 'dtSubRecordStruct';
+    Ord(dtSubRecordUnion):
+      Result := 'dtSubRecordUnion';
+    Ord(dtString):
+      Result := 'dtString';
+    Ord(dtLString):
+      Result := 'dtLString';
+    Ord(dtLenString):
+      Result := 'dtLenString';
+    Ord(dtByteArray):
+      Result := 'dtByteArray';
+    Ord(dtInteger):
+      Result := 'dtInteger';
+    Ord(dtIntegerFormater):
+      Result := 'dtIntegerFormatter';
+    Ord(dtFloat):
+      Result := 'dtFloat';
+    Ord(dtArray):
+      Result := 'dtArray';
+    Ord(dtStruct):
+      Result := 'dtStruct';
+    Ord(dtUnion):
+      Result := 'dtUnion';
+    Ord(dtEmpty):
+      Result := 'dtEmpty';
   end;
 end;
 
 function ctToString(ct: TConflictThis): string;
 begin
   case Ord(ct) of
-    Ord(ctUnknown): Result := 'ctUnknown';
-    Ord(ctIgnored): Result := 'ctIgnored';
-    Ord(ctNotDefined): Result := 'ctNotDefined';
-    Ord(ctIdenticalToMaster): Result := 'ctIdenticalToMaster';
-    Ord(ctOnlyOne): Result := 'ctOnlyOne';
-    Ord(ctHiddenByModGroup): Result := 'ctHiddenByModGroup';
-    Ord(ctMaster): Result := 'ctMaster';
-    Ord(ctConflictBenign): Result := 'ctConflictBenign';
-    Ord(ctOverride): Result := 'ctOverride';
-    Ord(ctIdenticalToMasterWinsConflict): Result := 'ctIdenticalToMasterWinsConflict';
-    Ord(ctConflictWins): Result := 'ctConflictWins';
-    Ord(ctConflictLoses): Result := 'ctConflictLoses';
+    Ord(ctUnknown):
+      Result := 'ctUnknown';
+    Ord(ctIgnored):
+      Result := 'ctIgnored';
+    Ord(ctNotDefined):
+      Result := 'ctNotDefined';
+    Ord(ctIdenticalToMaster):
+      Result := 'ctIdenticalToMaster';
+    Ord(ctOnlyOne):
+      Result := 'ctOnlyOne';
+    Ord(ctHiddenByModGroup):
+      Result := 'ctHiddenByModGroup';
+    Ord(ctMaster):
+      Result := 'ctMaster';
+    Ord(ctConflictBenign):
+      Result := 'ctConflictBenign';
+    Ord(ctOverride):
+      Result := 'ctOverride';
+    Ord(ctIdenticalToMasterWinsConflict):
+      Result := 'ctIdenticalToMasterWinsConflict';
+    Ord(ctConflictWins):
+      Result := 'ctConflictWins';
+    Ord(ctConflictLoses):
+      Result := 'ctConflictLoses';
   end;
 end;
 
 function stToString(st: TSmashType): string;
 begin
   case Ord(st) of
-    Ord(stUnknown): Result := 'Unknown';
-    Ord(stRecord): Result := 'Record';
-    Ord(stString): Result := 'String';
-    Ord(stInteger): Result := 'Integer';
-    Ord(stFlag): Result := 'Flag';
-    Ord(stFloat): Result := 'Float';
-    Ord(stStruct): Result := 'Struct';
-    Ord(stUnsortedArray): Result := 'Unsorted Array';
-    Ord(stUnsortedStructArray): Result := 'Unsorted Struct Array';
-    Ord(stSortedArray): Result := 'Sorted Array';
-    Ord(stSortedStructArray): Result := 'Sorted Struct Array';
-    Ord(stByteArray): Result := 'Byte Array';
-    Ord(stUnion): Result := 'Union';
-    else Result := 'Unknown';
+    Ord(stUnknown):
+      Result := 'Unknown';
+    Ord(stRecord):
+      Result := 'Record';
+    Ord(stString):
+      Result := 'String';
+    Ord(stInteger):
+      Result := 'Integer';
+    Ord(stFlag):
+      Result := 'Flag';
+    Ord(stFloat):
+      Result := 'Float';
+    Ord(stStruct):
+      Result := 'Struct';
+    Ord(stUnsortedArray):
+      Result := 'Unsorted Array';
+    Ord(stUnsortedStructArray):
+      Result := 'Unsorted Struct Array';
+    Ord(stSortedArray):
+      Result := 'Sorted Array';
+    Ord(stSortedStructArray):
+      Result := 'Sorted Struct Array';
+    Ord(stByteArray):
+      Result := 'Byte Array';
+    Ord(stUnion):
+      Result := 'Union';
+  else
+    Result := 'Unknown';
   end;
 end;
 
-function SmashType(def: IwbNamedDef): TSmashtype;
+function SmashType(def: IwbNamedDef): TSmashType;
 var
   subDef: IwbSubRecordDef;
   dt: TwbDefType;
   bIsSorted, bHasStructChildren: boolean;
 begin
   dt := def.DefType;
-  if Supports(def, IwbSubrecordDef, subDef) then
+  if Supports(def, IwbSubRecordDef, subDef) then
     dt := subDef.GetValue.DefType;
   case Ord(dt) of
-    Ord(dtRecord): Result := stRecord;
-    Ord(dtSubRecord): Result := stUnknown;
-    Ord(dtSubRecordStruct): Result := stStruct;
-    Ord(dtSubRecordUnion): Result := stUnion;
-    Ord(dtString): Result := stString;
-    Ord(dtLString): Result := stString;
-    Ord(dtLenString): Result := stString;
-    Ord(dtByteArray): Result := stByteArray;
-    Ord(dtInteger): Result := stInteger;
-    Ord(dtIntegerFormater): Result := stInteger;
-    Ord(dtIntegerFormaterUnion): Result := stInteger;
-    Ord(dtFlag): Result := stFlag;
-    Ord(dtFloat): Result := stFloat;
-    Ord(dtSubRecordArray), Ord(dtArray): begin
-      bIsSorted := IsSortedDef(def);
-      bHasStructChildren := HasStructChildrenDef(def);
-      if bIsSorted then begin
-        if bHasStructChildren then
-          Result := stSortedStructArray
+    Ord(dtRecord):
+      Result := stRecord;
+    Ord(dtSubRecord):
+      Result := stUnknown;
+    Ord(dtSubRecordStruct):
+      Result := stStruct;
+    Ord(dtSubRecordUnion):
+      Result := stUnion;
+    Ord(dtString):
+      Result := stString;
+    Ord(dtLString):
+      Result := stString;
+    Ord(dtLenString):
+      Result := stString;
+    Ord(dtByteArray):
+      Result := stByteArray;
+    Ord(dtInteger):
+      Result := stInteger;
+    Ord(dtIntegerFormater):
+      Result := stInteger;
+    Ord(dtIntegerFormaterUnion):
+      Result := stInteger;
+    Ord(dtFlag):
+      Result := stFlag;
+    Ord(dtFloat):
+      Result := stFloat;
+    Ord(dtSubRecordArray), Ord(dtArray):
+      begin
+        bIsSorted := IsSortedDef(def);
+        bHasStructChildren := HasStructChildrenDef(def);
+        if bIsSorted then
+        begin
+          if bHasStructChildren then
+            Result := stSortedStructArray
+          else
+            Result := stSortedArray;
+        end
         else
-          Result := stSortedArray;
-      end
-      else begin
-        if bHasStructChildren then
-          Result := stUnsortedStructArray
-        else
-          Result := stUnsortedArray;
+        begin
+          if bHasStructChildren then
+            Result := stUnsortedStructArray
+          else
+            Result := stUnsortedArray;
+        end;
       end;
-    end;
-    Ord(dtStruct): Result := stStruct;
-    Ord(dtUnion): Result := stUnion;
-    Ord(dtEmpty): Result := stUnknown;
-    Ord(dtStructChapter): Result := stStruct;
-    else Result := stUnknown;
+    Ord(dtStruct):
+      Result := stStruct;
+    Ord(dtUnion):
+      Result := stUnion;
+    Ord(dtEmpty):
+      Result := stUnknown;
+    Ord(dtStructChapter):
+      Result := stStruct;
+  else
+    Result := stUnknown;
   end;
 end;
 
 function GetSmashType(element: IwbElement): TSmashType;
 begin
-  Result := SmashType(element.Def);
+  if Assigned(element.ResolvedValueDef) then
+    Result := SmashType(element.ResolvedValueDef)
+  else
+    Result := SmashType(element.def);
 end;
 
 function ElementByIndexedPath(e: IwbElement; ip: string): IwbElement;
 var
-  i, index: integer;
+  i, index: Integer;
   path: TStringList;
   c: IwbContainerElementRef;
 begin
@@ -502,14 +605,17 @@ begin
     exit;
 
   // traverse path
-  for i := 0 to Pred(path.count) do begin
-    if Pos('[', path[i]) > 0 then begin
+  for i := 0 to Pred(path.Count) do
+  begin
+    if Pos('[', path[i]) > 0 then
+    begin
       index := StrToInt(GetTextIn(path[i], '[', ']'));
       e := c.Elements[index];
       if not Supports(e, IwbContainerElementRef, c) then
         exit;
     end
-    else begin
+    else
+    begin
       e := c.ElementByPath[path[i]];
       if not Supports(e, IwbContainerElementRef, c) then
         exit;
@@ -526,11 +632,12 @@ var
   a: string;
 begin
   c := e.Container;
-  while (e.ElementType <> etMainRecord) do begin
+  while (e.ElementType <> etMainRecord) do
+  begin
     if c.ElementType = etSubRecordArray then
-      a := '['+IntToStr(c.IndexOf(e))+']'
+      a := '[' + IntToStr(c.IndexOf(e)) + ']'
     else
-      a := e.Name;
+      a := e.name;
     if Result <> '' then
       Result := a + '\' + Result
     else
@@ -543,15 +650,18 @@ end;
 { Returns a string hash of all of the values contained in an element }
 function GetAllValues(e: IwbElement): string;
 var
-  i: integer;
+  i: Integer;
   c: IwbContainerElementRef;
 begin
-  Result := e.EditValue;
-  if not Supports(e, IwbContainerElementRef, c) then
+  if (GetSmashType(e) = stInteger) or not Supports(e, IwbContainerElementRef, c) then begin
+    Result := e.SortKey[false];
     exit;
+  end;
+  Result := e.EditValue;
 
   // loop through children elements
-  for i := 0 to Pred(c.ElementCount) do begin
+  for i := 0 to Pred(c.ElementCount) do
+  begin
     if (Result <> '') then
       Result := Result + ';' + GetAllValues(c.Elements[i])
     else
@@ -566,9 +676,9 @@ var
 begin
   Result := false;
   if Supports(def, IwbSubRecordArrayDef, sraDef) then
-    Result := Supports(sraDef.Element, IwbHasSortKeyDef)
+    Result := Supports(sraDef.element, IwbHasSortKeyDef)
   else if Supports(def, IwbArrayDef, arDef) then
-    Result := Supports(arDef.Element, IwbHasSortKeyDef);
+    Result := arDef.Sorted;
 end;
 
 { Returns true if @e is a sorted container }
@@ -592,26 +702,48 @@ var
   Container: IwbContainerElementRef;
 begin
   Result := false;
-  if Supports(e, IwbContainerElementRef, Container)
-  and (Container.ElementCount > 0) then
+  if Supports(e, IwbContainerElementRef, Container) and
+    (Container.ElementCount > 0) then
     Result := GetSmashType(Container.Elements[0]) = stStruct;
 end;
 
-{ Returns the most-winning override of @rec from the
-  files listed in @sl }
-function WinningOverrideInFiles(rec: IwbMainRecord;
-  var sl: TStringList): IwbMainRecord;
+{ Returns the most-winning override of @rec from the files listed in @sl }
+function WinningOverrideInFiles(rec: IwbMainRecord; var sl: TStringList)
+  : IwbMainRecord;
 var
   i: Integer;
   ovr: IwbMainRecord;
 begin
-  Result := rec;
-  for i := Pred(rec.OverrideCount) downto 0 do begin
+  Result := rec.MasterOrSelf;
+  for i := Pred(rec.OverrideCount) downto 0 do
+  begin
     ovr := rec.Overrides[i];
-    if sl.IndexOf(ovr._file.FileName) > -1 then begin
+    if sl.IndexOf(ovr._File.filename) > -1 then
+    begin
       Result := ovr;
       exit;
     end;
+  end;
+end;
+
+{ Returns the overrides of @rec from the masters of its file }
+procedure OverridesInMasters(rec: IwbMainRecord; var rl: TList<IwbMainRecord>);
+var
+  i: Integer;
+  f, mst: IwbFile;
+  id: TwbFormID;
+  ovr: IwbMainRecord;
+begin
+  f := rec._File;
+  id := rec.FormID;
+  // TODO: Why does rec.Master sometimes return the wrong record??
+  for i := 0 to Pred(f.MasterCount[false]) do
+  begin
+    mst := f.Masters[i, false];
+    ovr := mst.RecordByFormID[id, true, false];
+    // TODO: Better way to get only if override is in Masters[i]??
+    if Assigned(ovr) and ovr._File.Equals(mst) then
+      rl.Add(ovr);
   end;
 end;
 
@@ -623,20 +755,22 @@ end;
 
 function ExtractFormID(filename: string): string;
 const
-  HexChars = ['0'..'9', 'A'..'F', 'a'..'f'];
+  HexChars = ['0' .. '9', 'A' .. 'F', 'a' .. 'f'];
 var
   i, counter: Integer;
 begin
   counter := 0;
   // we loop from the back because the formID is usually at the
   // end of the filename
-  for i := Length(filename) downto 1 do begin
+  for i := Length(filename) downto 1 do
+  begin
     if (filename[i] in HexChars) then
       Inc(counter)
     else
       counter := 0;
     // set result and exit if counter has reached 8
-    if counter = 8 then begin
+    if counter = 8 then
+    begin
       Result := Copy(filename, i, 8);
       exit;
     end;
@@ -651,25 +785,26 @@ begin
 end;
 
 { Gets the local formID of a record (so no load order prefix) }
-function LocalFormID(aRecord: IwbMainRecord): integer;
+function LocalFormID(aRecord: IwbMainRecord): Integer;
 begin
-  Result := aRecord.LoadOrderFormID and $00FFFFFF;
+  Result := aRecord.LoadOrderFormID.ToCardinal and $00FFFFFF;
 end;
 
 { Gets the load order prefix from the FormID of a record }
-function LoadOrderPrefix(aRecord: IwbMainRecord): integer;
+function LoadOrderPrefix(aRecord: IwbMainRecord): Integer;
 begin
-  Result := aRecord.LoadOrderFormID and $FF000000;
+  Result := aRecord.LoadOrderFormID.ToCardinal and $FF000000;
 end;
 
 { Returns the number of override records in a file }
-function CountOverrides(aFile: IwbFile): integer;
+function CountOverrides(aFile: IwbFile): Integer;
 var
   i: Integer;
   aRecord: IwbMainRecord;
 begin
   Result := 0;
-  for i := 0 to Pred(aFile.GetRecordCount) do begin
+  for i := 0 to Pred(aFile.GetRecordCount) do
+  begin
     aRecord := aFile.GetRecord(i);
     if IsOverride(aRecord) then
       Inc(Result);
@@ -677,15 +812,17 @@ begin
 end;
 
 { Returns the number of overrides of the specified record in the specified file set }
-function OverrideCountInFiles(rec: IwbMainRecord; var files: TStringList): Integer;
+function OverrideCountInFiles(rec: IwbMainRecord;
+  var files: TStringList): Integer;
 var
   i: Integer;
   ovr: IwbMainRecord;
 begin
   Result := 0;
-  for i := 0 to Pred(rec.OverrideCount) do begin
+  for i := 0 to Pred(rec.OverrideCount) do
+  begin
     ovr := rec.Overrides[i];
-    if files.IndexOf(ovr._File.FileName) > -1 then
+    if files.IndexOf(ovr._File.filename) > -1 then
       Inc(Result);
   end;
 end;
@@ -698,7 +835,8 @@ var
   i: Integer;
   plugin: TBasePlugin;
 begin
-  for i := 0 to Pred(masters.Count) do begin
+  for i := 0 to Pred(masters.Count) do
+  begin
     plugin := TPluginHelpers.BasePluginByFilename(lst, masters[i]);
     if not Assigned(plugin) then
       continue;
@@ -710,17 +848,20 @@ end;
 procedure GetMasters(aFile: IwbFile; var sl: TStringList);
 var
   Container, MasterFiles, MasterFile: IwbContainer;
-  i, iLoadOrder: integer;
+  i, iLoadOrder: Integer;
   filename: string;
 begin
   Container := aFile as IwbContainer;
   Container := Container.Elements[0] as IwbContainer;
-  if Container.ElementExists['Master Files'] then begin
+  if Container.ElementExists['Master Files'] then
+  begin
     MasterFiles := Container.ElementByPath['Master Files'] as IwbContainer;
-    for i := 0 to MasterFiles.ElementCount - 1 do begin
+    for i := 0 to MasterFiles.ElementCount - 1 do
+    begin
       MasterFile := MasterFiles.Elements[i] as IwbContainer;
       filename := MasterFile.GetElementEditValue('MAST - Filename');
-      if sl.IndexOf(filename) = -1 then begin
+      if sl.IndexOf(filename) = -1 then
+      begin
         iLoadOrder := TPluginHelpers.BasePluginLoadOrder(PluginsList, filename);
         sl.AddObject(filename, TObject(iLoadOrder));
       end;
@@ -731,10 +872,11 @@ end;
 { Gets the masters in an IwbFile and puts them into a stringlist }
 procedure AddMasters(aFile: IwbFile; var sl: TStringList);
 var
-  i: integer;
+  i: Integer;
 begin
-  for i := 0 to Pred(sl.Count) do begin
-    if Lowercase(aFile.FileName) = Lowercase(sl[i]) then
+  for i := 0 to Pred(sl.Count) do
+  begin
+    if Lowercase(aFile.filename) = Lowercase(sl[i]) then
       continue;
     aFile.AddMasterIfMissing(sl[i]);
   end;
@@ -747,7 +889,8 @@ var
 begin
   Result := false;
   bsaFilename := ChangeFileExt(filename, '.bsa');
-  if FileExists(wbDataPath + bsaFilename) then begin
+  if FileExists(wbDataPath + bsaFilename) then
+  begin
     ContainerName := wbDataPath + bsaFilename;
     if not wbContainerHandler.ContainerExists(ContainerName) then
       wbContainerHandler.AddBSA(ContainerName);
@@ -771,9 +914,11 @@ var
 begin
   Result := false;
   filename := Lowercase(filename);
-  if FindFirst(path, faAnyFile, info) = 0 then begin
+  if FindFirst(path, faAnyFile, info) = 0 then
+  begin
     repeat
-      if Pos(filename, Lowercase(info.Name)) > 0 then begin
+      if Pos(filename, Lowercase(info.name)) > 0 then
+      begin
         Result := true;
         exit;
       end;
@@ -790,14 +935,17 @@ var
 begin
   searchPath := wbDataPath + 'Interface\translations\*';
   Result := MatchingFileExists(searchPath, ChangeFileExt(filename, ''));
-  if Result then exit;
+  if Result then
+    exit;
 
   // check in BSA
-  if BSAExists(filename) then begin
+  if BSAExists(filename) then
+  begin
     bsaFilename := ChangeFileExt(filename, '.bsa');
     ContainerName := wbDataPath + bsaFilename;
     ResourceList := TStringList.Create;
-    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, 'Interface\translations');
+    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList,
+      'Interface\translations');
     Result := ResourceList.Count > 0;
   end;
 end;
@@ -814,15 +962,19 @@ begin
   facetint := DirectoryExists(wbDataPath + facetintDir);
   facegeom := DirectoryExists(wbDataPath + facegeomDir);
   Result := facetint or facegeom;
-  if Result then exit;
+  if Result then
+    exit;
 
   // check in BSA
-  if BSAExists(filename) then begin
+  if BSAExists(filename) then
+  begin
     bsaFilename := ChangeFileExt(filename, '.bsa');
     ContainerName := wbDataPath + bsaFilename;
     ResourceList := TStringList.Create;
-    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, facetintDir);
-    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, facegeomDir);
+    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList,
+      facetintDir);
+    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList,
+      facegeomDir);
     Result := ResourceList.Count > 0;
   end;
 end;
@@ -835,14 +987,17 @@ var
 begin
   voiceDir := 'sound\voice\' + filename;
   Result := DirectoryExists(wbDataPath + voiceDir);
-  if Result then exit;
+  if Result then
+    exit;
 
   // check in BSA
-  if BSAExists(filename) then begin
+  if BSAExists(filename) then
+  begin
     bsaFilename := ChangeFileExt(filename, '.bsa');
     ContainerName := wbDataPath + bsaFilename;
     ResourceList := TStringList.Create;
-    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, voiceDir);
+    wbContainerHandler.ContainerResourceList(ContainerName, ResourceList,
+      voiceDir);
     Result := ResourceList.Count > 0;
   end;
 end;
@@ -850,11 +1005,12 @@ end;
 { Returns true if Topic Info Fragments exist in @f }
 function TopicInfoFragmentsExist(f: IwbFile): boolean;
 const
-  infoFragmentsPath = 'VMAD - Virtual Machine Adapter\Data\Info VMAD\Script Fragments Info';
+  infoFragmentsPath =
+    'VMAD - Virtual Machine Adapter\Data\Info VMAD\Script Fragments Info';
 var
   rec: IwbMainRecord;
   group: IwbGroupRecord;
-  subgroup, container: IwbContainer;
+  subgroup, Container: IwbContainer;
   element, fragments: IwbElement;
   i, j: Integer;
 begin
@@ -865,19 +1021,21 @@ begin
 
   // find all DIAL records
   group := f.GroupBySignature['DIAL'];
-  for i := 0 to Pred(group.ElementCount) do begin
+  for i := 0 to Pred(group.ElementCount) do
+  begin
     element := group.Elements[i];
     // find all INFO records
     if not Supports(element, IwbContainer, subgroup) then
       continue;
-    for j := 0 to Pred(subgroup.ElementCount) do begin
+    for j := 0 to Pred(subgroup.ElementCount) do
+    begin
       if not Supports(subgroup.Elements[j], IwbMainRecord, rec) then
         continue;
       if not rec.IsMaster then
         continue;
-      if not Supports(rec, IwbContainer, container) then
+      if not Supports(rec, IwbContainer, Container) then
         continue;
-      fragments := container.ElementByPath[infoFragmentsPath];
+      fragments := Container.ElementByPath[infoFragmentsPath];
       if not Assigned(fragments) then
         continue;
       Result := true;
@@ -888,11 +1046,12 @@ end;
 { Returns true if Quest Fragments exist in @f }
 function QuestFragmentsExist(f: IwbFile): boolean;
 const
-  questFragmentsPath = 'VMAD - Virtual Machine Adapter\Data\Quest VMAD\Script Fragments Quest';
+  questFragmentsPath =
+    'VMAD - Virtual Machine Adapter\Data\Quest VMAD\Script Fragments Quest';
 var
   rec: IwbMainRecord;
   group: IwbGroupRecord;
-  container: IwbContainer;
+  Container: IwbContainer;
   fragments: IwbElement;
   i: Integer;
 begin
@@ -903,14 +1062,15 @@ begin
 
   // find all QUST records
   group := f.GroupBySignature['QUST'];
-  for i := 0 to Pred(group.ElementCount) do begin
+  for i := 0 to Pred(group.ElementCount) do
+  begin
     if not Supports(group.Elements[i], IwbMainRecord, rec) then
       continue;
     if not rec.IsMaster then
       continue;
-    if not Supports(rec, IwbContainer, container) then
+    if not Supports(rec, IwbContainer, Container) then
       continue;
-    fragments := container.ElementByPath[questFragmentsPath];
+    fragments := Container.ElementByPath[questFragmentsPath];
     if not Assigned(fragments) then
       continue;
     Result := true;
@@ -920,11 +1080,12 @@ end;
 { Returns true if Quest Fragments exist in @f }
 function SceneFragmentsExist(f: IwbFile): boolean;
 const
-  sceneFragmentsPath = 'VMAD - Virtual Machine Adapter\Data\Quest VMAD\Script Fragments Quest';
+  sceneFragmentsPath =
+    'VMAD - Virtual Machine Adapter\Data\Quest VMAD\Script Fragments Quest';
 var
   rec: IwbMainRecord;
   group: IwbGroupRecord;
-  container: IwbContainer;
+  Container: IwbContainer;
   fragments: IwbElement;
   i: Integer;
 begin
@@ -935,14 +1096,15 @@ begin
 
   // find all SCEN records
   group := f.GroupBySignature['SCEN'];
-  for i := 0 to Pred(group.ElementCount) do begin
+  for i := 0 to Pred(group.ElementCount) do
+  begin
     if not Supports(group.Elements[i], IwbMainRecord, rec) then
       continue;
     if not rec.IsMaster then
       continue;
-    if not Supports(rec, IwbContainer, container) then
+    if not Supports(rec, IwbContainer, Container) then
       continue;
-    fragments := container.ElementByPath[sceneFragmentsPath];
+    fragments := Container.ElementByPath[sceneFragmentsPath];
     if not Assigned(fragments) then
       continue;
     Result := true;
@@ -952,8 +1114,8 @@ end;
 { Returns true if file-specific Script Fragments for @f are found }
 function FragmentsExist(f: IwbFile): boolean;
 begin
-  Result := TopicInfoFragmentsExist(f) or QuestFragmentsExist(f)
-    or SceneFragmentsExist(f);
+  Result := TopicInfoFragmentsExist(f) or QuestFragmentsExist(f) or
+    SceneFragmentsExist(f);
 end;
 
 { References self }
@@ -962,7 +1124,7 @@ var
   i: Integer;
   filename, source: string;
   scripts: IwbGroupRecord;
-  container: IwbContainerElementRef;
+  Container: IwbContainerElementRef;
   rec: IwbMainRecord;
 begin
   // exit if has no script records in file
@@ -971,15 +1133,17 @@ begin
     exit;
 
   // get scripts, and check them all for self-reference
-  filename := f.FileName;
+  filename := f.filename;
   scripts := f.GroupBySignature['SCPT'];
-  if not Supports(scripts, IwbContainerElementRef, container) then
+  if not Supports(scripts, IwbContainerElementRef, Container) then
     exit;
-  for i := 0 to Pred(container.ElementCount) do begin
-    if not Supports(container.Elements[i], IwbMainRecord, rec) then
+  for i := 0 to Pred(Container.ElementCount) do
+  begin
+    if not Supports(Container.Elements[i], IwbMainRecord, rec) then
       continue;
     source := rec.ElementEditValues['SCTX - Script Source'];
-    if Pos(filename, source) > 0 then begin
+    if Pos(filename, source) > 0 then
+    begin
       Result := true;
       break;
     end;
@@ -992,62 +1156,76 @@ var
   ResourceList: TStringList;
   i: Integer;
 begin
-  if not wbContainerHandler.ContainerExists(ContainerName) then begin
-    Tracker.Write('    '+ContainerName+' not loaded.');
+  if not wbContainerHandler.ContainerExists(ContainerName) then
+  begin
+    Tracker.Write('    ' + ContainerName + ' not loaded.');
     exit;
   end;
   ResourceList := TStringList.Create;
   wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, folder);
   for i := 0 to Pred(ResourceList.Count) do
-    wbContainerHandler.ResourceCopy(ContainerName, ResourceList[i], destination);
+    wbContainerHandler.ResourceCopy(ContainerName, ResourceList[i],
+      destination);
 end;
 
 { Extracts assets from the BSA @filename to @destination, ignoring assets
   matching items in @ignore }
-procedure ExtractBSA(ContainerName, destination: string; var ignore: TStringList);
+procedure ExtractBSA(ContainerName, destination: string;
+  var ignore: TStringList);
 var
   ResourceList: TStringList;
   i, j: Integer;
   skip: boolean;
 begin
-  if not wbContainerHandler.ContainerExists(ContainerName) then begin
-    Tracker.Write('    '+ContainerName+' not loaded.');
+  if not wbContainerHandler.ContainerExists(ContainerName) then
+  begin
+    Tracker.Write('    ' + ContainerName + ' not loaded.');
     exit;
   end;
   ResourceList := TStringList.Create;
   wbContainerHandler.ContainerResourceList(ContainerName, ResourceList, '');
-  for i := 0 to Pred(ResourceList.Count) do begin
+  for i := 0 to Pred(ResourceList.Count) do
+  begin
     skip := false;
-    for j := 0 to Pred(ignore.Count) do begin
+    for j := 0 to Pred(ignore.Count) do
+    begin
       skip := Pos(ignore[j], ResourceList[i]) > 0;
-      if skip then break;
+      if skip then
+        break;
     end;
 
-    if skip then continue;
-    wbContainerHandler.ResourceCopy(ContainerName, ResourceList[i], destination);
+    if skip then
+      continue;
+    wbContainerHandler.ResourceCopy(ContainerName, ResourceList[i],
+      destination);
   end;
 end;
 
-function RemoveSelfOrContainer(const aElement: IwbElement): Boolean;
+function RemoveSelfOrContainer(const aElement: IwbElement): boolean;
 var
   cElement: IwbElement;
 begin
   Result := false;
-  if aElement.IsRemoveable then begin
+  if aElement.IsRemoveable then
+  begin
     aElement.Remove;
     Result := true;
   end
-  else begin
-    if not Assigned(aElement.Container) then begin
+  else
+  begin
+    if not Assigned(aElement.Container) then
+    begin
       Tracker.Write('    Element has no container!');
       exit;
     end;
     // if element isn't removable, try removing its container
-    if Supports(aElement.Container, IwbMainRecord) then begin
+    if Supports(aElement.Container, IwbMainRecord) then
+    begin
       Tracker.Write('    Reached main record, cannot remove element');
       exit;
     end;
-    Tracker.Write('    Failed to remove '+aElement.Path+', removing container');
+    Tracker.Write('    Failed to remove ' + aElement.path +
+      ', removing container');
     if Supports(aElement.Container, IwbElement, cElement) then
       Result := RemoveSelfOrContainer(cElement);
   end;
@@ -1057,7 +1235,7 @@ procedure UndeleteAndDisable(const aRecord: IwbMainRecord);
 var
   xesp: IwbElement;
   sig: string;
-  container: IwbContainerElementRef;
+  Container: IwbContainerElementRef;
 begin
   try
     sig := aRecord.Signature;
@@ -1067,13 +1245,13 @@ begin
     aRecord.IsDeleted := false;
 
     // set persistence flag depending on game
-    if (wbGameMode in [gmFO3,gmFNV,gmTES5])
-    and ((sig = 'ACHR') or (sig = 'ACRE')) then
+    if (wbGameMode in [gmFO3, gmFNV, gmTES5]) and
+      ((sig = 'ACHR') or (sig = 'ACRE')) then
       aRecord.IsPersistent := true
     else if wbGameMode = gmTES4 then
       aRecord.IsPersistent := false;
 
-      // place it below the ground
+    // place it below the ground
     if not aRecord.IsPersistent then
       aRecord.ElementNativeValues['DATA\Position\Z'] := -30000;
 
@@ -1082,20 +1260,20 @@ begin
     aRecord.RemoveElement('XTEL');
 
     // add enabled opposite of player (true - silent)
-    xesp := aRecord.Add('XESP', True);
-    if Assigned(xesp) and Supports(xesp, IwbContainerElementRef, container) then begin
-      container.ElementNativeValues['Reference'] := $14; // Player ref
-      container.ElementNativeValues['Flags'] := 1;  // opposite of parent flag
+    xesp := aRecord.Add('XESP', true);
+    if Assigned(xesp) and Supports(xesp, IwbContainerElementRef, Container) then
+    begin
+      Container.ElementNativeValues['Reference'] := $14; // Player ref
+      Container.ElementNativeValues['Flags'] := 1; // opposite of parent flag
     end;
 
     // set to disable
     aRecord.IsInitiallyDisabled := true;
   except
     on x: Exception do
-      Tracker.Write('    Exception: '+x.Message);
+      Tracker.Write('    Exception: ' + x.Message);
   end;
 end;
-
 
 function FixErrors(const aElement: IwbElement; lastRecord: IwbMainRecord;
   var errors: TStringList): IwbMainRecord;
@@ -1116,38 +1294,48 @@ begin
     Tracker.UpdateProgress(1);
 
   Error := aElement.Check;
-  if Error <> '' then begin
+  if Error <> '' then
+  begin
     Result := aElement.ContainingMainRecord;
     // fix record marked as deleted errors (UDRs)
-    if Pos(cUDR, Error) = 1 then begin
-      if Assigned(Result) then begin
-        Tracker.Write('  Fixing UDR: '+Result.Name);
+    if Pos(cUDR, Error) = 1 then
+    begin
+      if Assigned(Result) then
+      begin
+        Tracker.Write('  Fixing UDR: ' + Result.name);
         UndeleteAndDisable(Result);
       end;
     end
-    else begin
+    else
+    begin
       // fix unresolved FormID errors by NULLing them out
-      if Pos(cUnresolved, Error) > 0 then begin
-        Tracker.Write('  Fixing Unresolved FormID: '+aElement.Path);
+      if Pos(cUnresolved, Error) > 0 then
+      begin
+        Tracker.Write('  Fixing Unresolved FormID: ' + aElement.path);
         aElement.NativeValue := 0;
         // we may end up with an invalid NULL reference, so we Check again
         Error := aElement.Check;
-        if Error = '' then exit;
+        if Error = '' then
+          exit;
       end;
 
       // fix invalid NULL references by removal
-      if Pos(cNULL, Error) = 1 then begin
-        Tracker.Write('  Removing NULL reference: '+aElement.Path);
-        if RemoveSelfOrContainer(aElement) then exit;
+      if Pos(cNULL, Error) = 1 then
+      begin
+        Tracker.Write('  Removing NULL reference: ' + aElement.path);
+        if RemoveSelfOrContainer(aElement) then
+          exit;
       end;
 
       // unhandled error
-      Tracker.Write(Format('  Unhandled error: %s -> %s', [aElement.Path, error]));
-      if Assigned(Result) and (lastRecord <> Result) then begin
+      Tracker.Write(Format('  Unhandled error: %s -> %s',
+        [aElement.path, Error]));
+      if Assigned(Result) and (lastRecord <> Result) then
+      begin
         lastRecord := Result;
-        errors.Add(Result.Name);
+        errors.Add(Result.name);
       end;
-      errors.Add('  '+aElement.Path + ' -> ' + Error);
+      errors.Add('  ' + aElement.path + ' -> ' + Error);
     end;
   end;
 
@@ -1156,10 +1344,12 @@ begin
     exit;
 
   // recurse through children elements
-  for i := Pred(Container.ElementCount) downto 0 do begin
+  for i := Pred(Container.ElementCount) downto 0 do
+  begin
     Result := FixErrors(Container.Elements[i], Result, errors);
     // break if container got deleted
-    if not Assigned(Container) then break;
+    if not Assigned(Container) then
+      break;
   end;
 end;
 
@@ -1179,14 +1369,16 @@ begin
 
   Error := aElement.Check;
   // log errors
-  if Error <> '' then begin
+  if Error <> '' then
+  begin
     Result := aElement.ContainingMainRecord;
-    if Assigned(Result) and (Result <> LastRecord) then begin
-      Tracker.Write('  '+Result.Name);
-      errors.Add(Result.Name);
+    if Assigned(Result) and (Result <> lastRecord) then
+    begin
+      Tracker.Write('  ' + Result.name);
+      errors.Add(Result.name);
     end;
-    msg := '  '+aElement.Path + ' -> ' + Error;
-    Tracker.Write('  '+msg);
+    msg := '  ' + aElement.path + ' -> ' + Error;
+    Tracker.Write('  ' + msg);
     errors.Add(msg);
   end;
 
@@ -1197,17 +1389,16 @@ begin
 end;
 
 { Comparator for sorting plugins }
-function LoadOrderCompare(List: TStringList; Index1, Index2: Integer): Integer;
+function LoadOrderCompare(list: TStringList; Index1, Index2: Integer): Integer;
 var
   LO1, LO2: Integer;
 begin
-  LO1 := Integer(List.Objects[Index1]);
-  LO2 := Integer(List.Objects[Index2]);
+  LO1 := Integer(list.Objects[Index1]);
+  LO2 := Integer(list.Objects[Index2]);
   Result := LO1 - LO2;
 end;
 
-
-{******************************************************************************}
+{ ****************************************************************************** }
 { Record Prototyping Functions
   - GetElementObj
   - CreateRecordObj
@@ -1217,7 +1408,7 @@ end;
   - BuildRecordDef
   - GetEditableFileContainer
 }
-{******************************************************************************}
+{ ****************************************************************************** }
 
 {
   GetElementObj:
@@ -1234,22 +1425,25 @@ begin
     exit;
   if not Assigned(obj['c']) then
     exit;
-  for item in obj['c'] do begin
-    if item.S['n'] = name then begin
+  for item in obj['c'] do
+  begin
+    if item.s['n'] = name then
+    begin
       Result := item;
       exit;
     end;
   end;
 end;
 
-function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord): ISuperObject;
+function CreateRecordObj(var tree: ISuperObject; rec: IwbMainRecord)
+  : ISuperObject;
 var
   item: ISuperObject;
 begin
   item := SO;
-  item.S['n'] := rec.Signature;
-  item.I['t'] := Ord(stRecord);
-  tree.A['records'].Add(item);
+  item.s['n'] := rec.Signature;
+  item.i['t'] := Ord(stRecord);
+  tree.a['records'].Add(item);
   Result := item;
 end;
 
@@ -1260,8 +1454,9 @@ var
 begin
   Result := nil;
   aSignature := StrToSignature(name);
-  for item in tree['records'] do begin
-    if StrToSignature(item.S['n']) = aSignature then
+  for item in tree['records'] do
+  begin
+    if StrToSignature(item.s['n']) = aSignature then
       Result := item;
   end;
 end;
@@ -1271,9 +1466,11 @@ var
   i: Integer;
   def: TwbRecordDefEntry;
 begin
-  for i := Low(wbRecordDefs) to High(wbRecordDefs) do begin
+  for i := Low(wbRecordDefs) to High(wbRecordDefs) do
+  begin
     def := wbRecordDefs[i];
-    if def.rdeSignature = sig then begin
+    if def.rdeSignature = sig then
+    begin
       Result := def;
       exit;
     end;
@@ -1282,48 +1479,52 @@ end;
 
 function BuildElementDef(element: IwbElement): ISuperObject;
 var
-  container: IwbContainerElementRef;
+  Container: IwbContainerElementRef;
   i: Integer;
   childElement: IwbElement;
 begin
   // release object if something goes wrong
   Result := SO;
   try
-    Result.S['n'] := element.Name;
-    Result.I['t'] := Ord(GetSmashType(element));
+    Result.s['n'] := element.name;
+    Result.i['t'] := Ord(GetSmashType(element));
 
     // populate element children, if it supports them
-    if not Supports(element, IwbContainerElementRef, container) then
+    if not Supports(element, IwbContainerElementRef, Container) then
       exit;
     // assign to container if it doesn't have element but can hold them
-    if (container.ElementCount = 0)
-    and container.CanAssign(High(Integer), nil, false) then try
-      container.Assign(High(Integer), nil, false);
-    except
-      // oops, container assignment failed
-      // this catches an assertion error when assigning to a DOBJ record
-      on x: Exception do
-        exit;
-    end;
+    if (Container.ElementCount = 0) and Container.CanAssign(High(Integer), nil,
+      false) then
+      try
+        Container.Assign(High(Integer), nil, false);
+      except
+        // oops, container assignment failed
+        // this catches an assertion error when assigning to a DOBJ record
+        on x: Exception do
+          exit;
+      end;
 
     // if we have children, make children array and recurse
-    if container.ElementCount > 0 then begin
+    if Container.ElementCount > 0 then
+    begin
       Result.O['c'] := SA([]);
       // traverse children
-      for i := 0 to Pred(container.ElementCount) do begin
-        childElement := container.Elements[i];
-        Result.A['c'].Add(BuildElementDef(childElement));
+      for i := 0 to Pred(Container.ElementCount) do
+      begin
+        childElement := Container.Elements[i];
+        Result.a['c'].Add(BuildElementDef(childElement));
       end;
     end;
   except
-    on x: Exception do begin
+    on x: Exception do
+    begin
       Result._Release;
       raise x;
     end;
   end;
 end;
 
-function IsUnionDef(def: IwbNamedDef; out unionDef: IwbUnionDef): Boolean;
+function IsUnionDef(def: IwbNamedDef; out unionDef: IwbUnionDef): boolean;
 var
   subDef: IwbSubRecordDef;
 begin
@@ -1333,14 +1534,15 @@ begin
     Result := Supports(def, IwbUnionDef, unionDef);
 end;
 
-function HasDef(recObj: ISuperObject; name: String): Boolean;
+function HasDef(recObj: ISuperObject; name: String): boolean;
 var
   i: Integer;
 begin
-  Result := False;
-  for i := 0 to Pred(recObj.A['c'].Length) do
-    if recObj.A['c'].O[i].S['n'] = name then begin
-      Result := True;
+  Result := false;
+  for i := 0 to Pred(recObj.a['c'].Length) do
+    if recObj.a['c'].O[i].s['n'] = name then
+    begin
+      Result := true;
       exit;
     end;
 end;
@@ -1348,7 +1550,7 @@ end;
 procedure AddDefIfMissing(recObj: ISuperObject; def: IwbNamedDef; name: String);
 begin
   if not HasDef(recObj, name) then
-    recObj.A['c'].Add(BuildDef(def, name));
+    recObj.a['c'].Add(BuildDef(def, name));
 end;
 
 function SigToStr(sig: TwbSignature): String;
@@ -1369,20 +1571,29 @@ var
   recDef: IwbRecordDef;
   name: String;
 begin
-  if IsUnionDef(def, unionDef) then begin
+  if IsUnionDef(def, unionDef) then
+  begin
     for i := 0 to Pred(unionDef.MemberCount) do
       BuildChildDef(unionDef.Members[i] as IwbNamedDef, recObj);
   end
-  else if Supports(def, IwbSubRecordUnionDef) and Supports(def, IwbRecordDef, recDef) then begin
+  else if Supports(def, IwbSubRecordUnionDef) and
+    Supports(def, IwbRecordDef, recDef) then
+  begin
     for i := 0 to Pred(recDef.MemberCount) do
       BuildChildDef(recDef.Members[i] as IwbNamedDef, recObj);
   end
-  else if Supports(def, IwbSignatureDef, sigDef) then begin
-    name := SigToStr(sigDef.DefaultSignature) + ' - ' + sigDef.Name;
+  else if (def.DefType = dtSubRecordStruct) or (def.DefType = dtSubRecordArray)
+  then
+  begin
+    AddDefIfMissing(recObj, def, def.name);
+  end
+  else if Supports(def, IwbSignatureDef, sigDef) then
+  begin
+    name := SigToStr(sigDef.DefaultSignature) + ' - ' + sigDef.name;
     AddDefIfMissing(recObj, def, name);
   end
   else
-    AddDefIfMissing(recObj, def, def.Name);
+    AddDefIfMissing(recObj, def, def.name);
 end;
 
 procedure BuildChildDefs(obj: ISuperObject; def: IwbNamedDef);
@@ -1395,47 +1606,77 @@ var
   intDef: IwbIntegerDefFormaterUnion;
   sraDef: IwbSubRecordArrayDef;
   aDef: IwbArrayDef;
+  iDef: IwbIntegerDef;
+  fDef: IwbFlagsDef;
 begin
   // try SubRecordDef ValueDef
   if Supports(def, IwbSubRecordDef, subDef) then
     BuildChildDefs(obj, subDef.GetValue as IwbNamedDef)
-  // try IwbRecordDef
-  else if Supports(def, IwbRecordDef, recDef) then begin
-    if recDef.MemberCount = 0 then exit;
+    // try IwbFlagsDef
+  else if Supports(def, IwbIntegerDef, iDef) and Supports(iDef.Formater[nil],
+    IwbFlagsDef, fDef) then
+  begin
+    if fDef.FlagCount = 0 then
+      exit;
+    obj.O['c'] := SA([]);
+    for i := 0 to Pred(fDef.FlagCount) do begin
+      if fDef.Flags[i] = '' then
+        obj.a['c'][i] := BuildDef(fDef.FlagDef[i], 'Unknown ' + IntToStr(i))
+      else
+        obj.a['c'][i] := BuildDef(fDef.FlagDef[i], fDef.Flags[i]);
+      //BuildChildDef(fDef.FlagDef[i] as IwbNamedDef, obj);
+    end;
+  end
+  // try IwbRecordDef                         1
+  else if Supports(def, IwbRecordDef, recDef) then
+  begin
+    if recDef.MemberCount = 0 then
+      exit;
     obj.O['c'] := SA([]);
     for i := 0 to Pred(recDef.MemberCount) do
       BuildChildDef(recDef.Members[i] as IwbNamedDef, obj);
   end
   // try IwbUnionDef
-  else if Supports(def, IwbUnionDef, unionDef) then begin
-    if unionDef.MemberCount = 0 then exit;
+  else if Supports(def, IwbUnionDef, unionDef) then
+  begin
+    if unionDef.MemberCount = 0 then
+      exit;
     obj.O['c'] := SA([]);
     for i := 0 to Pred(unionDef.MemberCount) do
       BuildChildDef(unionDef.Members[i] as IwbNamedDef, obj);
   end
   // try IwbStructDef
-  else if Supports(def, IwbStructDef, structDef) then begin
-    if structDef.MemberCount = 0 then exit;
+  else if Supports(def, IwbStructDef, structDef) then
+  begin
+    if structDef.MemberCount = 0 then
+      exit;
     obj.O['c'] := SA([]);
     for i := 0 to Pred(structDef.MemberCount) do
       BuildChildDef(structDef.Members[i] as IwbNamedDef, obj);
   end
   // try IwbIntegerDefFormaterUnion
-  else if Supports(def, IwbIntegerDefFormaterUnion, intDef) then begin
-    if intDef.MemberCount = 0 then exit;
+  else if Supports(def, IwbIntegerDefFormaterUnion, intDef) then
+  begin
+    if intDef.MemberCount = 0 then
+      exit;
     obj.O['c'] := SA([]);
     for i := 0 to Pred(intDef.MemberCount) do
       BuildChildDef(intDef.Members[i] as IwbNamedDef, obj);
   end
   // try IwbSubRecordArrayDef
-  else if Supports(def, IwbSubRecordArrayDef, sraDef) then begin
+  else if Supports(def, IwbSubRecordArrayDef, sraDef) then
+  begin
     obj.O['c'] := SA([]);
-    BuildChildDef(sraDef.Element as IwbNamedDef, obj);
+    BuildChildDef(sraDef.element as IwbNamedDef, obj);
   end
   // try IwbArrayDef
-  else if Supports(def, IwbArrayDef, aDef) then begin
+  else if Supports(def, IwbArrayDef, aDef) then
+  begin
+    if aDef.ElementCount = 0 then
+      exit;
     obj.O['c'] := SA([]);
-    BuildChildDef(aDef.Element as IwbNamedDef, obj);
+    for i := 0 to Pred(aDef.ElementCount) do
+      AddDefIfMissing(obj, aDef.element as IwbNamedDef, aDef.ElementLabel[i]);
   end;
 end;
 
@@ -1444,30 +1685,34 @@ begin
   // release object if something goes wrong
   Result := SO;
   try
-    Result.S['n'] := name;
-    Result.I['t'] := Ord(SmashType(def));
+    Result.s['n'] := name;
+    Result.i['t'] := Ord(SmashType(def));
     BuildChildDefs(Result, def);
   except
-    on x: Exception do begin
+    on x: Exception do
+    begin
       Result._Release;
       raise x;
     end;
   end;
 end;
 
-function BuildRecordDef(sName: string; mrDef: IwbRecordDef; out recObj: ISuperObject): boolean; overload;
+function BuildRecordDef(sName: string; mrDef: IwbRecordDef;
+  out recObj: ISuperObject): boolean; overload;
 var
   i: Integer;
 begin
   recObj := SO;
   try
-    recObj.S['n'] := sName;
-    recObj.I['t'] := Ord(stRecord);
+    recObj.s['n'] := sName;
+    recObj.i['t'] := Ord(stRecord);
     recObj.O['c'] := SA([]);
+    BuildChildDef(mrDef.RecordHeaderStruct as IwbNamedDef, recObj);
     for i := 0 to Pred(mrDef.MemberCount) do
       BuildChildDef(mrDef.Members[i] as IwbNamedDef, recObj);
   except
-    on x: Exception do begin
+    on x: Exception do
+    begin
       recObj._Release;
       raise x;
     end;
@@ -1514,45 +1759,49 @@ end;
 procedure PopulateAddList(var AddItem: TMenuItem; Event: TNotifyEvent);
 var
   i: Integer;
-  RecordDef: PwbRecordDef;
+  RecordDef: PwbMainRecordDef;
   item: TMenuItem;
 begin
   // populate wbGroupOrder to additem
-  with TStringList.Create do try
-    Sorted := True;
-    Duplicates := dupIgnore;
+  with TStringList.Create do
+    try
+      Sorted := true;
+      Duplicates := dupIgnore;
 
-    // initialize list contents
-    AddStrings(wbGroupOrder);
-    Sorted := False;
+      // initialize list contents
+      AddStrings(wbGroupOrder);
+      Sorted := false;
 
-    // get record def names, if available
-    for i := Pred(Count) downto 0 do
-      if wbFindRecordDef(AnsiString(Strings[i]), RecordDef) then
-        Strings[i] := Strings[i] + ' - ' + RecordDef.Name
-      else
-        Delete(i);
+      // get record def names, if available
+      for i := Pred(Count) downto 0 do
+        if wbFindRecordDef(AnsiString(Strings[i]), RecordDef) then
+          Strings[i] := Strings[i] + ' - ' + RecordDef.name
+        else
+          Delete(i);
 
-    // populate menu items
-    for i := 0 to Pred(Count) do begin
-      if Length(Strings[i]) < 4 then
-        continue;
-      item := TMenuItem.Create(AddItem);
-      item.Caption := Strings[i];
-      item.OnClick := Event;
-      AddItem.Add(item);
+      // populate menu items
+      for i := 0 to Pred(Count) do
+      begin
+        if Length(Strings[i]) < 4 then
+          continue;
+        item := TMenuItem.Create(AddItem);
+        item.Caption := Strings[i];
+        item.OnClick := Event;
+        AddItem.Add(item);
+      end;
+    finally
+      Free;
     end;
-  finally
-    Free;
-  end;
 end;
 
 initialization
+
 begin
   PluginsList := TList.Create;
 end;
 
 finalization
+
 begin
   FreeList(PluginsList);
 end;

@@ -18,6 +18,7 @@ type
     appIDs: string;
     bsaOptMode: string;
   end;
+
   TSettings = class(TObject)
   public
     [IniSection('General')]
@@ -39,6 +40,9 @@ type
     logMessageTemplate: string;
     preserveTempPath: boolean;
     allowTagging: boolean;
+    flagESL: boolean;
+    smashGhosts: boolean;
+    multiThreadedSmash: boolean;
     smashSound: boolean;
     [IniSection('Patching')]
     patchDirectory: string;
@@ -55,6 +59,7 @@ type
     preserveITPOs: boolean;
     constructor Create; virtual;
   end;
+
   TStatistics = class(TObject)
   public
     [IniSection('Statistics')]
@@ -65,35 +70,37 @@ type
     recsSubmitted: integer;
     constructor Create; virtual;
   end;
+
   TProfile = class(TObject)
   public
     name: string;
-    gameMode: Integer;
+    gameMode: integer;
     gamePath: string;
     constructor Create(name: string); virtual;
     procedure Clone(p: TProfile);
     procedure Delete;
     procedure Rename(name: string);
   end;
+
   TProgramStatus = class(TObject)
   public
     bInitException, bLoadException, bChangeProfile, bForceTerminate,
-    bLoaderDone, bInstallUpdate, bUpdatePatchStatus, bClose: boolean;
-    GameMode: TGameMode;
+      bLoaderDone, bInstallUpdate, bUpdatePatchStatus, bClose: boolean;
+    gameMode: TGameMode;
     Version: String;
     constructor Create; virtual;
   end;
 
-  procedure DeleteTempPath;
-  procedure LoadLanguage;
-  function GetLanguageString(name: string): string;
-  procedure SaveProfile(var p: TProfile);
-  procedure LoadSettings; overload;
-  function LoadSettings(path: string): TSettings; overload;
-  procedure SaveSettings; overload;
-  procedure SaveSettings(var s: TSettings; path: string); overload;
-  procedure LoadStatistics;
-  procedure SaveStatistics;
+procedure DeleteTempPath;
+procedure LoadLanguage;
+function GetLanguageString(name: string): string;
+procedure SaveProfile(var p: TProfile);
+procedure LoadSettings; overload;
+function LoadSettings(path: string): TSettings; overload;
+procedure SaveSettings; overload;
+procedure SaveSettings(var s: TSettings; path: string); overload;
+procedure LoadStatistics;
+procedure SaveStatistics;
 
 var
   settings: TSettings;
@@ -107,26 +114,30 @@ const
   bTranslationDump = false;
 
   // GAME MODES
-  GameArray: array[1..6] of TGameMode = (
-    ( longName: 'Skyrim'; gameName: 'Skyrim'; gameMode: gmTES5;
-      regName: 'Skyrim'; appName: 'TES5'; exeName: 'TESV.exe'; appIDs: '72850';
-      bsaOptMode: 'sk'; ),
-    ( longName: 'Oblivion'; gameName: 'Oblivion'; gameMode: gmTES4;
-      regName: 'Oblivion'; appName: 'TES4'; exeName: 'Oblivion.exe';
-      appIDs: '22330,900883'; bsaOptMode: 'ob'; ),
-    ( longName: 'Fallout New Vegas'; gameName: 'FalloutNV'; gameMode: gmFNV;
-      regName: 'FalloutNV'; appName: 'FNV'; exeName: 'FalloutNV.exe';
-      appIDs: '22380,2028016'; bsaOptMode: 'fo'; ),
-    ( longName: 'Fallout 3'; gameName: 'Fallout3'; gameMode: gmFO3;
-      regName: 'Fallout3'; appName: 'FO3'; exeName: 'Fallout3.exe';
-      appIDs: '22300,22370'; bsaOptMode: 'fo'; ),
-    ( longName: 'Fallout 4'; gameName: 'Fallout4'; gameMode: gmFO4;
-      regName: 'Fallout4'; appName: 'FO4'; exeName: 'Fallout4.exe';
-      appIDs: '377160'; bsaOptMode: ''; ),
-    ( longName: 'Skyrim Special Edition'; gameName: 'Skyrim'; gameMode: gmSSE;
-      regName: 'Skyrim Special Edition'; appName: 'SSE';
-      exeName: 'SkyrimSE.exe'; appIDs: '489830'; bsaOptMode: ''; )
-  );
+  GameArray: array [1 .. 9] of TGameMode = ((longName: 'Skyrim';
+    gameName: 'Skyrim'; gameMode: gmTES5; regName: 'Skyrim'; appName: 'TES5';
+    exeName: 'TESV.exe'; appIDs: '72850'; bsaOptMode: 'sk';
+    ), (longName: 'Oblivion'; gameName: 'Oblivion'; gameMode: gmTES4;
+    regName: 'Oblivion'; appName: 'TES4'; exeName: 'Oblivion.exe';
+    appIDs: '22330,900883'; bsaOptMode: 'ob';), (longName: 'Fallout New Vegas';
+    gameName: 'FalloutNV'; gameMode: gmFNV; regName: 'FalloutNV';
+    appName: 'FNV'; exeName: 'FalloutNV.exe'; appIDs: '22380,2028016';
+    bsaOptMode: 'fo';), (longName: 'Fallout 3'; gameName: 'Fallout3';
+    gameMode: gmFO3; regName: 'Fallout3'; appName: 'FO3';
+    exeName: 'Fallout3.exe'; appIDs: '22300,22370'; bsaOptMode: 'fo';
+    ), (longName: 'Fallout 4'; gameName: 'Fallout4'; gameMode: gmFO4;
+    regName: 'Fallout4'; appName: 'FO4'; exeName: 'Fallout4.exe';
+    appIDs: '377160'; bsaOptMode: '';), (longName: 'Skyrim Special Edition';
+    gameName: 'Skyrim'; gameMode: gmSSE; regName: 'Skyrim Special Edition';
+    appName: 'SSE'; exeName: 'SkyrimSE.exe'; appIDs: '489830'; bsaOptMode: '';
+    ), (longName: 'Skyrim VR'; gameName: 'Skyrim'; gameMode: gmTES5VR;
+    regName: 'Skyrim VR'; appName: 'TES5VR'; exeName: 'SkyrimVR.exe';
+    appIDs: '611670'; bsaOptMode: '';), (longName: 'Enderal';
+    gameName: 'Skyrim'; gameMode: gmEnderal; regName: 'Enderal';
+    appName: 'Enderal'; exeName: 'TESV.exe'; appIDs: '933480'; bsaOptMode: 'sk';
+    ), (longName: 'Enderal Special Edition'; gameName: 'Skyrim';
+    gameMode: gmSSE; regName: 'Enderal Special Edition'; appName: 'EnderalSE';
+    exeName: 'SkyrimSE.exe'; appIDs: '976620'; bsaOptMode: '';));
 
 implementation
 
@@ -200,7 +211,7 @@ end;
 { TProgramStatus }
 constructor TProgramStatus.Create;
 begin
-  bInitException  := false;
+  bInitException := false;
   bLoadException := false;
   bChangeProfile := false;
   bForceTerminate := false;
@@ -218,26 +229,31 @@ end;
 
 procedure LoadLanguage;
 const
-  langFile = 'http://raw.githubusercontent.com/matortheeternal/smash/master/frontend/lang/english.lang';
-  directions = 'Your english.lang file is missing.  Please download it from GitHub.  ' +
-    'After you click OK, a webpage with the file will be opened.  Right-click the ' +
-    'page and choose "Save page as", then save it as english.lang in the "lang\" ' +
-    'folder where you have MatorSmash.exe installed.';
-  accessMessage = 'It looks like Smash doesn''t have permission to read files ' +
-    'from disk.  Try running the program as administrator or disabling your antivirus.';
+  langFile =
+    'http://raw.githubusercontent.com/matortheeternal/smash/master/frontend/lang/english.lang';
+  directions =
+    'Your english.lang file is missing.  Please download it from GitHub.  ' +
+    'After you click OK, a webpage with the file will be opened.  Right-click the '
+    + 'page and choose "Save page as", then save it as english.lang in the "lang\" '
+    + 'folder where you have MatorSmash.exe installed.';
+  accessMessage = 'It looks like Smash doesn''t have permission to read files '
+    + 'from disk.  Try running the program as administrator or disabling your antivirus.';
 var
   filename: string;
 begin
   filename := Format('lang\%s.lang', [settings.language]);
   language := TStringList.Create;
-  if (not FileExists(filename)) then begin
-    if settings.language <> 'english' then begin
+  if (not FileExists(filename)) then
+  begin
+    if settings.language <> 'english' then
+    begin
       settings.language := 'english';
       LoadLanguage;
     end
     else if not FileExists('MatorSmash.exe') then
       MessageDlg(accessMessage, mtConfirmation, [mbOk], 0)
-    else begin
+    else
+    begin
       MessageDlg(directions, mtConfirmation, [mbOk], 0);
       ForceDirectories(PathList.Values['ProgramPath'] + 'lang\');
       ShellExecute(0, 'open', PChar(langFile), '', '', SW_SHOWNORMAL);
@@ -250,7 +266,8 @@ end;
 function GetLanguageString(name: string): string;
 begin
   if language.Values[name] <> '' then
-    Result := StringReplace(language.Values[name], '#13#10', #13#10, [rfReplaceAll])
+    Result := StringReplace(language.Values[name], '#13#10', #13#10,
+      [rfReplaceAll])
   else
     Result := name;
 end;
@@ -261,13 +278,15 @@ var
   pSettings: TSettings;
 begin
   // get profile path
-  path := PathList.Values['ProgramPath'] + 'profiles\' + p.name + '\settings.ini';
+  path := PathList.Values['ProgramPath'] + 'profiles\' + p.name +
+    '\settings.ini';
   ForceDirectories(ExtractFilePath(path));
 
   // load settings if they exist, else create them
   if FileExists(path) then
     pSettings := LoadSettings(path)
-  else begin
+  else
+  begin
     pSettings := TSettings.Create;
     pSettings.patchDirectory := p.gamePath + 'Data\';
   end;
@@ -328,12 +347,14 @@ begin
 end;
 
 initialization
+
 begin
   ProgramStatus := TProgramStatus.Create;
   PathList := TStringList.Create;
 end;
 
 finalization
+
 begin
   ProgramStatus.Free;
   PathList.Free;

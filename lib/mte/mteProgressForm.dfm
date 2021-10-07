@@ -39,6 +39,7 @@ object ProgressForm: TProgressForm
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 0
+    WordWrap = False
   end
   object DetailsButton: TButton
     Left = 428

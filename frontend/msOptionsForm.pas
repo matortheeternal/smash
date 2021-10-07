@@ -8,63 +8,63 @@ uses
   // mte units
   mteHelpers, RttiTranslation,
   // mp units
-  msConfiguration;
+  msConfiguration, System.ImageList;
 
 type
   TOptionsForm = class(TForm)
     [FormPrefix('mpOpt')]
-      SettingsPageControl: TPageControl;
-      btnCancel: TButton;
-      btnOK: TButton;
-      IconList: TImageList;
-      [FormSection('General Tab')]
-        GeneralTabSheet: TTabSheet;
-        gbLanguage: TGroupBox;
-        lblLanguage: TLabel;
-        gbStyle: TGroupBox;
-        kbSimpleDictionary: TCheckBox;
-        kbSimplePlugins: TCheckBox;
-        [FormSection('DontTranslate')]
-          cbLanguage: TComboBox;
-      [FormSection('Patching Tab')]
-        PatchingTabSheet: TTabSheet;
-        gbGeneral: TGroupBox;
-        edPatchDirectory: TEdit;
-        lblDestinationDirectory: TLabel;
-        btnBrowsePatchDirectory: TSpeedButton;
-        gbDebug: TGroupBox;
-        kbDebugPatchStatus: TCheckBox;
-        kbDebugMasters: TCheckBox;
-        kbDebugArrays: TCheckBox;
-        kbDebugSkips: TCheckBox;
-        kbDebugTraversal: TCheckBox;
-        kbDebugTypes: TCheckBox;
-        kbDebugChanges: TCheckBox;
-        kbDebugSingle: TCheckBox;
-        kbDebugLinks: TCheckBox;
-        gbOther: TGroupBox;
-        kbBuildRefs: TCheckBox;
-        kbPreserveITPOs: TCheckBox;
-      [FormSection('Advanced Tab')]
-        AdvancedTabSheet: TTabSheet;
-        lblCurrentProfile: TLabel;
-        gbLogging: TGroupBox;
-        lblClientColor: TLabel;
-        cbClientColor: TColorBox;
-        lblGeneralColor: TLabel;
-        cbGeneralColor: TColorBox;
-        lblLoadColor: TLabel;
-        cbLoadColor: TColorBox;
-        lblPluginColor: TLabel;
-        cbPluginColor: TColorBox;
-        lblErrorColor: TLabel;
-        cbErrorColor: TColorBox;
-        lblTemplate: TLabel;
-        meTemplate: TMemo;
-        lblSample: TLabel;
-        [FormSection('DontTranslate')]
-          lblCurrentProfileName: TLabel;
-          lblSampleValue: TLabel;
+    SettingsPageControl: TPageControl;
+    btnCancel: TButton;
+    btnOK: TButton;
+    IconList: TImageList;
+    [FormSection('General Tab')]
+    GeneralTabSheet: TTabSheet;
+    gbLanguage: TGroupBox;
+    lblLanguage: TLabel;
+    gbStyle: TGroupBox;
+    kbSimpleDictionary: TCheckBox;
+    kbSimplePlugins: TCheckBox;
+    [FormSection('DontTranslate')]
+    cbLanguage: TComboBox;
+    [FormSection('Patching Tab')]
+    PatchingTabSheet: TTabSheet;
+    gbGeneral: TGroupBox;
+    edPatchDirectory: TEdit;
+    lblDestinationDirectory: TLabel;
+    btnBrowsePatchDirectory: TSpeedButton;
+    gbDebug: TGroupBox;
+    kbDebugPatchStatus: TCheckBox;
+    kbDebugMasters: TCheckBox;
+    kbDebugArrays: TCheckBox;
+    kbDebugSkips: TCheckBox;
+    kbDebugTraversal: TCheckBox;
+    kbDebugTypes: TCheckBox;
+    kbDebugChanges: TCheckBox;
+    kbDebugSingle: TCheckBox;
+    kbDebugLinks: TCheckBox;
+    gbOther: TGroupBox;
+    kbBuildRefs: TCheckBox;
+    kbPreserveITPOs: TCheckBox;
+    [FormSection('Advanced Tab')]
+    AdvancedTabSheet: TTabSheet;
+    lblCurrentProfile: TLabel;
+    gbLogging: TGroupBox;
+    lblClientColor: TLabel;
+    cbClientColor: TColorBox;
+    lblGeneralColor: TLabel;
+    cbGeneralColor: TColorBox;
+    lblLoadColor: TLabel;
+    cbLoadColor: TColorBox;
+    lblPluginColor: TLabel;
+    cbPluginColor: TColorBox;
+    lblErrorColor: TLabel;
+    cbErrorColor: TColorBox;
+    lblTemplate: TLabel;
+    meTemplate: TMemo;
+    lblSample: TLabel;
+    [FormSection('DontTranslate')]
+    lblCurrentProfileName: TLabel;
+    lblSampleValue: TLabel;
 
     procedure FormCreate(Sender: TObject);
     procedure LoadLanguageOptions;
@@ -95,7 +95,8 @@ end;
 procedure TOptionsForm.btnOKClick(Sender: TObject);
 begin
   // check if we need to update patch status afterwards
-  ProgramStatus.bUpdatePatchStatus := settings.patchDirectory <> edPatchDirectory.Text;
+  ProgramStatus.bUpdatePatchStatus := settings.patchDirectory <>
+    edPatchDirectory.Text;
 
   // General > Language
   settings.language := cbLanguage.Text;
@@ -119,10 +120,10 @@ begin
   settings.preserveITPOs := kbPreserveITPOs.Checked;
 
   // Advanced > Logging
-  settings.clientMessageColor := cbClientColor.Selected ;
+  settings.clientMessageColor := cbClientColor.Selected;
   settings.generalMessageColor := cbGeneralColor.Selected;
   settings.loadMessageColor := cbLoadColor.Selected;
-  //settings.patchMessageColor := cbPatchColor.Selected;
+  // settings.patchMessageColor := cbPatchColor.Selected;
   settings.pluginMessageColor := cbPluginColor.Selected;
   settings.errorMessageColor := cbErrorColor.Selected;
   settings.logMessageTemplate := meTemplate.Lines.Text;
@@ -215,7 +216,7 @@ begin
   cbClientColor.Selected := TColor(settings.clientMessageColor);
   cbGeneralColor.Selected := TColor(settings.generalMessageColor);
   cbLoadColor.Selected := TColor(settings.loadMessageColor);
-  //cbPatchColor.Selected := TColor(settings.patchMessageColor);
+  // cbPatchColor.Selected := TColor(settings.patchMessageColor);
   cbPluginColor.Selected := TColor(settings.pluginMessageColor);
   cbErrorColor.Selected := TColor(settings.errorMessageColor);
   meTemplate.Lines.Text := settings.logMessageTemplate;

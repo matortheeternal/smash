@@ -111,7 +111,8 @@ end;
 
 procedure TTagManager.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  if ModalResult = mrOK then begin
+  if ModalResult = mrOK then
+  begin
     plugin.description.Text := meDescription.Lines.Text;
     if kbCombine.Checked then
       plugin.GetSettingTag;

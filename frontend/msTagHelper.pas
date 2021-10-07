@@ -40,7 +40,8 @@ var
 begin
   slTags.Clear;
   if ModalResult = mrOK then
-    for i := 0 to Pred(CheckList.Items.Count) do begin
+    for i := 0 to Pred(CheckList.Items.Count) do
+    begin
       if CheckList.Checked[i] then
         slTags.Add(CheckList.Items[i]);
     end;
@@ -60,14 +61,16 @@ procedure TTagHelper.FormShow(Sender: TObject);
 begin
   // update lblPrompt
   case iMode of
-    -1: begin
-      Caption := GetLanguageString('msTagH_RemoveTags');
-      lblPrompt.Caption := GetLanguageString('msTagH_PromptRemove');
-    end;
-    1: begin
-      Caption := GetLanguageString('msTagH_AddTags');
-      lblPrompt.Caption := GetLanguageString('msTagH_PromptAdd');
-    end;
+    - 1:
+      begin
+        Caption := GetLanguageString('msTagH_RemoveTags');
+        lblPrompt.Caption := GetLanguageString('msTagH_PromptRemove');
+      end;
+    1:
+      begin
+        Caption := GetLanguageString('msTagH_AddTags');
+        lblPrompt.Caption := GetLanguageString('msTagH_PromptAdd');
+      end;
   end;
 
   // populate checklist

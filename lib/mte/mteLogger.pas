@@ -9,26 +9,29 @@ type
 
   TLogger = class
   private
-    FLogEvent : TLogEvent;
+    FLogEvent: TLogEvent;
   public
     procedure Write(const group, &label, text: string);
     property OnLogEvent: TLogEvent read FLogEvent write FLogEvent;
   end;
 
-var Logger : TLogger;
+var
+  Logger: TLogger;
 
 implementation
 
 procedure TLogger.Write(const group, &label, text: string);
 begin
- if Assigned(FLogEvent) then
-   FLogEvent(group, &label, text);
+  if Assigned(FLogEvent) then
+    FLogEvent(group, &label, text);
 end;
 
 initialization
- Logger := TLogger.Create;
+
+Logger := TLogger.Create;
 
 finalization
- FreeAndNil(Logger);
+
+FreeAndNil(Logger);
 
 end.

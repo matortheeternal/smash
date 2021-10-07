@@ -26,7 +26,7 @@ type
     function GetProfile: TProfile;
     procedure SetSelectCallback(callback: TNotifyEvent);
     procedure SetDeleteCallback(callback: TNotifyEvent);
-    procedure SetGame(i: integer);
+    procedure SetGame(i: Integer);
     procedure SetPath(path: string);
   private
     aProfile: TProfile;
@@ -54,30 +54,27 @@ type
 
 implementation
 
-
-{******************************************************************************}
+{ ****************************************************************************** }
 { TProfilePanel
   A GUI component for interacting with a profile.
 }
-{******************************************************************************}
+{ ****************************************************************************** }
 
 constructor TProfilePanel.ICreate(AOwner: TComponent; GameIcons: TImageList;
   GeneralIcons: TImageList; name: string);
 const
   GameItems = 'The Elder Scrolls V: Skyrim'#13#10 +
-              'The Elder Scrolls IV: Oblivion'#13#10 +
-              'Fallout: New Vegas'#13#10 +
-              'Fallout 3'#13#10 +
-              'Fallout 4'#13#10 +
-              'Skyrim: Special Edition';
+    'The Elder Scrolls IV: Oblivion'#13#10 + 'Fallout: New Vegas'#13#10 +
+    'Fallout 3'#13#10 + 'Fallout 4'#13#10 + 'Skyrim: Special Edition'#13#10 +
+    'Skyrim: VR'#13#10 + 'Enderal'#13#10 + 'Enderal: Special Edition';
 begin
   // set up panel
   inherited Create(AOwner);
   Parent := AOwner as TWinControl;
-  Width := (AOwner as TWinControl).ClientWidth;
+  width := (AOwner as TWinControl).ClientWidth;
   Height := 100;
   Left := 0;
-  Top := 0;
+  top := 0;
   ParentBackground := false;
   ParentColor := false;
   ParentDoubleBuffered := false;
@@ -89,9 +86,9 @@ begin
   aProfile := TProfile.Create(name);
   self.GameIcons := GameIcons;
   Selected := false;
-  ColorInvalid := $d8d8f0;
-  ColorValid := $d8f0d8;
-  ColorSelected := $f0e8d8;
+  ColorInvalid := $D8D8F0;
+  ColorValid := $D8F0D8;
+  ColorSelected := $F0E8D8;
 
   // create components
   GameImage := TImage.Create(self);
@@ -106,10 +103,10 @@ begin
 
   // set up GameImage
   GameImage.Parent := self;
-  GameImage.Top := 2;
+  GameImage.top := 2;
   GameImage.Left := 2;
   GameImage.Height := 96;
-  GameImage.Width := 96;
+  GameImage.width := 96;
   GameImage.Cursor := crDefault;
   GameImage.Transparent := true;
   GameImage.Align := alCustom;
@@ -117,7 +114,7 @@ begin
 
   // set up lblName
   lblName.Parent := self;
-  lblName.Top := 11;
+  lblName.top := 11;
   lblName.Left := 112;
   lblName.Caption := 'Name';
   lblName.Align := alCustom;
@@ -125,7 +122,7 @@ begin
 
   // set up lblGame
   lblGame.Parent := self;
-  lblGame.Top := 38;
+  lblGame.top := 38;
   lblGame.Left := 112;
   lblGame.Caption := 'Game';
   lblGame.Align := alCustom;
@@ -133,7 +130,7 @@ begin
 
   // set up lblPath
   lblPath.Parent := self;
-  lblPath.Top := 65;
+  lblPath.top := 65;
   lblPath.Left := 112;
   lblPath.Caption := 'Path';
   lblPath.Align := alCustom;
@@ -141,18 +138,18 @@ begin
 
   // set up edName
   edName.Parent := self;
-  edName.Top := 8;
+  edName.top := 8;
   edName.Left := 177;
-  edName.Width := 227;
+  edName.width := 227;
   edName.Text := name;
   edName.Align := alCustom;
   edName.Anchors := [akLeft, akTop];
 
   // set up cbGame
   cbGame.Parent := self;
-  cbGame.Top := 35;
+  cbGame.top := 35;
   cbGame.Left := 177;
-  cbGame.Width := 227;
+  cbGame.width := 227;
   cbGame.Style := csDropDownList;
   cbGame.Items.Text := GameItems;
   cbGame.ItemIndex := 0;
@@ -161,17 +158,17 @@ begin
 
   // set up edPath
   edPath.Parent := self;
-  edPath.Top := 62;
+  edPath.top := 62;
   edPath.Left := 177;
-  edPath.Width := 227;
+  edPath.width := 227;
   edPath.Align := alCustom;
   edPath.Anchors := [akLeft, akTop];
 
   // set up btnBrowse
   btnBrowse.Parent := self;
-  btnBrowse.Top := 61;
+  btnBrowse.top := 61;
   btnBrowse.Left := 410;
-  btnBrowse.Width := 22;
+  btnBrowse.width := 22;
   btnBrowse.Height := 23;
   btnBrowse.Flat := true;
   btnBrowse.Transparent := true;
@@ -181,9 +178,9 @@ begin
 
   // set up btnDelete
   btnDelete.Parent := self;
-  btnDelete.Top := 4;
+  btnDelete.top := 4;
   btnDelete.Left := 410;
-  btnDelete.Width := 22;
+  btnDelete.width := 22;
   btnDelete.Height := 23;
   btnDelete.Flat := true;
   btnDelete.Transparent := true;
@@ -226,9 +223,14 @@ end;
 { EVENT HANDLING }
 procedure TProfilePanel.ToggleSelect(Sender: TObject);
 begin
-  if Cursor = crHandPoint then begin
-    if Selected then Deselect else Select;
-    if Assigned(SelectCallback) then SelectCallback(self);
+  if Cursor = crHandPoint then
+  begin
+    if Selected then
+      Deselect
+    else
+      Select;
+    if Assigned(SelectCallback) then
+      SelectCallback(self);
   end;
 end;
 
@@ -257,13 +259,15 @@ end;
 
 procedure TProfilePanel.Delete(Sender: TObject);
 begin
-  if Assigned(DeleteCallback) then DeleteCallback(self);
+  if Assigned(DeleteCallback) then
+    DeleteCallback(self);
 end;
 
 procedure TProfilePanel.NameChanged(Sender: TObject);
 begin
   if FileNameValid(edName.Text) and
-  (not DirectoryExists(PathList.Values['ProgramPath'] + 'profiles\' + edName.Text)) then
+    (not DirectoryExists(PathList.Values['ProgramPath'] + 'profiles\' +
+    edName.Text)) then
     aProfile.Rename(edName.Text);
 end;
 
@@ -286,13 +290,15 @@ begin
   aProfile.gamePath := AppendIfMissing(edPath.Text, '\');
 
   // reflect validity in the GUI
-  if GamePathValid(aProfile.gamePath, aProfile.gameMode) then begin
+  if GamePathValid(aProfile.gamePath, aProfile.gamemode) then
+  begin
     Valid := true;
     Cursor := crHandPoint;
     GameImage.Cursor := crHandPoint;
     Color := ColorValid;
   end
-  else begin
+  else
+  begin
     Valid := false;
     Cursor := crDefault;
     GameImage.Cursor := crDefault;

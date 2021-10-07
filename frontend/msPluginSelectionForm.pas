@@ -44,7 +44,8 @@ var
   i: Integer;
 begin
   selectionList.Clear;
-  for i := 0 to Pred(CheckListBox.Items.Count) do begin
+  for i := 0 to Pred(CheckListBox.Items.Count) do
+  begin
     if CheckListBox.Checked[i] then
       selectionList.Add(CheckListBox.Items[i]);
   end;
@@ -57,16 +58,18 @@ var
   i: Integer;
 begin
   btnOK.Enabled := false;
-  for i := 0 to Pred(CheckListBox.Items.Count) do begin
-    if CheckListBox.Checked[i] then begin
+  for i := 0 to Pred(CheckListBox.Items.Count) do
+  begin
+    if CheckListBox.Checked[i] then
+    begin
       btnOK.Enabled := true;
       break;
     end;
   end;
 end;
 
-procedure TMiniPluginSelectionForm.CheckListBoxKeyUp(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
+procedure TMiniPluginSelectionForm.CheckListBoxKeyUp(Sender: TObject;
+  var Key: Word; Shift: TShiftState);
 begin
   CheckListBoxClick(nil);
 end;
@@ -76,7 +79,8 @@ var
   i, index: Integer;
 begin
   CheckListBox.Items.Text := pluginsList.Text;
-  for i := 0 to Pred(selectionList.Count) do begin
+  for i := 0 to Pred(selectionList.Count) do
+  begin
     index := pluginsList.IndexOf(selectionList[i]);
     if index > -1 then
       CheckListBox.Checked[index] := true;

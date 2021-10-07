@@ -14044,9 +14044,9 @@ object SplashForm: TSplashForm
   object lblAuthor: TLabel
     Left = 24
     Top = 168
-    Width = 93
+    Width = 133
     Height = 13
-    Caption = 'by matortheeternal'
+    Caption = 'created by matortheeternal'
     Color = clWhite
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
@@ -14084,6 +14084,21 @@ object SplashForm: TSplashForm
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
     Font.Height = -9
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentColor = False
+    ParentFont = False
+  end
+  object lblAuthor2: TLabel
+    Left = 24
+    Top = 181
+    Width = 92
+    Height = 13
+    Caption = 'v2 by chuckseven1'
+    Color = clWhite
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clBlack
+    Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentColor = False

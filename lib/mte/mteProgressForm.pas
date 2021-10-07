@@ -3,10 +3,12 @@ unit mteProgressForm;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Windows, Math, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls,
   // mte components
-  W7Taskbar, mteTracker;
+  W7Taskbar, mteTracker,
+  // third party
+  LoggerPro;
 
 type
   TProgressForm = class(TForm)
@@ -18,7 +20,6 @@ type
     procedure UpdateProgress(const i: Integer);
     procedure StatusMessage(const s: string);
     procedure Write(const s: string);
-    procedure SaveLog;
     procedure SetProgress(const i: Integer);
     procedure SetMaxProgress(const i: Integer);
     function GetProgress: Integer;
@@ -31,28 +32,38 @@ type
     procedure FormShow(Sender: TObject);
   private
     { Private declarations }
+    FLog: ILogWriter;
   public
-    bDetailsVisible: boolean;
-    pfLogPath: string;
+    bDetailsVisible: Boolean;
   end;
 
 implementation
 
+uses
+  {$IFDEF DEBUG}
+  // Only useful for us in debug builds?
+  LoggerPro.OutputDebugStringAppender,
+  {$ENDIF}
+  LoggerPro.VCLMemoAppender,
+  LoggerPro.FileAppender;
+
 var
-  lastHeight: integer;
+  lastHeight: Integer;
 
 {$R *.dfm}
 
 procedure TProgressForm.ToggleDetails(Sender: TObject);
 begin
   bDetailsVisible := not bDetailsVisible;
-  if bDetailsVisible then begin
+  if bDetailsVisible then
+  begin
     self.Height := lastHeight;
     DetailsMemo.Visible := true;
     DetailsButton.Caption := 'Hide details';
     DetailsMemo.Height := self.Height - 135;
   end
-  else begin
+  else
+  begin
     DetailsMemo.Visible := false;
     DetailsButton.Caption := 'Show details';
     lastHeight := self.Height;
@@ -80,8 +91,9 @@ end;
 procedure TProgressForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   CanClose := (fsModal in FormState);
-  //Tracker.Write('CanClose = '+BoolToStr(CanClose, true));
-  if not (CanClose or Tracker.Cancel) then begin
+  // Tracker.Write('CanClose = '+BoolToStr(CanClose, true));
+  if not(CanClose or Tracker.Cancel) then
+  begin
     Tracker.Write('Cancelling...');
     SetTaskbarProgressState(tbpsError);
     Tracker.Cancel := true;
@@ -101,16 +113,26 @@ begin
   Tracker.OnStatusEvent := StatusMessage;
   Tracker.OnGetEvent := GetProgress;
   Tracker.OnGetMaxEvent := GetMaxProgress;
+  FLog := BuildLogWriter([
+    {$IFDEF DEBUG}
+    // Only useful for us in debug builds?
+    TLoggerProOutputDebugStringAppender.Create(),
+    {$ENDIF}
+    TLoggerProFileAppender.Create(4, Floor(High(Integer) / 1024)),
+    TVCLMemoLogAppender.Create(DetailsMemo)
+  ]);
 end;
 
 procedure TProgressForm.FormShow(Sender: TObject);
 begin
-  if (fsModal in FormState) then begin
+  if (fsModal in FormState) then
+  begin
     CancelButton.Caption := 'Close';
     if not bDetailsVisible then
       ToggleDetails(nil);
   end
-  else if not bDetailsVisible then begin
+  else if not bDetailsVisible then
+  begin
     bDetailsVisible := false;
     DetailsMemo.Visible := false;
     DetailsButton.Caption := 'Show details';
@@ -146,19 +168,6 @@ begin
   SetTaskbarProgressValue(ProgressBar.Position, ProgressBar.Max);
 end;
 
-procedure TProgressForm.SaveLog;
-var
-  fdt: string;
-begin
-  try
-    ForceDirectories(pfLogPath);
-    fdt := FormatDateTime('mmddyy_hhnnss', TDateTime(Now));
-    DetailsMemo.Lines.SaveToFile(pfLogPath + 'log_'+fdt+'.txt');
-  except on Exception do
-    // nothing to do
-  end;
-end;
-
 procedure TProgressForm.StatusMessage(const s: string);
 begin
   ProgressLabel.Caption := s;
@@ -167,9 +176,8 @@ end;
 procedure TProgressForm.Write(const s: string);
 begin
   if Pos(' ', s) <> 1 then
-    ProgressLabel.Caption := s;
-  DetailsMemo.SelLength := 0;
-  DetailsMemo.Lines.Add(s);
+    StatusMessage(s);
+  FLog.Info(s, Tracker.Tag);
 end;
 
 end.

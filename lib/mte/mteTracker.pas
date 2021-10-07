@@ -20,6 +20,7 @@ type
     FStatusEvent : TLogEvent;
   public
     Cancel: boolean;
+    Tag: string;
     procedure SetMaxProgress(const i: integer);
     property OnSetMaxEvent: TUpdateEvent read FMaxEvent write FMaxEvent;
     procedure SetProgress(const i: integer);

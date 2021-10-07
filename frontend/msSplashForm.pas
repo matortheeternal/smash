@@ -17,6 +17,7 @@ type
     lblAuthor: TLabel;
     lblProgress: TLabel;
     lblVersion: TLabel;
+    lblAuthor2: TLabel;
     procedure ProgressMessage(const s: string);
     procedure FormCreate(Sender: TObject);
   private
@@ -34,14 +35,14 @@ implementation
 
 procedure TSplashForm.ProgressMessage(const s: string);
 begin
-  lblProgress.Caption := '  '+s;
+  lblProgress.Caption := '  ' + s;
   Application.ProcessMessages;
 end;
 
 procedure TSplashForm.FormCreate(Sender: TObject);
 begin
   Tracker.OnLogEvent := ProgressMessage;
-  lblVersion.Caption := 'v'+GetVersionMem;
+  lblVersion.Caption := 'v' + GetVersionMem;
 
   if settings.simpleSplash then
     lblProgress.GlowSize := 0;

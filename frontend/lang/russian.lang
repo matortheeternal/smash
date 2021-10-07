@@ -1,0 +1,182 @@
+{ TSmashForm }
+{ ## QuickBar ## }
+msMain_QuickButton_Hint=Быстрый патч|Применить Smash.All к загруженным плагинам и #13#10сгенерировать Smashed Patch.#13#10
+msMain_NewButton_Hint=Создать новый Smashed Patch|Создать новый пустой Smashed Patch.
+msMain_BuildButton_Hint=Собрать патчи|
+msMain_ManageButton_Hint=Управление настройками Smash|Нажмите здесь, чтобы управлять настройками Smash.
+msMain_OptionsButton_Hint=Параметры|Измените параметры, определяющие, как #13#10программа работает.#13#10
+{ #### DYNAMIC #### }
+msMain_NoPatches=Нет никаких патчей для сборки или пересборки.
+msMain_BuildPatches_Loader=Вы не можете строить патчи, пока фоновый #13#10загручик не загрузится.#13#10
+msMain_BuildAllPatches=Собирает все патчи, которые готовы к сборке или #13#10пересобирает.#13#10
+{ ## Main Panel ## }
+{ ## Details Panel ## }
+msMain_DetailsLabel_Caption=Детали
+msMain_DetailsCopyToClipboardItem_Caption=Скопировать в буфер обмена
+{ ## Plugins Tab ## }
+msMain_PluginsTabSheet_Caption=Плагины
+msMain_PluginsListView_Column0=Индекс
+msMain_PluginsListView_Column1=Имя файла
+msMain_PluginsListView_Column2=Настройка
+msMain_PluginsListView_Column3=Патч
+{ #### DYNAMIC #### }
+msMain_PluginDetails=Детали плагина
+msMain_Filename=Имя файла
+msMain_Hash=Хеш
+msMain_FileSize=Размер файла
+msMain_DateModified=Дата изменения
+msMain_NumRecords=Количество записей
+msMain_NumOverrides=Количество перезаписей
+msMain_Author=Автор
+msMain_Description=Описание
+msMain_Masters=Мастер-файлы
+msMain_ClearTags=Вы уверены, что хотите удалить теги из этих плагинов?
+{ ## Plugins Popup Menu ## }
+msMain_NewPatchItem_Caption=<New Patch>
+msMain_OpenPluginLocationItem_Caption=Открыть расположение плагина
+msMain_AddToPatchItem_Caption=Добавить в патч
+msMain_ManageTagsItem_Caption=Управление тегами
+msMain_SmashSettingItem_Caption=Настройки Smash
+{ ## Patches Tab ## }
+msMain_PatchesTabSheet_Caption=Патчи
+msMain_PatchesListView_Column0=Индекс
+msMain_PatchesListView_Column1=Имя
+msMain_PatchesListView_Column2=Имя файла
+msMain_PatchesListView_Column3=Размер
+msMain_PatchesListView_Column4=Дата создания
+{ #### DYNAMIC #### }
+msMain_PatchDetails=Детали патча
+msMain_Status=Статус
+msMain_PatchName=Название патча
+msMain_PluginCount=Количество плагинов
+msMain_DateBuilt=Дата создания
+msMain_Plugins=Плагины
+msMain_Fails=Ошибки
+msMain_TooManyFails=Слишком много ошибок для отображения.
+msMain_DeletePatches=Вы уверены, что хотите удалить эти патчи?
+{ ## Patches Popup Menu ## }
+msMain_ToggleRebuildItem_Caption=Переключить статус пересборки
+msMain_OpenInExplorerItem_Caption=Открыть в проводнике
+{ ## Plugins Submenu ## }
+msMain_MoveItem_Caption=Переместить
+msMain_UpItem_Caption=Вверх
+msMain_DownItem_Caption=вниз
+msMain_ToTopItem_Caption=К началу
+msMain_ToBottomItem_Caption=К концу
+{ #### DYNAMIC #### }
+msMain_BuildPatch=Собрать патч
+msMain_RebuildPatch=Пересобрать патч
+msMain_BuildPatches=Собрать патчи
+msMain_RebuildPatches=Пересобрать патчи
+{ ## Log Tab ## }
+msMain_LogTabSheet_Caption=Лог
+{ #### DYNAMIC #### }
+msMain_AppDetails=Детали приложения
+msMain_Application=Приложение
+msMain_Author=Автор
+msMain_Version=Версия
+msMain_DateBuilt=Дата создания
+msMain_GameMode=Режим игры
+msMain_Language=Язык
+msMain_TimesRun=Раз запущено
+msMain_PatchesBuilt=Создано патчей
+msMain_PluginsSmashed=Плагинов пропатчено
+msMain_SettingsSubmitted=Настройки Smash отправлены
+msMain_RecsSubmitted=Представленные рекомендации
+msMain_Website=Веб-сайт
+msMain_ApiCredits=Кредиты API
+msMain_xEditVersion=Версия xEdit
+msMain_xEditCredits=Кредиты xEdit
+msMain_Testers=Тестеры
+msMain_Translators=Переводчики
+msMain_LoadException=Исключение загрузки плагинов
+msMain_PluginsNotLoaded=В связи с исключением, не все ваши плагины #13#10были загружены.  Вы все еще можете использовать программу. #13#10См. вкладку лога для получения дополнительной информации.#13#10
+msMain_Enable=Включить
+msMain_Disable=Выключить
+msMain_AutoScroll=Автопрокрутка
+{ ## Log Popup Menu ## }
+msMain_FilterGroupItem_Caption=Группа фильтров
+msMain_FilterLabelItem_Caption=Filter label
+msMain_CopyToClipboardItem_Caption=Скопировать
+msMain_SaveAndClearItem_Caption=Сохранить и очистить
+msMain_ToggleAutoScrollItem_Caption=Отключить автопрокрутку
+ 
+{ TOptionsForm }
+mpOpt_btnCancel_Caption=Отмена
+mpOpt_btnOK_Caption=OK
+{ ## General Tab ## }
+mpOpt_GeneralTabSheet_Caption=Основные
+mpOpt_gbLanguage_Caption=Язык
+mpOpt_lblLanguage_Caption=Выбранный язык
+mpOpt_gbStyle_Caption=Стиль
+mpOpt_kbSimpleDictionary_Caption=Простой просмотр словаря
+mpOpt_kbSimplePlugins_Caption=Простой сисок плагинов
+{ ## Patching Tab ## }
+mpOpt_PatchingTabSheet_Caption=Патчинг
+mpOpt_lblDestinationDirectory_Caption=Каталог назначения патча
+mpOpt_gbDebug_Caption=Отладка
+mpOpt_gbOther_Caption=Остальные опции
+{ ## Advanced Tab ## }
+mpOpt_AdvancedTabSheet_Caption=Дополнительно
+mpOpt_lblCurrentProfile_Caption=Выбранный профиль
+mpOpt_gbLogging_Caption=Логирование (создание логов)
+mpOpt_lblClientColor_Caption=Client
+mpOpt_lblGeneralColor_Caption=Основные
+mpOpt_lblLoadColor_Caption=Загрузка
+mpOpt_lblPluginColor_Caption=Плагин
+mpOpt_lblErrorColor_Caption=Ошибки
+mpOpt_lblTemplate_Caption=Образец
+mpOpt_lblSample_Caption=Пример
+ 
+{ TSettingsManager }
+{ ## Settings ## }
+msSet_gbFiltering_Caption=Параметры фильтрации
+msSet_lvSettings_Column0=Имя
+msSet_lvSettings_Column1=Записи
+msSet_btnSave_Caption=Сохранить
+msSet_btnDiscard_Caption=Отменить
+{ ## Settings Popup Menu ## }
+msSet_NewSettingItem_Caption=Новая настройка
+msSet_CloneSettingItem_Caption=Скопировать настройку
+msSet_CombineSettingsItem_Caption=Скомбинировать настройки
+msSet_EditSettingItem_Caption=Редактировать настройку
+msSet_DeleteSettingItem_Caption=Удалить настройку
+{ ## Details ## }
+msSet_lblName_Caption=Название
+msSet_lblColor_Caption=Цвет
+msSet_lblDescription_Caption=Описание
+msSet_lblTree_Caption=Дерево
+{ ## Tree Popup Menu ## }
+msSet_ToggleNodesItem_Caption=Toggle Nodes
+msSet_IgnoreDeletionsItem_Caption=Toggle ignore deletions
+msSet_SingleEntityItem_Caption=Toggle treat as single entity
+msSet_PruneNodesItem_Caption=Prune nodes
+msSet_PreserveDeletionsItem_Caption=Toggle preserve deletions
+
+{ TTagManager }
+msTagM_Caption=Manage Tags - %s
+{ ## General ## }
+msTagM_lblDescription_Caption=Описание
+msTagM_btnAdd_Caption=Добавить теги
+msTagM_btnRemove_Caption=Удалить теги
+msTagM_btnClear_Caption=Очистить теги
+msTagM_btnReset_Caption=Сбросить теги
+msTagM_btnApply_Caption=Применить
+msTagM_btnCancel_Caption=Отмена
+msTagM_kbCombine_Caption=Применить скомбинированную настройку
+
+{ TTagHelper }
+msTagH_btnCancel_Caption=Отмена
+msTagH_btnOK_Caption=OK
+{ #### DYNAMIC #### }
+msTagH_AddTags=Добавить теги
+msTagH_RemoveTags=Удалить теги
+msTagH_PromptAdd=Отметьте теги, которые хотите добавить
+msTagH_PromptRemove=Отметьте теги, которые хотите удалить
+
+{ TProgressForm }
+{ #### DYNAMIC #### }
+msProg_Closing=Закрытие
+msProg_Smashing=Создание патча
+msProg_DoneBuilding=Создание патча закончено
+msProg_BuildingTree=Создание дерево
